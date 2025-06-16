@@ -37,7 +37,9 @@
             <div class="flex justify-between h-16">
               <div class="flex items-center">
                 <a class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
-                   href="{% url 'home' %}">SimLane</a>
+                   href="{% url 'home' %}">
+                  <img src="{% static 'images/logo.svg' %}" alt="SimLane" class="h-10" />
+                </a>
               </div>
               <!-- Desktop Navigation -->
               <div class="hidden md:flex items-center space-x-8">

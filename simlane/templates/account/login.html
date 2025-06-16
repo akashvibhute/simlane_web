@@ -31,8 +31,9 @@
     {% /form %}
   {% endif %}
   {% if LOGIN_BY_CODE_ENABLED %}
-    <div class="divider divider-neutral"></div>
-    <a href="{{ request_login_code_url }}" class="btn btn-neutral">{% trans "Mail me a sign-in code" %}</a>
+    <div class="border-t border-gray-200 my-6"></div>
+    <a href="{{ request_login_code_url }}"
+       class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% trans "Mail me a sign-in code" %}</a>
   {% endif %}
   {% if SOCIALACCOUNT_ENABLED %}
     {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}

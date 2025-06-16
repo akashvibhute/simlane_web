@@ -4,9 +4,9 @@
   <span class="label-text">{{ field.label }}</span>
 </label>
 {% if field.errors %}
-  {% render_field field placeholder="" class="w-full input input-bordered text-primary input-error" %}
+  {% render_field field placeholder="" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500" %}
 {% else %}
-  {% render_field field placeholder="" class="w-full input input-bordered border-gray-300 text-primary" %}
+  {% render_field field placeholder="" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900" %}
 {% endif %}
 {% for error in field.errors %}
   <span class="flex items-center max-w-xs mt-1 ml-1 text-xs font-medium tracking-wide text-error">{{ error }}</span>

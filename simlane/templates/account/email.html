@@ -37,16 +37,28 @@
       {% endfor %}
     </div>
     <div class="flex flex-col mt-3 gap-1.5 ">
-      <button name="action_primary" type="submit" class="btn btn-primary">{% trans "Make Primary" %}</button>
-      <button name="action_send" type="submit" class="btn btn-secondary">{% trans "Re-send verification" %}</button>
-      <button name="action_remove" type="submit" class="btn btn-warning">{% trans "Remove" %}</button>
+      <button name="action_primary"
+              type="submit"
+              class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        {% trans "Make Primary" %}
+      </button>
+      <button name="action_send"
+              type="submit"
+              class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+        {% trans "Re-send verification" %}
+      </button>
+      <button name="action_remove"
+              type="submit"
+              class="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
+        {% trans "Remove" %}
+      </button>
     </div>
     {% /form %}
   {% else %}
     {% include "account/snippets/warn_no_email.html" %}
   {% endif %}
   {% if can_add_email %}
-    <div class="divider"></div>
+    <div class="border-t border-gray-200 my-6"></div>
     <h2 class="py-3 text-lg">{% trans "Add Email Address" %}</h2>
     {% trans "Add Email" as button_text %}
     {% #form form=form url=action_url button_text=button_text use_default_button="false" %}

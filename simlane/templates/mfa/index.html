@@ -14,18 +14,18 @@
         <div>
           <a href="{% url "mfa_activate_totp" %}"
              role="button"
-             class="my-3 btn btn-warning">{% translate "Deactivate" %}</a>
+             class="my-3 inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">{% translate "Deactivate" %}</a>
         </div>
       </p>
     {% else %}
       <p class="my-2">{% translate "An authenticator app is not active." %}</p>
       <a href="{% url "mfa_activate_totp" %}"
          role="button"
-         class="btn btn-neutral">{% translate "Activate" %}</a>
+         class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Activate" %}</a>
     {% endif %}
   {% endif %}
   {% if "webauthn" in MFA_SUPPORTED_TYPES %}
-    <div class="divider divider-neutral"></div>
+    <div class="border-t border-gray-200 my-6"></div>
     <h2 class="mt-6 mb-3 text-lg">{% translate "Security Keys" %}</h2>
     {% if authenticators.webauthn|length %}
       <p class="my-2">
@@ -33,16 +33,16 @@
       </p>
       <a href="{% url "mfa_list_webauthn" %}"
          role="button"
-         class="btn btn-neutral">{% translate "Manage" %}</a>
+         class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Manage" %}</a>
     {% else %}
       <p class="my-2">{% translate "No security keys have been added." %}</p>
       <a href="{% url "mfa_add_webauthn" %}"
          role="button"
-         class="btn btn-neutral">{% translate "Add" %}</a>
+         class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Add" %}</a>
     {% endif %}
   {% endif %}
   {% if "recovery_codes" in MFA_SUPPORTED_TYPES %}
-    <div class="divider divider-neutral"></div>
+    <div class="border-t border-gray-200 my-6"></div>
     {% with total_count=authenticators.recovery_codes.generate_codes|length unused_count=authenticators.recovery_codes.get_unused_codes|length %}
       <h2 class="mt-6 mb-3 text-lg">{% translate "Recovery Codes" %}</h2>
       <p>
@@ -58,15 +58,15 @@
             {% if unused_count > 0 %}
               <a href="{% url "mfa_view_recovery_codes" %}"
                  role="button"
-                 class="btn btn-neutral">{% translate "View" %}</a>
+                 class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "View" %}</a>
               <a href="{% url "mfa_download_recovery_codes" %}"
                  role="button"
-                 class="btn btn-neutral">{% translate "Download" %}</a>
+                 class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Download" %}</a>
             {% endif %}
           {% endif %}
           <a href="{% url "mfa_generate_recovery_codes" %}"
              role="button"
-             class="btn btn-neutral">{% translate "Generate" %}</a>
+             class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Generate" %}</a>
         </div>
       {% endif %}
     {% endwith %}
