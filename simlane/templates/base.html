@@ -25,76 +25,104 @@
     ================================================== -->
     {# Placed at the top of the document so pages load faster with defer #}
     {% block javascript %}
-      <!-- Vendor dependencies bundled as one file -->
-      {% render_bundle 'vendors' 'js' attrs='defer' %}
       <!-- place project specific Javascript in this file -->
       {% render_bundle 'project' 'js' attrs='defer' %}
     {% endblock javascript %}
   </head>
-  <body class="{% block bodyclass %}{% endblock bodyclass %}">
+  <body class="{% block bodyclass %}bg-gray-50 min-h-screen{% endblock bodyclass %}">
     {% block body %}
-      <div class="mb-1">
-        <nav class="navbar navbar-expand-md navbar-light bg-light">
-          <div class="container-fluid">
-            <button class="navbar-toggler navbar-toggler-right"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#navbarSupportedContent"
-                    aria-controls="navbarSupportedContent"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation">
-              <span class="navbar-toggler-icon"></span>
-            </button>
-            <a class="navbar-brand" href="{% url 'home' %}">SimLane</a>
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
-              <ul class="navbar-nav mr-auto">
-                <li class="nav-item active">
-                  <a class="nav-link" href="{% url 'home' %}">Home <span class="visually-hidden">(current)</span></a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="{% url 'about' %}">About</a>
-                </li>
+      <div class="mb-4">
+        <nav class="bg-white shadow-sm border-b border-gray-200">
+          <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+              <div class="flex items-center">
+                <a class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
+                   href="{% url 'home' %}">SimLane</a>
+              </div>
+              <!-- Desktop Navigation -->
+              <div class="hidden md:flex items-center space-x-8">
+                <a class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+                   href="{% url 'home' %}">Home</a>
+                <a class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+                   href="{% url 'about' %}">About</a>
                 {% if request.user.is_authenticated %}
-                  <li class="nav-item">
-                    <a class="nav-link"
-                       href="{% url 'users:detail' request.user.username %}">{% translate "My Profile" %}</a>
-                  </li>
-                  <li class="nav-item">
-                    {# URL provided by django-allauth/account/urls.py #}
-                    <a class="nav-link" href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
-                  </li>
+                  <a class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+                     href="{% url 'users:detail' request.user.username %}">{% translate "My Profile" %}</a>
+                  <a class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                     href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
                 {% else %}
                   {% if ACCOUNT_ALLOW_REGISTRATION %}
-                    <li class="nav-item">
-                      {# URL provided by django-allauth/account/urls.py #}
-                      <a id="sign-up-link" class="nav-link" href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
-                    </li>
+                    <a id="sign-up-link"
+                       class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
+                       href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
                   {% endif %}
-                  <li class="nav-item">
-                    {# URL provided by django-allauth/account/urls.py #}
-                    <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
-                  </li>
+                  <a id="log-in-link"
+                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                     href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
                 {% endif %}
-              </ul>
+              </div>
+              <!-- Mobile menu button -->
+              <div class="md:hidden flex items-center">
+                <button type="button"
+                        class="text-gray-500 hover:text-gray-600 focus:outline-none focus:text-gray-600 p-2"
+                        onclick="toggleMobileMenu()"
+                        aria-label="Toggle navigation">
+                  <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <!-- Mobile Navigation -->
+            <div id="mobile-menu" class="md:hidden hidden pb-4">
+              <div class="space-y-2">
+                <a class="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-medium"
+                   href="{% url 'home' %}">Home</a>
+                <a class="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-medium"
+                   href="{% url 'about' %}">About</a>
+                {% if request.user.is_authenticated %}
+                  <a class="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-medium"
+                     href="{% url 'users:detail' request.user.username %}">{% translate "My Profile" %}</a>
+                  <a class="block px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md font-medium"
+                     href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
+                {% else %}
+                  {% if ACCOUNT_ALLOW_REGISTRATION %}
+                    <a id="sign-up-link-mobile"
+                       class="block px-3 py-2 text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md font-medium"
+                       href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
+                  {% endif %}
+                  <a id="log-in-link-mobile"
+                     class="block px-3 py-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md font-medium"
+                     href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
+                {% endif %}
+              </div>
             </div>
           </div>
         </nav>
       </div>
-      <div class="container">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {% if messages %}
-          {% for message in messages %}
-            <div class="alert alert-dismissible {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-              {{ message }}
-              <button type="button"
-                      class="btn-close"
-                      data-bs-dismiss="alert"
-                      aria-label="Close"></button>
-            </div>
-          {% endfor %}
+          <div class="mb-6 space-y-4">
+            {% for message in messages %}
+              <div class="relative px-4 py-3 rounded-md border {% if message.tags == 'success' %}bg-green-50 border-green-200 text-green-800{% elif message.tags == 'error' %}bg-red-50 border-red-200 text-red-800{% elif message.tags == 'warning' %}bg-yellow-50 border-yellow-200 text-yellow-800{% elif message.tags == 'info' %}bg-blue-50 border-blue-200 text-blue-800{% else %}bg-gray-50 border-gray-200 text-gray-800{% endif %}">
+                {{ message }}
+                <button type="button"
+                        class="absolute top-2 right-2 text-current opacity-50 hover:opacity-75"
+                        onclick="this.parentElement.remove()"
+                        aria-label="Close">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            {% endfor %}
+          </div>
         {% endif %}
         {% block main %}
           {% block content %}
-            <p>Use this document as a way to quick start any new project.</p>
+            <div class="text-center py-12">
+              <p class="text-lg text-gray-600">Use this document as a way to quick start any new project.</p>
+            </div>
           {% endblock content %}
         {% endblock main %}
       </div>
@@ -103,6 +131,12 @@
     {% block modal %}
     {% endblock modal %}
     {% block inline_javascript %}
+      <script>
+        function toggleMobileMenu() {
+          const menu = document.getElementById('mobile-menu');
+          menu.classList.toggle('hidden');
+        }
+      </script>
       {% comment %}
     Script tags with only code, no src (defer by default). To run
     with a "defer" so that you run inline code:

@@ -7,7 +7,6 @@ module.exports = {
   context: path.join(__dirname, '../'),
   entry: {
     project: path.resolve(__dirname, '../simlane/static/js/project'),
-    vendors: path.resolve(__dirname, '../simlane/static/js/vendors'),
   },
   output: {
     path: path.resolve(__dirname, '../simlane/static/webpack_bundles/'),
@@ -38,7 +37,12 @@ module.exports = {
             loader: 'postcss-loader',
             options: {
               postcssOptions: {
-                plugins: ['postcss-preset-env', 'autoprefixer', 'pixrem'],
+                plugins: [
+                  'postcss-preset-env',
+                  'autoprefixer',
+                  'pixrem',
+                  '@tailwindcss/postcss',
+                ],
               },
             },
           },

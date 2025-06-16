@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+@source '../templates/**/*.html';
+@source '../js/**/*.js';
+@source '../../**/*.py';
+
+/* Safelist classes used in Django template tags that Tailwind can't detect */
+@source inline("w-full input input-bordered text-primary border-gray-300 form-control form-input form-select form-textarea btn btn-primary control-group controls");
+
+@theme {
+  /* Custom theme configuration can be added here */
+  /* Example:
+  --color-brand-500: #3b82f6;
+  --font-display: "Inter", sans-serif;
+  --breakpoint-3xl: 1920px;
+  */
+}

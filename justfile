@@ -1,4 +1,4 @@
-export COMPOSE_FILE := "docker-compose.local.yml"
+export COMPOSE_FILE := "docker-compose.yml"
 
 ## Just does not yet manage signals for subprocesses reliably, which can lead to unexpected behavior.
 ## Exercise caution before expanding its usage in production environments.
@@ -17,7 +17,7 @@ build:
 # up: Start up containers.
 up:
     @echo "Starting up containers..."
-    @docker compose up -d --remove-orphans
+    @docker compose up --remove-orphans
 
 # down: Stop containers.
 down:

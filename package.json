@@ -4,10 +4,8 @@
   "devDependencies": {
     "@babel/core": "^7.16.5",
     "@babel/preset-env": "^7.16.5",
-    "@popperjs/core": "^2.10.2",
     "autoprefixer": "^10.4.0",
     "babel-loader": "^10.0.0",
-    "bootstrap": "^5.2.3",
     "css-loader": "^7.1.2",
     "mini-css-extract-plugin": "^2.4.5",
     "node-sass-tilde-importer": "^1.0.2",
@@ -37,5 +35,10 @@
   "scripts": {
     "dev": "webpack serve --config webpack/dev.config.js",
     "build": "webpack --config webpack/prod.config.js"
+  },
+  "dependencies": {
+    "@tailwindcss/node": "^4.1.10",
+    "@tailwindcss/postcss": "^4.1.10",
+    "tailwindcss": "^4.1.10"
   }
 }
