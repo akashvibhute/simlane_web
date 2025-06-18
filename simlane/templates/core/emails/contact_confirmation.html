@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Thank you for contacting {{ site_name }}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .header {
+        background-color: #2563eb;
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .content {
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+
+      .info-box {
+        background-color: white;
+        padding: 15px;
+        margin: 10px 0;
+        border-left: 4px solid #10b981;
+      }
+
+      .label {
+        font-weight: bold;
+        color: #555;
+      }
+
+      .value {
+        margin-left: 10px;
+      }
+
+      .message-summary {
+        background-color: #f0f9ff;
+        padding: 15px;
+        margin: 15px 0;
+        border: 1px solid #bfdbfe;
+        border-radius: 5px;
+      }
+
+      .footer {
+        text-align: center;
+        color: #666;
+        font-size: 12px;
+        margin-top: 30px;
+      }
+
+      .contact-info {
+        background-color: white;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Thank You!</h1>
+        <p>{{ site_name }}</p>
+      </div>
+      <div class="content">
+        <p>Hi {{ message.name }},</p>
+        <p>Thank you for contacting {{ site_name }}! We've received your message and will respond within 24-48 hours.</p>
+        <div class="message-summary">
+          <h3>Your Message Summary:</h3>
+          <div>
+            <span class="label">Subject:</span><span class="value">{{ message.get_subject_display }}</span>
+          </div>
+          {% if message.platform %}
+            <div>
+              <span class="label">Racing Platform:</span><span class="value">{{ message.get_platform_display }}</span>
+            </div>
+          {% endif %}
+          <div>
+            <span class="label">Submitted:</span><span class="value">{{ message.created_at|date:"F j, Y g:i A" }}</span>
+          </div>
+          <div style="margin-top: 10px;">
+            <span class="label">Message:</span>
+            <div style="margin-top: 5px;
+                        padding: 10px;
+                        background-color: white;
+                        border-radius: 3px">{{ message.message|linebreaks|truncatewords:50 }}</div>
+          </div>
+        </div>
+        <div class="info-box">
+          <h3>What happens next?</h3>
+          <ul>
+            <li>Our team will review your message within 24-48 hours</li>
+            <li>You'll receive a personalized response at {{ message.email }}</li>
+            <li>For urgent technical issues, we typically respond within 12 hours</li>
+            {% if message.subject == 'support' %}
+              <li>
+                For support requests, please include your racing platform username in your next message if you haven't already
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+        <div class="contact-info">
+          <h3>Need immediate assistance?</h3>
+          <p>For urgent matters, you can also reach us at:</p>
+          <ul>
+            <li>
+              <strong>Email:</strong> hello@simlane.app
+            </li>
+            <li>
+              <strong>Discord:</strong> Join our community server
+            </li>
+            <li>
+              <strong>Support:</strong> support@simlane.app (for technical issues)
+            </li>
+          </ul>
+        </div>
+        <p>Thanks again for choosing {{ site_name }} for your sim racing needs!</p>
+        <p>
+          Best regards,
+          <br />
+          The {{ site_name }} Team
+        </p>
+      </div>
+      <div class="footer">
+        <p>This is an automated confirmation email from {{ site_name }}.</p>
+        <p>
+          Please do not reply to this email. If you need to add more information to your inquiry, please submit a new message through our contact form.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

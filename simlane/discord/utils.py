@@ -54,7 +54,7 @@ def link_discord_guild_to_club(guild_id: str, club_id: str) -> DiscordGuild | No
         return None
 
 
-def get_club_for_guild(guild_id: str) -> Optional["Club"]:
+def get_club_for_guild(guild_id: str):
     """Get the racing club associated with a Discord guild"""
     try:
         guild = DiscordGuild.objects.get(guild_id=guild_id)

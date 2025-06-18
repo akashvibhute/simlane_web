@@ -14,6 +14,18 @@ urlpatterns = [
         TemplateView.as_view(template_name="pages/about.html"),
         name="about",
     ),
+    path(
+        "privacy/",
+        TemplateView.as_view(template_name="pages/privacy.html"),
+        name="privacy",
+    ),
+    path(
+        "terms/",
+        TemplateView.as_view(template_name="pages/terms.html"),
+        name="terms",
+    ),
+    # Core app (contact form, etc.)
+    path("", include("simlane.core.urls", namespace="core")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),
     # User management

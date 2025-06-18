@@ -1,6 +1,6 @@
 {% load static i18n %}
 {% load render_bundle from webpack_loader %}
-
+{% load django_htmx %}
 <!DOCTYPE html>
 {% get_current_language as LANGUAGE_CODE %}
 <html lang="{{ LANGUAGE_CODE }}">
@@ -23,13 +23,13 @@
       {% render_bundle 'project' 'js' attrs='defer' %}
     {% endblock javascript %}
   </head>
-  <body class="{% block bodyclass %}bg-gray-50 min-h-screen flex flex-col{% endblock bodyclass %}">
+  <body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}' class="{% block bodyclass %}bg-gray-50 min-h-screen flex flex-col{% endblock bodyclass %}">
     {% block body %}
       <div class="flex-grow flex flex-col">
         <div class="mb-4">
           <nav class="bg-white shadow-sm border-b border-gray-200">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div class="flex justify-between h-16">
+              <div class="flex justify-between h-14">
                 <div class="flex items-center">
                   <a class="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors"
                      href="{% url 'home' %}">
@@ -45,7 +45,7 @@
                   {% if request.user.is_authenticated %}
                     <a class="text-gray-700 hover:text-blue-600 transition-colors font-medium"
                        href="{% url 'users:detail' request.user.username %}">{% translate "My Profile" %}</a>
-                    <a class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                    <a class="bg-red-600 hover:bg-red-700 text-white px-4 py-4 rounded-md text-sm font-medium transition-colors"
                        href="{% url 'account_logout' %}">{% translate "Sign Out" %}</a>
                   {% else %}
                     {% if ACCOUNT_ALLOW_REGISTRATION %}
@@ -54,7 +54,7 @@
                          href="{% url 'account_signup' %}">{% translate "Sign Up" %}</a>
                     {% endif %}
                     <a id="log-in-link"
-                       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-4 rounded-md text-sm font-medium transition-colors"
                        href="{% url 'account_login' %}">{% translate "Sign In" %}</a>
                   {% endif %}
                 </div>
@@ -207,11 +207,11 @@
               <p class="text-gray-500 text-sm">SimLane. All rights reserved.</p>
               <div class="mt-4 md:mt-0">
                 <div class="flex space-x-6">
-                  <a href="#"
+                  <a href="{% url 'privacy' %}"
                      class="text-gray-500 hover:text-blue-600 transition-colors text-sm">Privacy Policy</a>
-                  <a href="#"
+                  <a href="{% url 'terms' %}"
                      class="text-gray-500 hover:text-blue-600 transition-colors text-sm">Terms of Service</a>
-                  <a href="#"
+                  <a href="{% url 'core:contact' %}"
                      class="text-gray-500 hover:text-blue-600 transition-colors text-sm">Contact</a>
                 </div>
               </div>

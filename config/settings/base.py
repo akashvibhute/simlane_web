@@ -84,10 +84,12 @@ THIRD_PARTY_APPS = [
     "webpack_loader",
     "widget_tweaks",
     "slippers",
+    "django_htmx",
 ]
 
 LOCAL_APPS = [
     "simlane.users",
+    "simlane.core",
     "simlane.sim",
     "simlane.teams",
     "simlane.iracing",
@@ -147,6 +149,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
