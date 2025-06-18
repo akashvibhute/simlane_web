@@ -11,9 +11,17 @@ from typing import Any
 from celery import shared_task
 from django.utils import timezone
 
-from .services import iracing_service
+from simlane.iracing.services import IRacingServiceError
+from simlane.iracing.services import iracing_service
 
 logger = logging.getLogger(__name__)
+
+
+def _ensure_service_available() -> None:
+    """Ensure iRacing service is available or raise custom error."""
+    if not iracing_service.is_available():
+        msg = "iRacing service not available"
+        raise IRacingServiceError(msg)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
@@ -28,14 +36,13 @@ def fetch_member_summary(self, cust_id: int | None = None) -> dict[str, Any]:
         Dict containing member summary data or error information.
     """
     try:
-        logger.info(f"Fetching member summary for customer ID: {cust_id}")
+        logger.info("Fetching member summary for customer ID: %s", cust_id)
 
-        if not iracing_service.is_available():
-            raise Exception("iRacing service not available")
+        _ensure_service_available()
 
         data = iracing_service.get_member_summary(cust_id=cust_id)
 
-        logger.info(f"Successfully fetched member summary for customer ID: {cust_id}")
+        logger.info("Successfully fetched member summary for customer ID: %s", cust_id)
         return {
             "success": True,
             "data": data,
@@ -44,12 +51,12 @@ def fetch_member_summary(self, cust_id: int | None = None) -> dict[str, Any]:
         }
 
     except Exception as exc:
-        logger.error(f"Error fetching member summary for {cust_id}: {exc}")
+        logger.exception("Error fetching member summary for %s", cust_id)
 
         # Retry on certain exceptions
         if self.request.retries < self.max_retries:
-            logger.info(f"Retrying task in {self.default_retry_delay} seconds...")
-            raise self.retry(exc=exc)
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
 
         return {
             "success": False,
@@ -71,14 +78,13 @@ def fetch_member_recent_races(self, cust_id: int | None = None) -> dict[str, Any
         Dict containing recent race results or error information.
     """
     try:
-        logger.info(f"Fetching recent races for customer ID: {cust_id}")
+        logger.info("Fetching recent races for customer ID: %s", cust_id)
 
-        if not iracing_service.is_available():
-            raise Exception("iRacing service not available")
+        _ensure_service_available()
 
         data = iracing_service.get_member_recent_races(cust_id=cust_id)
 
-        logger.info(f"Successfully fetched recent races for customer ID: {cust_id}")
+        logger.info("Successfully fetched recent races for customer ID: %s", cust_id)
         return {
             "success": True,
             "data": data,
@@ -87,11 +93,11 @@ def fetch_member_recent_races(self, cust_id: int | None = None) -> dict[str, Any
         }
 
     except Exception as exc:
-        logger.error(f"Error fetching recent races for {cust_id}: {exc}")
+        logger.exception("Error fetching recent races for %s", cust_id)
 
         if self.request.retries < self.max_retries:
-            logger.info(f"Retrying task in {self.default_retry_delay} seconds...")
-            raise self.retry(exc=exc)
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
 
         return {
             "success": False,
@@ -112,8 +118,7 @@ def fetch_series_data(self) -> dict[str, Any]:
     try:
         logger.info("Fetching series data")
 
-        if not iracing_service.is_available():
-            raise Exception("iRacing service not available")
+        _ensure_service_available()
 
         data = iracing_service.get_series()
 
@@ -125,11 +130,11 @@ def fetch_series_data(self) -> dict[str, Any]:
         }
 
     except Exception as exc:
-        logger.error(f"Error fetching series data: {exc}")
+        logger.exception("Error fetching series data")
 
         if self.request.retries < self.max_retries:
-            logger.info(f"Retrying task in {self.default_retry_delay} seconds...")
-            raise self.retry(exc=exc)
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
 
         return {
             "success": False,
@@ -149,8 +154,7 @@ def fetch_cars_data(self) -> dict[str, Any]:
     try:
         logger.info("Fetching cars data")
 
-        if not iracing_service.is_available():
-            raise Exception("iRacing service not available")
+        _ensure_service_available()
 
         data = iracing_service.get_cars()
 
@@ -162,11 +166,11 @@ def fetch_cars_data(self) -> dict[str, Any]:
         }
 
     except Exception as exc:
-        logger.error(f"Error fetching cars data: {exc}")
+        logger.exception("Error fetching cars data")
 
         if self.request.retries < self.max_retries:
-            logger.info(f"Retrying task in {self.default_retry_delay} seconds...")
-            raise self.retry(exc=exc)
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
 
         return {
             "success": False,
@@ -186,8 +190,7 @@ def fetch_tracks_data(self) -> dict[str, Any]:
     try:
         logger.info("Fetching tracks data")
 
-        if not iracing_service.is_available():
-            raise Exception("iRacing service not available")
+        _ensure_service_available()
 
         data = iracing_service.get_tracks()
 
@@ -199,11 +202,11 @@ def fetch_tracks_data(self) -> dict[str, Any]:
         }
 
     except Exception as exc:
-        logger.error(f"Error fetching tracks data: {exc}")
+        logger.exception("Error fetching tracks data")
 
         if self.request.retries < self.max_retries:
-            logger.info(f"Retrying task in {self.default_retry_delay} seconds...")
-            raise self.retry(exc=exc)
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
 
         return {
             "success": False,
@@ -224,14 +227,13 @@ def fetch_subsession_data(self, subsession_id: int) -> dict[str, Any]:
         Dict containing subsession data or error information.
     """
     try:
-        logger.info(f"Fetching subsession data for ID: {subsession_id}")
+        logger.info("Fetching subsession data for ID: %s", subsession_id)
 
-        if not iracing_service.is_available():
-            raise Exception("iRacing service not available")
+        _ensure_service_available()
 
         data = iracing_service.get_subsession_data(subsession_id=subsession_id)
 
-        logger.info(f"Successfully fetched subsession data for ID: {subsession_id}")
+        logger.info("Successfully fetched subsession data for ID: %s", subsession_id)
         return {
             "success": True,
             "data": data,
@@ -240,11 +242,11 @@ def fetch_subsession_data(self, subsession_id: int) -> dict[str, Any]:
         }
 
     except Exception as exc:
-        logger.error(f"Error fetching subsession data for {subsession_id}: {exc}")
+        logger.exception("Error fetching subsession data for %s", subsession_id)
 
         if self.request.retries < self.max_retries:
-            logger.info(f"Retrying task in {self.default_retry_delay} seconds...")
-            raise self.retry(exc=exc)
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
 
         return {
             "success": False,
@@ -273,10 +275,9 @@ def fetch_series_search_results(
         Dict containing search results or error information.
     """
     try:
-        logger.info(f"Searching series results for {season_year} Q{season_quarter}")
+        logger.info("Searching series results for %s Q%s", season_year, season_quarter)
 
-        if not iracing_service.is_available():
-            raise Exception("iRacing service not available")
+        _ensure_service_available()
 
         data = iracing_service.search_series_results(
             season_year=season_year,
@@ -285,7 +286,9 @@ def fetch_series_search_results(
         )
 
         logger.info(
-            f"Successfully fetched series search results for {season_year} Q{season_quarter}",
+            "Successfully fetched series search results for %s Q%s",
+            season_year,
+            season_quarter,
         )
         return {
             "success": True,
@@ -297,13 +300,15 @@ def fetch_series_search_results(
         }
 
     except Exception as exc:
-        logger.error(
-            f"Error searching series results for {season_year} Q{season_quarter}: {exc}",
+        logger.exception(
+            "Error searching series results for %s Q%s",
+            season_year,
+            season_quarter,
         )
 
         if self.request.retries < self.max_retries:
-            logger.info(f"Retrying task in {self.default_retry_delay} seconds...")
-            raise self.retry(exc=exc)
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
 
         return {
             "success": False,

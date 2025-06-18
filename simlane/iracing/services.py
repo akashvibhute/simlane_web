@@ -15,6 +15,10 @@ from iracingdataapi.client import irDataClient
 logger = logging.getLogger(__name__)
 
 
+class IRacingServiceError(Exception):
+    """Custom exception for iRacing service errors."""
+
+
 class IRacingAPIService:
     """
     Service class for interacting with the iRacing Data API.
@@ -40,8 +44,8 @@ class IRacingAPIService:
                 password=settings.IRACING_PASSWORD,
             )
             logger.info("iRacing API client initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize iRacing API client: {e}")
+        except Exception:
+            logger.exception("Failed to initialize iRacing API client")
             self.client = None
 
     def is_available(self) -> bool:
@@ -60,13 +64,15 @@ class IRacingAPIService:
             Dict containing member summary data
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.stats_member_summary(cust_id=cust_id)
         except Exception as e:
-            logger.error(f"Error fetching member summary for {cust_id}: {e}")
-            raise
+            logger.exception("Error fetching member summary for %s", cust_id)
+            msg = f"Failed to fetch member summary for {cust_id}"
+            raise IRacingServiceError(msg) from e
 
     def get_member_recent_races(self, cust_id: int | None = None) -> dict[str, Any]:
         """
@@ -79,13 +85,15 @@ class IRacingAPIService:
             Dict containing recent race results
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.stats_member_recent_races(cust_id=cust_id)
         except Exception as e:
-            logger.error(f"Error fetching recent races for {cust_id}: {e}")
-            raise
+            logger.exception("Error fetching recent races for %s", cust_id)
+            msg = f"Failed to fetch recent races for {cust_id}"
+            raise IRacingServiceError(msg) from e
 
     def get_member_yearly_stats(self, cust_id: int | None = None) -> dict[str, Any]:
         """
@@ -98,13 +106,15 @@ class IRacingAPIService:
             Dict containing yearly statistics
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.stats_member_yearly(cust_id=cust_id)
         except Exception as e:
-            logger.error(f"Error fetching yearly stats for {cust_id}: {e}")
-            raise
+            logger.exception("Error fetching yearly stats for %s", cust_id)
+            msg = f"Failed to fetch yearly stats for {cust_id}"
+            raise IRacingServiceError(msg) from e
 
     # Series and Events Methods
     def get_series(self) -> dict[str, Any]:
@@ -115,13 +125,15 @@ class IRacingAPIService:
             Dict containing series data
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.get_series()
         except Exception as e:
-            logger.error(f"Error fetching series data: {e}")
-            raise
+            logger.exception("Error fetching series data")
+            msg = "Failed to fetch series data"
+            raise IRacingServiceError(msg) from e
 
     def search_series_results(
         self,
@@ -141,7 +153,8 @@ class IRacingAPIService:
             Dict containing search results
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.result_search_series(
@@ -150,8 +163,9 @@ class IRacingAPIService:
                 **kwargs,
             )
         except Exception as e:
-            logger.error(f"Error searching series results: {e}")
-            raise
+            logger.exception("Error searching series results")
+            msg = "Failed to search series results"
+            raise IRacingServiceError(msg) from e
 
     # Car and Track Methods
     def get_cars(self) -> dict[str, Any]:
@@ -162,13 +176,15 @@ class IRacingAPIService:
             Dict containing car data
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.cars
         except Exception as e:
-            logger.error(f"Error fetching cars data: {e}")
-            raise
+            logger.exception("Error fetching cars data")
+            msg = "Failed to fetch cars data"
+            raise IRacingServiceError(msg) from e
 
     def get_tracks(self) -> dict[str, Any]:
         """
@@ -178,13 +194,15 @@ class IRacingAPIService:
             Dict containing track data
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.tracks
         except Exception as e:
-            logger.error(f"Error fetching tracks data: {e}")
-            raise
+            logger.exception("Error fetching tracks data")
+            msg = "Failed to fetch tracks data"
+            raise IRacingServiceError(msg) from e
 
     # Session Data Methods
     def get_result_lap_data(self, subsession_id: int, cust_id: int) -> dict[str, Any]:
@@ -199,7 +217,8 @@ class IRacingAPIService:
             Dict containing lap data
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.result_lap_data(
@@ -207,10 +226,16 @@ class IRacingAPIService:
                 cust_id=cust_id,
             )
         except Exception as e:
-            logger.error(
-                f"Error fetching lap data for session {subsession_id}, driver {cust_id}: {e}",
+            logger.exception(
+                "Error fetching lap data for session %s, driver %s",
+                subsession_id,
+                cust_id,
             )
-            raise
+            msg = (
+                f"Failed to fetch lap data for session {subsession_id}, "
+                f"driver {cust_id}"
+            )
+            raise IRacingServiceError(msg) from e
 
     def get_subsession_data(self, subsession_id: int) -> dict[str, Any]:
         """
@@ -223,13 +248,15 @@ class IRacingAPIService:
             Dict containing subsession data
         """
         if not self.is_available():
-            raise Exception("iRacing API client not available")
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
 
         try:
             return self.client.subsession_data(subsession_id=subsession_id)
         except Exception as e:
-            logger.error(f"Error fetching subsession data for {subsession_id}: {e}")
-            raise
+            logger.exception("Error fetching subsession data for %s", subsession_id)
+            msg = f"Failed to fetch subsession data for {subsession_id}"
+            raise IRacingServiceError(msg) from e
 
 
 # Global service instance

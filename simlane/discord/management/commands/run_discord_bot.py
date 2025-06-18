@@ -30,20 +30,20 @@ class SimlaneBot(commands.Bot):
 
     async def on_ready(self):
         """Called when the bot is ready"""
-        logger.info(f"{self.user} has connected to Discord!")
-        logger.info(f"Bot is in {len(self.guilds)} guilds")
+        logger.info("%s has connected to Discord!", self.user)
+        logger.info("Bot is in %s guilds", len(self.guilds))
 
         # Sync guild information
         await self.sync_guilds()
 
     async def on_guild_join(self, guild):
         """Called when bot joins a new guild"""
-        logger.info(f"Joined guild: {guild.name} ({guild.id})")
+        logger.info("Joined guild: %s (%s)", guild.name, guild.id)
         await self.create_or_update_guild(guild)
 
     async def on_guild_remove(self, guild):
         """Called when bot leaves a guild"""
-        logger.info(f"Left guild: {guild.name} ({guild.id})")
+        logger.info("Left guild: %s (%s)", guild.name, guild.id)
         await self.deactivate_guild(guild.id)
 
     @sync_to_async
@@ -77,7 +77,7 @@ class SimlaneBot(commands.Bot):
         self,
         ctx,
         command_name,
-        success=True,
+        success=True,  # noqa: FBT002
         error_message="",
         arguments=None,
     ):
@@ -96,7 +96,7 @@ class SimlaneBot(commands.Bot):
                 error_message=error_message,
             )
         except DiscordGuild.DoesNotExist:
-            logger.warning(f"Could not log command {command_name} - guild not found")
+            logger.warning("Could not log command %s - guild not found", command_name)
 
     async def sync_guilds(self):
         """Sync all current guilds with database"""
@@ -239,12 +239,18 @@ async def link_account(ctx):
     if social_account:
         embed = discord.Embed(
             title="Account Already Linked! ✅",
-            description=f"Your Discord account is already linked to **{social_account.user.username}**",
+            description=(
+                f"Your Discord account is already linked to "
+                f"**{social_account.user.username}**"
+            ),
             color=discord.Color.green(),
         )
         embed.add_field(
             name="Profile",
-            value=f"Username: {social_account.user.username}\nEmail: {social_account.user.email}",
+            value=(
+                f"Username: {social_account.user.username}\n"
+                f"Email: {social_account.user.email}"
+            ),
             inline=False,
         )
     else:
@@ -254,17 +260,30 @@ async def link_account(ctx):
 
         embed = discord.Embed(
             title="Link Your Discord Account 🔗",
-            description="Link your Discord account to your Simlane profile to access all features!",
+            description=(
+                "Link your Discord account to your Simlane profile to "
+                "access all features!"
+            ),
             color=discord.Color.blue(),
         )
         embed.add_field(
             name="How to Link",
-            value=f"1. Go to [Simlane Login]({login_url})\n2. Click 'Login with Discord'\n3. Authorize the connection\n4. You're all set!",
+            value=(
+                f"1. Go to [Simlane Login]({login_url})\n"
+                "2. Click 'Login with Discord'\n"
+                "3. Authorize the connection\n"
+                "4. You're all set!"
+            ),
             inline=False,
         )
         embed.add_field(
             name="Benefits",
-            value="• Access your racing data\n• Join club events\n• Track your progress\n• Get personalized recommendations",
+            value=(
+                "• Access your racing data\n"
+                "• Join club events\n"
+                "• Track your progress\n"
+                "• Get personalized recommendations"
+            ),
             inline=False,
         )
 
@@ -278,12 +297,15 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         embed = discord.Embed(
             title="Command Not Found",
-            description=f"The command `{ctx.message.content}` was not found. Use `!help` to see available commands.",
+            description=(
+                f"The command `{ctx.message.content}` was not found. "
+                "Use `!help` to see available commands."
+            ),
             color=discord.Color.red(),
         )
         await ctx.send(embed=embed)
     else:
-        logger.error(f"Command error: {error}")
+        logger.error("Command error: %s", error)
         embed = discord.Embed(
             title="Error",
             description="An error occurred while processing your command.",
