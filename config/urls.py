@@ -19,7 +19,10 @@ urlpatterns = [
     # User management
     path("users/", include("simlane.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
+    # Social auth providers
+    path("accounts/garage61/", include("simlane.garage61_provider.urls")),
     # Your stuff: custom urls includes go here
+    path("sim/", include("simlane.sim.urls", namespace="sim")),
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),

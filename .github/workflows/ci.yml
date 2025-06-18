@@ -77,3 +77,60 @@ jobs:
 
       - name: Tear down the Stack
         run: docker compose -f docker-compose.local.yml down
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [linter, pytest]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build production images
+        uses: docker/bake-action@v6
+        with:
+          push: false
+          load: true
+          files: docker-compose.production.yml
+          set: |
+            django.cache-from=type=gha,scope=django-production
+            django.cache-to=type=gha,scope=django-production,mode=max
+            postgres.cache-from=type=gha,scope=postgres-production
+            postgres.cache-to=type=gha,scope=postgres-production,mode=max
+            traefik.cache-from=type=gha,scope=traefik-production
+            traefik.cache-to=type=gha,scope=traefik-production,mode=max
+
+      - name: Push only Django image to registry
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          context: .
+          file: ./compose/production/django/Dockerfile
+          build-args: |
+            DJANGO_AWS_STORAGE_BUCKET_NAME=${{ secrets.DJANGO_AWS_STORAGE_BUCKET_NAME }}
+            DJANGO_AWS_S3_CUSTOM_DOMAIN=${{ secrets.DJANGO_AWS_S3_CUSTOM_DOMAIN }}
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/simlane:${{ github.sha }}
+            ${{ secrets.DOCKER_USERNAME }}/simlane:latest
+          cache-from: type=gha,scope=django-production
+          cache-to: type=gha,scope=django-production,mode=max
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/simlane
+            ./scripts/deploy.sh

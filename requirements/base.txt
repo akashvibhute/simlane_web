@@ -20,6 +20,14 @@ crispy-bootstrap5==2025.6  # https://github.com/django-crispy-forms/crispy-boots
 django-redis==5.4.0  # https://github.com/jazzband/django-redis
 django-webpack-loader==3.2.0  # https://github.com/django-webpack/django-webpack-loader
 
+# iRacing API
+# ------------------------------------------------------------------------------
+iracingdataapi==1.2.3  # https://github.com/jasondilworth56/iracingdataapi
+
+# Discord Bot
+# ------------------------------------------------------------------------------
+discord.py==2.4.0  # https://github.com/Rapptz/discord.py
+
 # Additional apps
 django-allauth-ui==1.8.1 # https://pypi.org/project/django-allauth-ui/
 django-widget-tweaks==1.5.0 # https://pypi.org/project/django-widget-tweaks/

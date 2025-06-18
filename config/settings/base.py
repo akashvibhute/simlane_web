@@ -79,6 +79,7 @@ THIRD_PARTY_APPS = [
     "allauth.account",
     "allauth.mfa",
     "allauth.socialaccount",
+    "allauth.socialaccount.providers.discord",
     "django_celery_beat",
     "webpack_loader",
     "widget_tweaks",
@@ -89,6 +90,10 @@ LOCAL_APPS = [
     "simlane.users",
     "simlane.sim",
     "simlane.teams",
+    "simlane.iracing",
+    "simlane.discord",
+    "simlane.garage61",
+    "simlane.garage61_provider",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -322,6 +327,23 @@ ACCOUNT_FORMS = {"signup": "simlane.users.forms.UserSignupForm"}
 SOCIALACCOUNT_ADAPTER = "simlane.users.adapters.SocialAccountAdapter"
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_FORMS = {"signup": "simlane.users.forms.UserSocialSignupForm"}
+# https://docs.allauth.org/en/latest/socialaccount/configuration.html
+SOCIALACCOUNT_STORE_TOKENS = True
+# https://docs.allauth.org/en/latest/socialaccount/providers/discord.html
+SOCIALACCOUNT_PROVIDERS = {
+    "discord": {
+        "SCOPE": ["identify", "email"],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+    },
+    "garage61": {
+        "SCOPE": ["driving_data"],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+    },
+}
 
 
 # django-webpack-loader
@@ -336,3 +358,12 @@ WEBPACK_LOADER = {
 }
 # Your stuff...
 # ------------------------------------------------------------------------------
+
+# iRacing API Configuration
+# ------------------------------------------------------------------------------
+IRACING_USERNAME = env("IRACING_USERNAME", default="")
+IRACING_PASSWORD = env("IRACING_PASSWORD", default="")
+
+# Discord Bot Configuration
+# ------------------------------------------------------------------------------
+DISCORD_BOT_TOKEN = env("DISCORD_BOT_TOKEN", default="")
