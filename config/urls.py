@@ -7,23 +7,13 @@ from django.urls import path
 from django.views import defaults as default_views
 from django.views.generic import TemplateView
 
+from simlane.core.views import home_view, about_view, privacy_view, terms_view
+
 urlpatterns = [
-    path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),
-    path(
-        "about/",
-        TemplateView.as_view(template_name="pages/about.html"),
-        name="about",
-    ),
-    path(
-        "privacy/",
-        TemplateView.as_view(template_name="pages/privacy.html"),
-        name="privacy",
-    ),
-    path(
-        "terms/",
-        TemplateView.as_view(template_name="pages/terms.html"),
-        name="terms",
-    ),
+    path("", home_view, name="home"),
+    path("about/", about_view, name="about"),
+    path("privacy/", privacy_view, name="privacy"),
+    path("terms/", terms_view, name="terms"),
     # Core app (contact form, etc.)
     path("", include("simlane.core.urls", namespace="core")),
     # Django Admin, use {% url 'admin:index' %}

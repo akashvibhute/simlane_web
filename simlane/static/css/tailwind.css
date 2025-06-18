@@ -5,13 +5,19 @@
 @source '../../**/*.py';
 
 /* Safelist classes used in Django template tags that Tailwind can't detect */
-@source inline("w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 inline-flex items-center font-medium transition-colors focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 bg-gray-600 hover:bg-gray-700 bg-green-600 hover:bg-green-700 bg-orange-600 hover:bg-orange-700 bg-red-600 hover:bg-red-700 text-white bg-green-100 text-green-800 bg-orange-100 text-orange-800 bg-gray-100 text-gray-800 bg-red-100 text-red-800 bg-blue-100 text-blue-800 bg-red-50 border-red-200 text-red-800 border-t border-gray-200 my-6 rounded-full text-xs shadow-sm");
+@source inline("w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-500 inline-flex items-center font-medium transition-colors focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 bg-primary-600 hover:bg-primary-700 bg-gray-600 hover:bg-gray-700 bg-green-600 hover:bg-green-700 bg-orange-600 hover:bg-orange-700 bg-red-600 hover:bg-red-700 text-white bg-green-100 text-green-800 bg-orange-100 text-orange-800 bg-gray-100 text-gray-800 bg-red-100 text-red-800 bg-blue-100 text-blue-800 bg-primary-100 text-primary-800 bg-red-50 border-red-200 text-red-800 border-t border-gray-200 my-6 rounded-full text-xs shadow-sm");
 
 @theme {
-  /* Custom theme configuration can be added here */
-  /* Example:
-  --color-brand-500: #3b82f6;
-  --font-display: "Inter", sans-serif;
-  --breakpoint-3xl: 1920px;
-  */
+  /* Custom brand colors to match logo */
+  --color-primary-50: #fdf2f7;
+  --color-primary-100: #fce7ef;
+  --color-primary-200: #facee0;
+  --color-primary-300: #f7a8c7;
+  --color-primary-400: #f277a1;
+  --color-primary-500: #ec729c;
+  --color-primary-600: #da4570;
+  --color-primary-700: #c53356;
+  --color-primary-800: #a32d4a;
+  --color-primary-900: #882a42;
+  --color-primary-950: #521324;
 }

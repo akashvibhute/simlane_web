@@ -190,3 +190,6 @@ const additionalInstructions = `
 6. Follow Django's best practices for project structure
 7. Use Django's staticfiles app for managing static assets
 `;
+
+
+The django app and the nodejs containers are set to restart continuously in dev mode whenever any files change so there is no need to ask to run the start or up commands, you can assume they will reload. We only need to run the just build command when we make changes to either pip or npm dependencies. Keep this in mind. The tailwind changes are also compiled automatically with this. 

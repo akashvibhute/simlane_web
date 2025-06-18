@@ -27,7 +27,10 @@
           Try Again
         </button>
         <a href="{% url 'home' %}"
-           class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+           hx-get="{% url 'home' %}"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
           <svg class="w-4 h-4 mr-2"
                fill="none"
                stroke="currentColor"

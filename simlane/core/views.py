@@ -102,7 +102,7 @@ def contact_success(request):
 
 
 def contact_view(request):
-    """Function-based view alternative for contact form."""
+    """Function-based view for contact form with HTMX support."""
     if request.method == "POST":
         form = ContactForm(request.POST, user=request.user)
         if form.is_valid():
@@ -150,7 +150,13 @@ def contact_view(request):
 
                 messages.success(request, success_msg)
 
-                # Redirect to avoid re-submission on refresh
+                # For HTMX requests, return partial template with fresh form
+                if request.htmx:
+                    # Return a fresh form for the next submission
+                    form = ContactForm(user=request.user)
+                    return render(request, "pages/contact_form_partial.html", {"form": form})
+
+                # Regular redirect for non-HTMX requests
                 return redirect("core:contact")
 
             except Exception:
@@ -167,7 +173,68 @@ def contact_view(request):
                 request,
                 "Please correct the errors below and try again.",
             )
+        
+        # For HTMX requests with form errors, return partial template
+        if request.htmx:
+            return render(request, "pages/contact_form_partial.html", {"form": form})
     else:
         form = ContactForm(user=request.user)
 
+    # Handle different types of HTMX requests
+    if request.htmx:
+        # Navigation request - return content partial (page content without header/footer)
+        return render(request, "pages/contact_content_partial.html", {"form": form})
+    
+    # Direct page visit - return full page with base template
     return render(request, "pages/contact.html", {"form": form})
+
+
+def htmx_static_page_view(template_name):
+    """Factory function to create HTMX-aware static page views."""
+    def view(request):
+        if request.htmx:
+            # For HTMX requests, return only the content block from the template
+            # We'll create a simple approach - render the template and extract content
+            return render(request, template_name)
+        return render(request, template_name)
+    return view
+
+
+def home_view(request):
+    """Home page view that handles HTMX requests."""
+    # If this is an HTMX request for navigation, return content partial
+    if request.htmx:
+        return render(request, 'pages/home_content_partial.html')
+    
+    # Otherwise return the full page
+    return render(request, 'pages/home.html')
+
+
+def about_view(request):
+    """About page view that handles HTMX requests."""
+    # If this is an HTMX request for navigation, return content partial
+    if request.htmx:
+        return render(request, 'pages/about_content_partial.html')
+    
+    # Otherwise return the full page
+    return render(request, 'pages/about.html')
+
+
+def privacy_view(request):
+    """Privacy page view that handles HTMX requests."""
+    # If this is an HTMX request for navigation, return content partial
+    if request.htmx:
+        return render(request, 'pages/privacy_content_partial.html')
+    
+    # Otherwise return the full page
+    return render(request, 'pages/privacy.html')
+
+
+def terms_view(request):
+    """Terms page view that handles HTMX requests."""
+    # If this is an HTMX request for navigation, return content partial
+    if request.htmx:
+        return render(request, 'pages/terms_content_partial.html')
+    
+    # Otherwise return the full page
+    return render(request, 'pages/terms.html')

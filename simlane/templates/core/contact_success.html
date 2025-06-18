@@ -101,7 +101,10 @@
       </div>
       <div class="text-center">
         <a href="{% url 'home' %}"
-           class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors">
+           hx-get="{% url 'home' %}"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="inline-flex items-center px-6 py-3 bg-primary-600 text-white font-medium rounded-lg hover:bg-primary-700 transition-colors">
           <svg class="w-5 h-5 mr-2"
                fill="none"
                stroke="currentColor"
@@ -113,7 +116,10 @@
         </a>
         <span class="mx-4 text-gray-400">|</span>
         <a href="{% url 'core:contact' %}"
-           class="text-blue-600 hover:text-blue-800 font-medium">Send Another Message</a>
+           hx-get="{% url 'core:contact' %}"
+           hx-target="#main-content"
+           hx-push-url="true"
+           class="text-primary-600 hover:text-primary-800 font-medium">Send Another Message</a>
       </div>
     </div>
   </div>
