@@ -13,8 +13,8 @@ Key Principles
 
 Django/Python
 
-- Use Django’s class-based views (CBVs) for more complex views; prefer function-based views (FBVs) for simpler logic.
-- Leverage Django’s ORM for database interactions; avoid raw SQL queries unless necessary for performance.
+- Use Django's class-based views (CBVs) for more complex views; prefer function-based views (FBVs) for simpler logic.
+- Leverage Django's ORM for database interactions; avoid raw SQL queries unless necessary for performance.
 - Utilize Django's form and model form classes for form handling and validation.
 - Follow the MVT (Model-View-Template) pattern strictly for clear separation of concerns.
 - Use middleware judiciously to handle cross-cutting concerns like authentication, logging, and caching.
@@ -33,17 +33,18 @@ Django-Specific Guidelines
 - Keep business logic in models and forms; keep views light and focused on request handling.
 - Use Django's URL dispatcher (urls.py) to define clear and RESTful URL patterns.
 - Apply Django's security best practices (e.g., CSRF protection, SQL injection protection, XSS prevention).
-- Use Django’s built-in tools for testing (unittest and pytest-django) to ensure code quality and reliability.
-- Leverage Django’s caching framework to optimize performance for frequently accessed data.
-- Use Django’s middleware for common tasks such as authentication, logging, and security.
+- Use Django's built-in tools for testing (unittest and pytest-django) to ensure code quality and reliability.
+- Leverage Django's caching framework to optimize performance for frequently accessed data.
+- Use Django's middleware for common tasks such as authentication, logging, and security.
+- **NEVER** import from third-party packages without first verifying the imports exist in the official documentation or source code. Always check documentation, use web search, or inspect the actual package structure before suggesting imports. Avoid making assumptions about package APIs or module structures.
 
 Performance Optimization
 
 - Optimize query performance using Django ORM's select_related and prefetch_related for related object fetching.
-- Use Django’s cache framework with backend support with Redis to reduce database load.
+- Use Django's cache framework with backend support with Redis to reduce database load.
 - Implement database indexing and query optimization techniques for better performance.
 - Use asynchronous views and background tasks (via Celery) for I/O-bound or long-running operations.
-- Optimize static file handling with Django’s static file management system with s3 CDN integration for prod config only.
+- Optimize static file handling with Django's static file management system with s3 CDN integration for prod config only.
 
 Key Conventions
 
@@ -167,7 +168,7 @@ All apps are in the `simlane/` directory:
 - All apps are prefixed with `simlane.` in settings
 - Uses Tailwind CSS for styling
 - Implements Celery for background tasks
-- Supports multiple authentication providers (Discord, Garage61) 
+- Supports multiple authentication providers (Discord, Garage61)
 
 // Additional instructions
 
@@ -192,4 +193,4 @@ const additionalInstructions = `
 `;
 
 
-The django app and the nodejs containers are set to restart continuously in dev mode whenever any files change so there is no need to ask to run the start or up commands, you can assume they will reload. We only need to run the just build command when we make changes to either pip or npm dependencies. Keep this in mind. The tailwind changes are also compiled automatically with this. 
+The django app and the nodejs containers are set to restart continuously in dev mode whenever any files change so there is no need to ask to run the start or up commands, you can assume they will reload. We only need to run the just build command when we make changes to either pip or npm dependencies. Keep this in mind. The tailwind changes are also compiled automatically with this.

@@ -1,75 +1,234 @@
-{% extends "mfa/index.html" %}
+{% extends "base.html" %}
 
 {% load i18n %}
-{% load allauth_ui %}
+{% load static %}
 
+{% block title %}
+  {% trans "Two-Factor Authentication" %}
+{% endblock title %}
 {% block content %}
-  {% trans "Two-Factor Authentication" as heading %}
-  {% #container heading=heading %}
-  {% if "totp" in MFA_SUPPORTED_TYPES %}
-    <h2 class="mt-6 mb-3 text-lg">{% translate "Authenticator App" %}</h2>
-    {% if authenticators.totp %}
-      <p class="my-2">
-        {% translate "Authentication using an authenticator app is active." %}
-        <div>
-          <a href="{% url "mfa_activate_totp" %}"
-             role="button"
-             class="my-3 inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">{% translate "Deactivate" %}</a>
+  <div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex items-center space-x-4">
+          <img src="{% static 'images/logo.svg' %}" alt="SimLane" class="h-8" />
+          <h1 class="text-2xl font-bold text-gray-900">{% trans "Two-Factor Authentication" %}</h1>
         </div>
-      </p>
-    {% else %}
-      <p class="my-2">{% translate "An authenticator app is not active." %}</p>
-      <a href="{% url "mfa_activate_totp" %}"
-         role="button"
-         class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Activate" %}</a>
-    {% endif %}
-  {% endif %}
-  {% if "webauthn" in MFA_SUPPORTED_TYPES %}
-    <div class="border-t border-gray-200 my-6"></div>
-    <h2 class="mt-6 mb-3 text-lg">{% translate "Security Keys" %}</h2>
-    {% if authenticators.webauthn|length %}
-      <p class="my-2">
-        {% blocktranslate count count=authenticators.webauthn|length %}You have added {{ count }} security key.{% plural %}You have added {{ count }} security keys.{% endblocktranslate %}
-      </p>
-      <a href="{% url "mfa_list_webauthn" %}"
-         role="button"
-         class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Manage" %}</a>
-    {% else %}
-      <p class="my-2">{% translate "No security keys have been added." %}</p>
-      <a href="{% url "mfa_add_webauthn" %}"
-         role="button"
-         class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Add" %}</a>
-    {% endif %}
-  {% endif %}
-  {% if "recovery_codes" in MFA_SUPPORTED_TYPES %}
-    <div class="border-t border-gray-200 my-6"></div>
-    {% with total_count=authenticators.recovery_codes.generate_codes|length unused_count=authenticators.recovery_codes.get_unused_codes|length %}
-      <h2 class="mt-6 mb-3 text-lg">{% translate "Recovery Codes" %}</h2>
-      <p>
-        {% if authenticators.recovery_codes %}
-          {% blocktranslate count unused_count=unused_count %}There is {{ unused_count }} out of {{ total_count }} recovery codes available.{% plural %}There are {{ unused_count }} out of {{ total_count }} recovery codes available.{% endblocktranslate %}
-        {% else %}
-          {% translate "No recovery codes set up." %}
-        {% endif %}
-      </p>
-      {% if is_mfa_enabled %}
-        <div class="flex flex-col justify-evenly my-3 md:flex-row gap-1">
-          {% if authenticators.recovery_codes %}
-            {% if unused_count > 0 %}
-              <a href="{% url "mfa_view_recovery_codes" %}"
-                 role="button"
-                 class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "View" %}</a>
-              <a href="{% url "mfa_download_recovery_codes" %}"
-                 role="button"
-                 class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Download" %}</a>
-            {% endif %}
+      </div>
+      <!-- Content Card -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-8">
+          <div class="mb-6">
+            <p class="text-sm text-gray-600">
+              {% trans "Secure your account with two-factor authentication for enhanced security." %}
+            </p>
+          </div>
+          {% if "totp" in MFA_SUPPORTED_TYPES %}
+            <!-- Authenticator App Section -->
+            <div class="mb-8">
+              <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-400 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+                <h2 class="text-lg font-medium text-gray-900">{% trans "Authenticator App" %}</h2>
+              </div>
+              {% if authenticators.totp %}
+                <div class="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div class="flex items-center">
+                    <svg class="w-5 h-5 text-green-400 mr-3"
+                         fill="currentColor"
+                         viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <div>
+                      <p class="text-sm font-medium text-green-800">{% trans "Authenticator app is active" %}</p>
+                      <p class="text-sm text-green-700">{% trans "Your account is protected with an authenticator app." %}</p>
+                    </div>
+                  </div>
+                  <a href="{% url 'mfa_activate_totp' %}"
+                     class="inline-flex items-center px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                    {% trans "Deactivate" %}
+                  </a>
+                </div>
+              {% else %}
+                <div class="flex items-center justify-between p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div class="flex items-center">
+                    <svg class="w-5 h-5 text-yellow-400 mr-3"
+                         fill="currentColor"
+                         viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13" />
+                    </svg>
+                    <div>
+                      <p class="text-sm font-medium text-yellow-800">{% trans "Authenticator app not active" %}</p>
+                      <p class="text-sm text-yellow-700">{% trans "Add an extra layer of security to your account." %}</p>
+                    </div>
+                  </div>
+                  <a href="{% url 'mfa_activate_totp' %}"
+                     class="inline-flex items-center px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    {% trans "Activate" %}
+                  </a>
+                </div>
+              {% endif %}
+            </div>
           {% endif %}
-          <a href="{% url "mfa_generate_recovery_codes" %}"
-             role="button"
-             class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">{% translate "Generate" %}</a>
+          {% if "webauthn" in MFA_SUPPORTED_TYPES %}
+            <!-- Security Keys Section -->
+            <div class="mb-8">
+              <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-400 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                </svg>
+                <h2 class="text-lg font-medium text-gray-900">{% trans "Security Keys" %}</h2>
+              </div>
+              {% if authenticators.webauthn|length %}
+                <div class="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div class="flex items-center">
+                    <svg class="w-5 h-5 text-green-400 mr-3"
+                         fill="currentColor"
+                         viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <div>
+                      <p class="text-sm font-medium text-green-800">
+                        {% blocktranslate count count=authenticators.webauthn|length %}{{ count }} security key added{% plural %}{{ count }} security keys added{% endblocktranslate %}
+                      </p>
+                      <p class="text-sm text-green-700">{% trans "Your account is protected with security keys." %}</p>
+                    </div>
+                  </div>
+                  <a href="{% url 'mfa_list_webauthn' %}"
+                     class="inline-flex items-center px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    {% trans "Manage" %}
+                  </a>
+                </div>
+              {% else %}
+                <div class="flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                  <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-3"
+                         fill="currentColor"
+                         viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                    <div>
+                      <p class="text-sm font-medium text-gray-800">{% trans "No security keys" %}</p>
+                      <p class="text-sm text-gray-600">{% trans "Add a hardware security key for maximum protection." %}</p>
+                    </div>
+                  </div>
+                  <a href="{% url 'mfa_add_webauthn' %}"
+                     class="inline-flex items-center px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    {% trans "Add" %}
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+          {% if "recovery_codes" in MFA_SUPPORTED_TYPES %}
+            <!-- Recovery Codes Section -->
+            <div class="mb-8">
+              <div class="flex items-center mb-4">
+                <svg class="w-6 h-6 text-gray-400 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h2 class="text-lg font-medium text-gray-900">{% trans "Recovery Codes" %}</h2>
+              </div>
+              {% with total_count=authenticators.recovery_codes.generate_codes|length unused_count=authenticators.recovery_codes.get_unused_codes|length %}
+                {% if authenticators.recovery_codes %}
+                  <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-start">
+                      <svg class="w-5 h-5 text-blue-400 mr-3 mt-0.5"
+                           fill="currentColor"
+                           viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                      </svg>
+                      <div class="flex-1">
+                        <p class="text-sm font-medium text-blue-800">
+                          {% blocktranslate count unused_count=unused_count %}{{ unused_count }} of {{ total_count }} recovery codes available{% plural %}{{ unused_count }} of {{ total_count }} recovery codes available{% endblocktranslate %}
+                        </p>
+                        <p class="text-sm text-blue-700 mt-1">
+                          {% trans "Use these codes to access your account if you lose your authenticator." %}
+                        </p>
+                        {% if is_mfa_enabled %}
+                          <div class="flex flex-wrap gap-2 mt-3">
+                            {% if unused_count > 0 %}
+                              <a href="{% url 'mfa_view_recovery_codes' %}"
+                                 class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                {% trans "View" %}
+                              </a>
+                              <a href="{% url 'mfa_download_recovery_codes' %}"
+                                 class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                {% trans "Download" %}
+                              </a>
+                            {% endif %}
+                            <a href="{% url 'mfa_generate_recovery_codes' %}"
+                               class="inline-flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                              {% trans "Generate New" %}
+                            </a>
+                          </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% else %}
+                  <div class="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center">
+                        <svg class="w-5 h-5 text-gray-400 mr-3"
+                             fill="currentColor"
+                             viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                        <div>
+                          <p class="text-sm font-medium text-gray-800">{% trans "No recovery codes" %}</p>
+                          <p class="text-sm text-gray-600">{% trans "Generate backup codes for account recovery." %}</p>
+                        </div>
+                      </div>
+                      {% if is_mfa_enabled %}
+                        <a href="{% url 'mfa_generate_recovery_codes' %}"
+                           class="inline-flex items-center px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                          {% trans "Generate" %}
+                        </a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          {% endif %}
         </div>
-      {% endif %}
-    {% endwith %}
-  {% endif %}
-  {% /container %}
+      </div>
+      <!-- Navigation Links -->
+      <div class="mt-8 text-center">
+        <div class="flex flex-wrap justify-center gap-4 text-sm">
+          <a href="{% url 'account_email' %}"
+             class="text-primary-600 hover:text-primary-500">{% trans "Email" %}</a>
+          <a href="{% url 'account_change_password' %}"
+             class="text-primary-600 hover:text-primary-500">{% trans "Password" %}</a>
+          {% url 'mfa_index' as mfa_url %}
+          {% if mfa_url %}
+            <a href="{{ mfa_url }}" class="text-primary-600 hover:text-primary-500">{% trans "Two-Factor Auth" %}</a>
+          {% endif %}
+          {% url 'usersessions_list' as sessions_url %}
+          {% if sessions_url %}
+            <a href="{{ sessions_url }}"
+               class="text-primary-600 hover:text-primary-500">{% trans "Sessions" %}</a>
+          {% endif %}
+          <a href="{% url 'socialaccount_connections' %}"
+             class="text-primary-600 hover:text-primary-500">{% trans "Social Accounts" %}</a>
+        </div>
+        <div class="mt-4">
+          <a href="{% url 'core:home' %}"
+             class="text-sm text-gray-500 hover:text-gray-700">← {% trans "Back to SimLane" %}</a>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock content %}

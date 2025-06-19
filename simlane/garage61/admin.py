@@ -1,11 +1,12 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 
 from .models import Garage61SyncLog
 
 
 @admin.register(Garage61SyncLog)
-class Garage61SyncLogAdmin(admin.ModelAdmin):
+class Garage61SyncLogAdmin(ModelAdmin):
     list_display = [
         "status_icon",
         "endpoint",

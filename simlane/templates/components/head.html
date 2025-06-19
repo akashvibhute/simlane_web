@@ -1,0 +1,17 @@
+{% load static %}
+{% load render_bundle from webpack_loader %}
+{% load django_htmx %}
+
+<meta charset="utf-8" />
+<meta http-equiv="x-ua-compatible" content="ie=edge" />
+{% htmx_script %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Your simracing companion!" />
+<meta name="author" content="Akash Vibhute" />
+<link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" />
+{% block css %}
+  {% render_bundle 'project' 'css' %}
+{% endblock css %}
+{% block javascript %}
+  {% render_bundle 'project' 'js' attrs='defer' %}
+{% endblock javascript %}

@@ -1,6 +1,7 @@
 # Register your models here.
 
 from django.contrib import admin
+from unfold.admin import ModelAdmin
 
 from .models import CarClass
 from .models import CarModel
@@ -23,37 +24,37 @@ from .models import WeatherForecast
 
 
 @admin.register(Simulator)
-class SimulatorAdmin(admin.ModelAdmin):
-    list_display = ["name", "version", "is_active", "created_at"]
+class SimulatorAdmin(ModelAdmin):
+    list_display = ["name", "is_active", "created_at"]
     list_filter = ["is_active", "created_at"]
-    search_fields = ["name", "version"]
+    search_fields = ["name"]
     readonly_fields = ["created_at", "updated_at"]
 
 
 @admin.register(SimProfile)
-class SimProfileAdmin(admin.ModelAdmin):
-    list_display = ["profile_name", "user", "simulator", "is_active", "last_active"]
-    list_filter = ["simulator", "is_active", "created_at"]
+class SimProfileAdmin(ModelAdmin):
+    list_display = ["profile_name", "user", "simulator", "is_verified", "last_active"]
+    list_filter = ["simulator", "is_verified", "created_at"]
     search_fields = ["profile_name", "user__username", "user__email"]
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["user", "simulator"]
 
 
 @admin.register(PitData)
-class PitDataAdmin(admin.ModelAdmin):
+class PitDataAdmin(ModelAdmin):
     list_display = ["id", "fuel_unit", "drive_through_loss_sec", "refuel_flow_rate"]
     list_filter = ["fuel_unit", "tire_then_refuel", "simultaneous_actions"]
     readonly_fields = ["created_at", "updated_at"]
 
 
 @admin.register(CarClass)
-class CarClassAdmin(admin.ModelAdmin):
+class CarClassAdmin(ModelAdmin):
     list_display = ["name", "category"]
     search_fields = ["name", "category"]
 
 
 @admin.register(CarModel)
-class CarModelAdmin(admin.ModelAdmin):
+class CarModelAdmin(ModelAdmin):
     list_display = ["name", "manufacturer", "car_class", "release_year"]
     list_filter = ["car_class", "release_year"]
     search_fields = ["name", "manufacturer"]
@@ -61,7 +62,7 @@ class CarModelAdmin(admin.ModelAdmin):
 
 
 @admin.register(SimCar)
-class SimCarAdmin(admin.ModelAdmin):
+class SimCarAdmin(ModelAdmin):
     list_display = ["car_model", "simulator", "sim_api_id", "is_active"]
     list_filter = ["simulator", "is_active", "created_at"]
     search_fields = ["car_model__name", "car_model__manufacturer", "sim_api_id"]
@@ -70,14 +71,14 @@ class SimCarAdmin(admin.ModelAdmin):
 
 
 @admin.register(TrackModel)
-class TrackModelAdmin(admin.ModelAdmin):
+class TrackModelAdmin(ModelAdmin):
     list_display = ["name", "country", "location"]
     list_filter = ["country"]
     search_fields = ["name", "country", "location"]
 
 
 @admin.register(SimTrack)
-class SimTrackAdmin(admin.ModelAdmin):
+class SimTrackAdmin(ModelAdmin):
     list_display = [
         "display_name",
         "track_model",
@@ -92,7 +93,7 @@ class SimTrackAdmin(admin.ModelAdmin):
 
 
 @admin.register(SimLayout)
-class SimLayoutAdmin(admin.ModelAdmin):
+class SimLayoutAdmin(ModelAdmin):
     list_display = ["name", "sim_track", "layout_code", "type", "length_km"]
     list_filter = ["type", "created_at"]
     search_fields = ["name", "layout_code", "sim_track__display_name"]
@@ -101,7 +102,7 @@ class SimLayoutAdmin(admin.ModelAdmin):
 
 
 @admin.register(Series)
-class SeriesAdmin(admin.ModelAdmin):
+class SeriesAdmin(ModelAdmin):
     list_display = [
         "name",
         "is_team_event",
@@ -114,7 +115,7 @@ class SeriesAdmin(admin.ModelAdmin):
 
 
 @admin.register(Event)
-class EventAdmin(admin.ModelAdmin):
+class EventAdmin(ModelAdmin):
     list_display = ["name", "series", "simulator", "type", "status", "event_date"]
     list_filter = ["type", "status", "simulator", "is_team_event", "created_at"]
     search_fields = ["name", "description"]
@@ -124,7 +125,7 @@ class EventAdmin(admin.ModelAdmin):
 
 
 @admin.register(EventSession)
-class EventSessionAdmin(admin.ModelAdmin):
+class EventSessionAdmin(ModelAdmin):
     list_display = ["event", "session_type", "duration", "in_game_time"]
     list_filter = ["session_type", "created_at"]
     search_fields = ["event__name"]
@@ -133,7 +134,7 @@ class EventSessionAdmin(admin.ModelAdmin):
 
 
 @admin.register(EventClass)
-class EventClassAdmin(admin.ModelAdmin):
+class EventClassAdmin(ModelAdmin):
     list_display = ["name", "event", "car_class"]
     list_filter = ["car_class", "event"]
     search_fields = ["name", "event__name"]
@@ -141,7 +142,7 @@ class EventClassAdmin(admin.ModelAdmin):
 
 
 @admin.register(EventInstance)
-class EventInstanceAdmin(admin.ModelAdmin):
+class EventInstanceAdmin(ModelAdmin):
     list_display = [
         "event",
         "start_time",
@@ -157,7 +158,7 @@ class EventInstanceAdmin(admin.ModelAdmin):
 
 
 @admin.register(LapTime)
-class LapTimeAdmin(admin.ModelAdmin):
+class LapTimeAdmin(ModelAdmin):
     list_display = [
         "sim_profile",
         "sim_layout",
@@ -174,7 +175,7 @@ class LapTimeAdmin(admin.ModelAdmin):
 
 
 @admin.register(RatingSystem)
-class RatingSystemAdmin(admin.ModelAdmin):
+class RatingSystemAdmin(ModelAdmin):
     list_display = ["name", "simulator", "code", "category", "min_value", "max_value"]
     list_filter = ["simulator", "category"]
     search_fields = ["name", "code", "description"]
@@ -182,7 +183,7 @@ class RatingSystemAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProfileRating)
-class ProfileRatingAdmin(admin.ModelAdmin):
+class ProfileRatingAdmin(ModelAdmin):
     list_display = [
         "sim_profile",
         "rating_system",
@@ -198,7 +199,7 @@ class ProfileRatingAdmin(admin.ModelAdmin):
 
 
 @admin.register(WeatherForecast)
-class WeatherForecastAdmin(admin.ModelAdmin):
+class WeatherForecastAdmin(ModelAdmin):
     list_display = [
         "event_instance",
         "timestamp",

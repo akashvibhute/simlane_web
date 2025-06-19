@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+  {{ title }}
+{% endblock title %}
+{% block content %}
+  <div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
+        </div>
+        <div class="p-6">{% include 'users/sim_profile_form_partial.html' %}</div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

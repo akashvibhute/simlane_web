@@ -1,23 +1,55 @@
-{% extends "mfa/recovery_codes/index.html" %}
+{% extends "allauth/layouts/manage.html" %}
 
 {% load i18n %}
 {% load allauth %}
-{% load allauth_ui %}
+{% load static %}
 
-{% block content %}
-  {% translate "Recovery Codes" as heading %}
-  {% blocktranslate asvar subheading %}You are about to generate a new set of recovery codes for your account.{% endblocktranslate %}
-  {% #container heading=heading subheading=subheading %}
-  <p class="py-3">
-    {% if unused_code_count %}
-      {% blocktranslate %}This action will invalidate your existing codes.{% endblocktranslate %}
-    {% endif %}
-    {% blocktranslate %}Are you sure?{% endblocktranslate %}
-  </p>
-  {% url 'mfa_generate_recovery_codes' as action_url %}
-  {% trans "Generate" as button_text %}
-  {% #form url=action_url form=form button_text=button_text %}
-  {% csrf_token %}
-  {% /form %}
-  {% /container %}
-{% endblock content %}
+{% block head_title_inner %}
+  {% trans "Generate Recovery Codes" %}
+{% endblock head_title_inner %}
+{% block inner_content %}
+  <div class="mb-6">
+    <div class="rounded-md bg-yellow-50 p-4">
+      <div class="flex">
+        <svg class="h-5 w-5 text-yellow-400"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-yellow-800">{% trans "Generate New Recovery Codes" %}</h3>
+          <div class="mt-2 text-sm text-yellow-700">
+            <p>{% trans "You are about to generate a new set of recovery codes for your account." %}</p>
+            {% if unused_code_count %}
+              <p class="mt-1">{% trans "This action will invalidate your existing codes." %}</p>
+            {% endif %}
+            <p class="mt-1">{% trans "Are you sure?" %}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <form method="post"
+        action="{% url 'mfa_generate_recovery_codes' %}"
+        class="space-y-6">
+    {% csrf_token %}
+    <!-- Action Buttons -->
+    <div class="flex justify-end space-x-3">
+      <a href="{% url 'mfa_recovery_codes' %}"
+         class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+        {% trans "Cancel" %}
+      </a>
+      <button type="submit"
+              class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+        <svg class="w-4 h-4 mr-2"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        {% trans "Generate" %}
+      </button>
+    </div>
+  </form>
+{% endblock inner_content %}

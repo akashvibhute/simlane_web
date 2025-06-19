@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 from simlane.users.models import User
@@ -68,25 +70,23 @@ class EventType(models.TextChoices):
 
 
 class Simulator(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
-    name = models.CharField(max_length=255)
-    version = models.CharField(max_length=50)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=255, unique=True)
     logo_url = models.URLField(blank=True)
+    logo = models.ImageField(upload_to="simulators/logos/", blank=True, null=True)
+    icon = models.ImageField(upload_to="simulators/icons/", blank=True, null=True)
     website = models.URLField(blank=True)
     description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        unique_together = ["name", "version"]
-
     def __str__(self):
-        return f"{self.name} {self.version}"
+        return self.name
 
 
 class SimProfile(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -99,7 +99,7 @@ class SimProfile(models.Model):
     )
     profile_name = models.CharField(max_length=255)
     external_data_id = models.CharField(max_length=255, blank=True)
-    is_active = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=True)
     last_active = models.DateTimeField(null=True, blank=True)
     preferences = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -117,7 +117,7 @@ class SimProfile(models.Model):
 
 
 class PitData(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     drive_through_loss_sec = models.FloatField()
     stop_go_base_loss_sec = models.FloatField()
     stop_go_stationary_sec = models.FloatField(null=True, blank=True)
@@ -138,7 +138,7 @@ class PitData(models.Model):
 
 
 class CarClass(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
     category = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
@@ -149,7 +149,7 @@ class CarClass(models.Model):
 
 
 class CarModel(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     manufacturer = models.CharField(max_length=255)
     car_class = models.ForeignKey(
@@ -172,7 +172,7 @@ class CarModel(models.Model):
 
 
 class SimCar(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     simulator = models.ForeignKey(
         Simulator,
         on_delete=models.CASCADE,
@@ -208,7 +208,7 @@ class SimCar(models.Model):
 
 
 class TrackModel(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     country = models.CharField(max_length=100, blank=True)
     location = models.CharField(max_length=255, blank=True)
@@ -225,7 +225,7 @@ class TrackModel(models.Model):
 
 
 class SimTrack(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     simulator = models.ForeignKey(
         Simulator,
         on_delete=models.CASCADE,
@@ -255,7 +255,7 @@ class SimTrack(models.Model):
 
 
 class SimLayout(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sim_track = models.ForeignKey(
         SimTrack,
         on_delete=models.CASCADE,
@@ -287,7 +287,7 @@ class SimLayout(models.Model):
 
 
 class Series(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)
@@ -308,7 +308,7 @@ class Series(models.Model):
 
 
 class Event(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     series = models.ForeignKey(
         Series,
         on_delete=models.SET_NULL,
@@ -359,7 +359,7 @@ class Event(models.Model):
 
 
 class EventSession(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="sessions")
     session_type = models.CharField(max_length=20, choices=SessionType)
     duration = models.IntegerField()  # Duration in minutes
@@ -378,7 +378,7 @@ class EventSession(models.Model):
 
 
 class EventClass(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="classes")
     name = models.CharField(max_length=255)
     car_class = models.ForeignKey(
@@ -402,7 +402,7 @@ class EventClass(models.Model):
 
 
 class EventInstance(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="instances")
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
@@ -424,7 +424,7 @@ class EventInstance(models.Model):
 
 
 class LapTime(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sim_profile = models.ForeignKey(
         SimProfile,
         on_delete=models.CASCADE,
@@ -464,7 +464,7 @@ class LapTime(models.Model):
 
 
 class RatingSystem(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     simulator = models.ForeignKey(
         Simulator,
         on_delete=models.CASCADE,
@@ -485,7 +485,7 @@ class RatingSystem(models.Model):
 
 
 class ProfileRating(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sim_profile = models.ForeignKey(
         SimProfile,
         on_delete=models.CASCADE,
@@ -520,7 +520,7 @@ class ProfileRating(models.Model):
 
 
 class WeatherForecast(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event_instance = models.ForeignKey(
         EventInstance,
         on_delete=models.CASCADE,

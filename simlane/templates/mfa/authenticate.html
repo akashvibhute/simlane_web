@@ -1,44 +1,106 @@
-{% extends "mfa/authenticate.html" %}
+{% extends "allauth/layouts/entrance.html" %}
 
 {% load allauth %}
-{% load allauth_ui %}
 {% load i18n %}
+{% load static %}
+{% load widget_tweaks %}
 
-{% block content %}
-  {% trans "Two-Factor Authentication" as heading %}
-  {% blocktranslate asvar subheading %}Your account is protected by two-factor authentication. Please enter an authenticator code:{% endblocktranslate %}
-  {% url 'mfa_authenticate' as action_url %}
-  {% #container heading=heading subheading=subheading %}
-  {% translate "Activate" as button_text %}
-  {% trans "Sign In" as button_text %}
-  {% #form form=form url=action_url button_text=button_text %}
-  {% csrf_token %}
-  {% /form %}
-  {% if "webauthn" in MFA_SUPPORTED_TYPES %}
-    <div class="border-t border-gray-200 my-6"></div>
-    <h2 class="my-3 text-lg">{% translate "Alternative options" %}</h2>
-    {% #form form=webauthn_form url=action_url use_default_button="false" %}
-    <button type="submit"
-            class="inline-flex items-center px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-      {% trans "Use a security key" %}
-    </button>
-    <a href="{% url "account_login" %}"
-       class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">{% trans "Cancel" %}</a>
+{% block head_title_inner %}
+  {% trans "Two-Factor Authentication" %}
+{% endblock head_title_inner %}
+{% block inner_content %}
+  <div class="mb-6">
+    <p class="text-sm text-gray-600 text-center">
+      {% trans "Your account is protected by two-factor authentication. Please enter an authenticator code:" %}
+    </p>
+  </div>
+  <form method="post" action="{% url 'mfa_authenticate' %}" class="space-y-6">
     {% csrf_token %}
-    {% /form %}
+    <!-- Form Fields -->
+    {% for field in form %}
+      <div>
+        <label for="{{ field.id_for_label }}"
+               class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
+        <div class="mt-1">
+          {% render_field field class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" %}
+        </div>
+        {% if field.help_text %}<p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}
+          <div class="mt-1">
+            {% for error in field.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    <!-- Form Errors -->
+    {% if form.non_field_errors %}
+      <div class="rounded-md bg-red-50 p-4">
+        <div class="flex">
+          <svg class="h-5 w-5 text-red-400"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <div class="ml-3">
+            {% for error in form.non_field_errors %}<p class="text-sm text-red-800">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    <div>
+      <button type="submit"
+              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+        <svg class="w-4 h-4 mr-2"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+        </svg>
+        {% trans "Sign In" %}
+      </button>
+    </div>
+  </form>
+  {% if "webauthn" in MFA_SUPPORTED_TYPES %}
+    <div class="mt-6">
+      <div class="relative">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-300" /></div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-white text-gray-500">{% trans "Or" %}</span>
+        </div>
+      </div>
+      <div class="mt-6 space-y-3">
+        <form method="post" action="{% url 'mfa_authenticate' %}">
+          {% csrf_token %}
+          {{ webauthn_form.as_p }}
+          <button type="submit"
+                  class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <svg class="w-4 h-4 mr-2"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
+            </svg>
+            {% trans "Use a security key" %}
+          </button>
+        </form>
+        <a href="{% url 'account_login' %}"
+           class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+          {% trans "Cancel" %}
+        </a>
+      </div>
+    </div>
   {% endif %}
-  {% /container %}
   {{ js_data|json_script:"js_data" }}
   {% include "mfa/webauthn/snippets/scripts.html" %}
-  {# djlint:off #}
-<script type="text/javascript">
-allauth.webauthn.forms.authenticateForm({
-  ids: {
-    authenticate: "mfa_webauthn_authenticate",
-    credential: "{{ webauthn_form.credential.auto_id }}"
-  },
-  data: JSON.parse(document.getElementById('js_data').textContent)
-})
-</script>
-  {# djlint:on #}
-{% endblock content %}
+  <script type="text/javascript">
+    allauth.webauthn.forms.authenticateForm({
+      ids: {
+        authenticate: "mfa_webauthn_authenticate",
+        credential: "{{ webauthn_form.credential.auto_id }}"
+      },
+      data: JSON.parse(document.getElementById('js_data').textContent)
+    })
+  </script>
+{% endblock inner_content %}

@@ -1,22 +1,73 @@
-{% extends "account/signup.html" %}
+{% extends "allauth/layouts/entrance.html" %}
 
 {% load i18n %}
-{% load allauth_ui %}
+{% load static %}
 {% load widget_tweaks %}
 
-{% block content %}
-  {% trans "Sign Up" as heading %}
-  {% blocktranslate asvar subheading %}Already have an account? Then please <a href="{{ login_url }}" class="link">sign in</a>.{% endblocktranslate %}
-  {% #container heading=heading subheading=subheading %}
+{% block head_title_inner %}
+  {% trans "Sign Up for SimLane" %}
+{% endblock head_title_inner %}
+{% block inner_content %}
   {% if not SOCIALACCOUNT_ONLY %}
-    {% url 'account_signup' as action_url %}
-    {% #form form=form url=action_url button_text=heading %}
-    {{ redirect_field }}
-    {% csrf_token %}
-    {% /form %}
+    <div class="mb-6">
+      <p class="text-sm text-gray-600 text-center">
+        {% url 'account_login' as login_url %}
+        {% blocktranslate with login_url=login_url %}Already have an account? <a class="font-medium text-primary-600 hover:text-primary-500" href="{{ login_url }}">Sign in</a>{% endblocktranslate %}
+      </p>
+    </div>
+    <form method="post" action="{% url 'account_signup' %}" class="space-y-6">
+      {% csrf_token %}
+      {{ redirect_field }}
+      <!-- Form Fields -->
+      {% for field in form %}
+        <div>
+          <label for="{{ field.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
+          <div class="mt-1">
+            {% render_field field class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" %}
+          </div>
+          {% if field.help_text %}<p class="mt-1 text-sm text-gray-500">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}
+            <div class="mt-1">
+              {% for error in field.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+      <!-- Form Errors -->
+      {% if form.non_field_errors %}
+        <div class="rounded-md bg-red-50 p-4">
+          <div class="flex">
+            <svg class="h-5 w-5 text-red-400"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div class="ml-3">
+              {% for error in form.non_field_errors %}<p class="text-sm text-red-800">{{ error }}</p>{% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      <div>
+        <button type="submit"
+                class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+          {% trans "Sign Up" %}
+        </button>
+      </div>
+    </form>
   {% endif %}
   {% if SOCIALACCOUNT_ENABLED %}
-    {% include "socialaccount/snippets/login.html" with page_layout="entrance" %}
+    <div class="mt-6">
+      <div class="relative">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-300" /></div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-white text-gray-500">Or continue with</span>
+        </div>
+      </div>
+      <div class="mt-6">{% include "socialaccount/snippets/login.html" with page_layout="entrance" %}</div>
+    </div>
   {% endif %}
-  {% /container %}
-{% endblock content %}
+{% endblock inner_content %}

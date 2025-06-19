@@ -1,26 +1,37 @@
-{% extends "account/base_reauthenticate.html" %}
+{% extends "allauth/layouts/entrance.html" %}
 
 {% load i18n %}
-{% load allauth_ui %}
+{% load static %}
 
-{% block content %}
-  {% trans "Confirm Access" as heading %}
-  {% blocktranslate asvar subheading %}
-    Please reauthenticate to safeguard your account.
-    {% endblocktranslate %}
-  {% #container heading=heading subheading=subheading %}
+{% block head_title_inner %}
+  {% trans "Confirm Access" %}
+{% endblock head_title_inner %}
+{% block inner_content %}
+  <div class="mb-6">
+    <p class="text-sm text-gray-600 text-center">{% trans "Please reauthenticate to safeguard your account." %}</p>
+  </div>
   {% block reauthenticate_content %}
   {% endblock reauthenticate_content %}
   {% if reauthentication_alternatives %}
-    <div class="border-t border-gray-200 my-6"></div>
-    <h2 class="text-lg my-3">{% translate "Alternative options" %}</h2>
-    <ul>
-      {% for alt in reauthentication_alternatives %}
-        <li>
-          <a class="link" href="{{ alt.url }}">{{ alt.description }}</a>
-        </li>
-      {% endfor %}
-    </ul>
+    <div class="mt-6">
+      <div class="relative">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gray-300" /></div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-2 bg-white text-gray-500">{% trans "Or" %}</span>
+        </div>
+      </div>
+      <div class="mt-6">
+        <h3 class="text-sm font-medium text-gray-700 mb-3">{% trans "Alternative options" %}</h3>
+        <div class="space-y-2">
+          {% for alt in reauthentication_alternatives %}
+            <a href="{{ alt.url }}"
+               class="block w-full text-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+              {{ alt.description }}
+            </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
   {% endif %}
-  {% /container %}
-{% endblock content %}
+{% endblock inner_content %}

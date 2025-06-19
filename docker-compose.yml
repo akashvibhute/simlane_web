@@ -8,6 +8,7 @@ services:
     build:
       context: .
       dockerfile: ./compose/local/django/Dockerfile
+      target: python-run-stage
     image: simlane_local_django
     container_name: simlane_local_django
     depends_on:
@@ -22,6 +23,8 @@ services:
     ports:
       - '8000:8000'
     command: /start
+    environment:
+      - DOCKER_BUILDKIT=1
 
   postgres:
     build:
@@ -92,3 +95,5 @@ services:
     command: npm run dev
     ports:
       - '3000:3000'
+    environment:
+      - DOCKER_BUILDKIT=1

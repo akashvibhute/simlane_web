@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ContactView(FormView):
     """View for handling contact form submissions."""
 
-    template_name = "pages/contact.html"
+    template_name = "core/contact.html"
     form_class = ContactForm
 
     def get_form_kwargs(self):
@@ -154,7 +154,11 @@ def contact_view(request):
                 if request.htmx:
                     # Return a fresh form for the next submission
                     form = ContactForm(user=request.user)
-                    return render(request, "pages/contact_form_partial.html", {"form": form})
+                    return render(
+                        request,
+                        "core/contact_form_partial.html",
+                        {"form": form},
+                    )
 
                 # Regular redirect for non-HTMX requests
                 return redirect("core:contact")
@@ -173,30 +177,32 @@ def contact_view(request):
                 request,
                 "Please correct the errors below and try again.",
             )
-        
+
         # For HTMX requests with form errors, return partial template
         if request.htmx:
-            return render(request, "pages/contact_form_partial.html", {"form": form})
+            return render(request, "core/contact_form_partial.html", {"form": form})
     else:
         form = ContactForm(user=request.user)
 
     # Handle different types of HTMX requests
     if request.htmx:
         # Navigation request - return content partial (page content without header/footer)
-        return render(request, "pages/contact_content_partial.html", {"form": form})
-    
+        return render(request, "core/contact_content_partial.html", {"form": form})
+
     # Direct page visit - return full page with base template
-    return render(request, "pages/contact.html", {"form": form})
+    return render(request, "core/contact.html", {"form": form})
 
 
 def htmx_static_page_view(template_name):
     """Factory function to create HTMX-aware static page views."""
+
     def view(request):
         if request.htmx:
             # For HTMX requests, return only the content block from the template
             # We'll create a simple approach - render the template and extract content
             return render(request, template_name)
         return render(request, template_name)
+
     return view
 
 
@@ -204,37 +210,37 @@ def home_view(request):
     """Home page view that handles HTMX requests."""
     # If this is an HTMX request for navigation, return content partial
     if request.htmx:
-        return render(request, 'pages/home_content_partial.html')
-    
+        return render(request, "core/home_content_partial.html")
+
     # Otherwise return the full page
-    return render(request, 'pages/home.html')
+    return render(request, "core/home.html")
 
 
 def about_view(request):
     """About page view that handles HTMX requests."""
     # If this is an HTMX request for navigation, return content partial
     if request.htmx:
-        return render(request, 'pages/about_content_partial.html')
-    
+        return render(request, "core/about_content_partial.html")
+
     # Otherwise return the full page
-    return render(request, 'pages/about.html')
+    return render(request, "core/about.html")
 
 
 def privacy_view(request):
     """Privacy page view that handles HTMX requests."""
     # If this is an HTMX request for navigation, return content partial
     if request.htmx:
-        return render(request, 'pages/privacy_content_partial.html')
-    
+        return render(request, "core/privacy_content_partial.html")
+
     # Otherwise return the full page
-    return render(request, 'pages/privacy.html')
+    return render(request, "core/privacy.html")
 
 
 def terms_view(request):
     """Terms page view that handles HTMX requests."""
     # If this is an HTMX request for navigation, return content partial
     if request.htmx:
-        return render(request, 'pages/terms_content_partial.html')
-    
+        return render(request, "core/terms_content_partial.html")
+
     # Otherwise return the full page
-    return render(request, 'pages/terms.html')
+    return render(request, "core/terms.html")

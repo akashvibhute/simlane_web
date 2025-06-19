@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from unfold.admin import ModelAdmin
 
 from .models import BotCommand
 from .models import BotSettings
@@ -7,7 +8,7 @@ from .models import DiscordGuild
 
 
 @admin.register(DiscordGuild)
-class DiscordGuildAdmin(admin.ModelAdmin):
+class DiscordGuildAdmin(ModelAdmin):
     list_display = ["guild_id", "name", "club", "is_active", "created_at"]
     list_filter = ["is_active", "created_at"]
     search_fields = ["guild_id", "name", "club__name"]
@@ -15,7 +16,7 @@ class DiscordGuildAdmin(admin.ModelAdmin):
 
 
 @admin.register(BotCommand)
-class BotCommandAdmin(admin.ModelAdmin):
+class BotCommandAdmin(ModelAdmin):
     list_display = [
         "command_name",
         "username",
@@ -48,7 +49,7 @@ class BotCommandAdmin(admin.ModelAdmin):
 
 
 @admin.register(BotSettings)
-class BotSettingsAdmin(admin.ModelAdmin):
+class BotSettingsAdmin(ModelAdmin):
     list_display = ["key", "value", "description", "updated_at"]
     search_fields = ["key", "description"]
     readonly_fields = ["created_at", "updated_at"]

@@ -5,16 +5,9 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include
 from django.urls import path
 from django.views import defaults as default_views
-from django.views.generic import TemplateView
-
-from simlane.core.views import home_view, about_view, privacy_view, terms_view
 
 urlpatterns = [
-    path("", home_view, name="home"),
-    path("about/", about_view, name="about"),
-    path("privacy/", privacy_view, name="privacy"),
-    path("terms/", terms_view, name="terms"),
-    # Core app (contact form, etc.)
+    # Core app (home, about, privacy, terms, contact form, etc.)
     path("", include("simlane.core.urls", namespace="core")),
     # Django Admin, use {% url 'admin:index' %}
     path(settings.ADMIN_URL, admin.site.urls),

@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 from simlane.sim.models import Event
@@ -9,7 +11,7 @@ from simlane.users.models import User
 
 # Create your models here.
 class Club(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)
@@ -30,7 +32,7 @@ class Club(models.Model):
 
 
 class ClubMember(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="clubs")
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="members")
     role = models.CharField(max_length=50)
@@ -49,7 +51,7 @@ class ClubMember(models.Model):
 
 
 class Team(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="teams")
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -69,7 +71,7 @@ class Team(models.Model):
 
 
 class TeamMember(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -91,7 +93,7 @@ class TeamMember(models.Model):
 
 
 class EventEntry(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="entries")
     sim_car = models.ForeignKey(
         SimCar,
@@ -135,7 +137,7 @@ class EventEntry(models.Model):
 
 
 class DriverAvailability(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event_entry = models.ForeignKey(
         EventEntry,
         on_delete=models.CASCADE,
@@ -172,7 +174,7 @@ class DriverAvailability(models.Model):
 
 
 class PredictedStint(models.Model):
-    id = models.CharField(max_length=21, primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event_entry = models.ForeignKey(
         EventEntry,
         on_delete=models.CASCADE,

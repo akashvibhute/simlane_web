@@ -1,0 +1,125 @@
+{% load widget_tweaks %}
+
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+     onclick="closeModal()">
+  <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white"
+       onclick="event.stopPropagation()">
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+      <h3 class="text-lg font-medium text-gray-900">{{ title }}</h3>
+      <button type="button"
+              onclick="closeModal()"
+              class="text-gray-400 hover:text-gray-600">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    <!-- Form -->
+    <form hx-post="{{ action_url }}"
+          hx-target="#profiles-container"
+          hx-swap="innerHTML"
+          class="mt-4">
+      {% csrf_token %}
+      <!-- Messages -->
+      {% if form.non_field_errors %}
+        <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div class="flex">
+            <svg class="h-5 w-5 text-red-400"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div class="ml-3">
+              {% for error in form.non_field_errors %}<p class="text-sm text-red-800">{{ error }}</p>{% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      <div class="space-y-4">
+        <!-- Simulator Field -->
+        <div>
+          <label for="{{ form.simulator.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700">{{ form.simulator.label }}</label>
+          <div class="mt-1">
+            {% render_field form.simulator class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" %}
+          </div>
+          {% if form.simulator.errors %}
+            <div class="mt-1">
+              {% for error in form.simulator.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <!-- Profile Name Field -->
+        <div>
+          <label for="{{ form.profile_name.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700">{{ form.profile_name.label }}</label>
+          <div class="mt-1">
+            {% render_field form.profile_name class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" %}
+          </div>
+          {% if form.profile_name.help_text %}
+            <p class="mt-1 text-sm text-gray-500">{{ form.profile_name.help_text }}</p>
+          {% endif %}
+          {% if form.profile_name.errors %}
+            <div class="mt-1">
+              {% for error in form.profile_name.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <!-- External Data ID Field -->
+        <div>
+          <label for="{{ form.external_data_id.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700">{{ form.external_data_id.label }}</label>
+          <div class="mt-1">
+            {% render_field form.external_data_id class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" %}
+          </div>
+          {% if form.external_data_id.help_text %}
+            <p class="mt-1 text-sm text-gray-500">{{ form.external_data_id.help_text }}</p>
+          {% endif %}
+          {% if form.external_data_id.errors %}
+            <div class="mt-1">
+              {% for error in form.external_data_id.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <!-- Is Active Field -->
+        <div class="flex items-center">
+          {% render_field form.is_active class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded" %}
+          <label for="{{ form.is_active.id_for_label }}"
+                 class="ml-2 block text-sm text-gray-900">{{ form.is_active.label }}</label>
+        </div>
+        {% if form.is_active.help_text %}<p class="text-sm text-gray-500">{{ form.is_active.help_text }}</p>{% endif %}
+        {% if form.is_active.errors %}
+          <div class="mt-1">
+            {% for error in form.is_active.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      <!-- Form Actions -->
+      <div class="flex items-center justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+        <button type="button"
+                onclick="closeModal()"
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+          Cancel
+        </button>
+        <button type="submit"
+                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+          {% if sim_profile %}
+            Update Profile
+          {% else %}
+            Add Profile
+          {% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  function closeModal() {
+    const modal = document.getElementById('profile-modal');
+    modal.classList.add('hidden');
+    modal.innerHTML = '';
+  }
+</script>

@@ -1,29 +1,70 @@
-{% extends "mfa/recovery_codes/index.html" %}
+{% extends "allauth/layouts/manage.html" %}
 
 {% load i18n %}
 {% load allauth %}
-{% load allauth_ui %}
+{% load static %}
 
-{% block content %}
-  {% translate "Recovery Codes" as heading %}
-  {% blocktranslate asvar subheading count unused_count=unused_codes|length %}There is {{ unused_count }} out of {{ total_count }} recovery codes available.{% plural %}There are {{ unused_count }} out of {{ total_count }} recovery codes available.{% endblocktranslate %}
-  {% #container heading=heading subheading=subheading %}
-  <div class="my-3">
-    <label class="label" for="codes">
-      <span class="label-text">{% translate "Unused codes" %}</span>
-    </label>
-    <textarea id="codes" class="w-full m-3 mx-auto textarea" rows="{{unused_codes|length}}" disabled readonly>
-        {% for code in unused_codes %}{{ code }}
-        {% endfor %}
-    </textarea>
+{% block head_title_inner %}
+  {% trans "Recovery Codes" %}
+{% endblock head_title_inner %}
+{% block inner_content %}
+  <div class="mb-6">
+    <p class="text-sm text-gray-600">
+      {% blocktranslate count unused_count=unused_codes|length %}There is {{ unused_count }} out of {{ total_count }} recovery codes available.{% plural %}There are {{ unused_count }} out of {{ total_count }} recovery codes available.{% endblocktranslate %}
+    </p>
   </div>
-  <div class="flex flex-col mx-auto sm:w-8/12 xl:w-7/12">
+  {% if unused_codes %}
+    <div class="mb-6">
+      <label for="codes" class="block text-sm font-medium text-gray-700 mb-2">{% trans "Unused codes" %}</label>
+      <textarea id="codes" rows="{{ unused_codes|length }}" readonly class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-700 sm:text-sm focus:outline-none font-mono">{% for code in unused_codes %}{{ code }}
+{% endfor %}</textarea>
+      <p class="mt-2 text-sm text-gray-600">
+        {% trans "Store these codes in a safe place. Each code can only be used once to regain access to your account." %}
+      </p>
+    </div>
+  {% endif %}
+  <div class="flex flex-col sm:flex-row gap-3">
     {% if unused_codes %}
-      <a href="{% url "mfa_download_recovery_codes" %}"
-         class="md:w-full btn btn-neutral">{% trans "Download codes" %}</a>
+      <a href="{% url 'mfa_download_recovery_codes' %}"
+         class="inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+        <svg class="w-4 h-4 mr-2"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        {% trans "Download codes" %}
+      </a>
     {% endif %}
-    <a href="{% url "mfa_generate_recovery_codes" %}"
-       class="mt-4 md:w-full btn btn-neutral">{% trans "Generate new codes" %}</a>
+    <a href="{% url 'mfa_generate_recovery_codes' %}"
+       class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm bg-primary-600 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+      <svg class="w-4 h-4 mr-2"
+           fill="none"
+           stroke="currentColor"
+           viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+      {% trans "Generate new codes" %}
+    </a>
   </div>
-  {% /container %}
-{% endblock content %}
+  {% if not unused_codes %}
+    <div class="mt-6 rounded-md bg-yellow-50 p-4">
+      <div class="flex">
+        <svg class="h-5 w-5 text-yellow-400"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-yellow-800">{% trans "No recovery codes available" %}</h3>
+          <div class="mt-2 text-sm text-yellow-700">
+            <p>
+              {% trans "You don't have any unused recovery codes. Generate new codes to ensure you can regain access to your account if needed." %}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endblock inner_content %}

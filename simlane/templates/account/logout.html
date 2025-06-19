@@ -1,17 +1,27 @@
-{% extends "account/logout.html" %}
+{% extends "allauth/layouts/entrance.html" %}
 
 {% load i18n %}
-{% load allauth_ui %}
+{% load static %}
 
-{% block content %}
-  {% trans "Sign Out" as heading %}
-  {% trans "Are you sure you want to sign out?" as subheading %}
-  {% url 'account_logout' as action_url %}
-  {% #container heading=heading subheading=subheading %}
-  {% trans "Continue" as button_text %}
-  {% #form url=action_url button_text=heading %}
-  {% csrf_token %}
-  {{ redirect_field }}
-  {% /form %}
-  {% /container %}
-{% endblock content %}
+{% block head_title_inner %}
+  {% trans "Sign Out" %}
+{% endblock head_title_inner %}
+{% block inner_content %}
+  <div class="mb-6">
+    <p class="text-sm text-gray-600 text-center">{% trans "Are you sure you want to sign out?" %}</p>
+  </div>
+  <form method="post" action="{% url 'account_logout' %}" class="space-y-6">
+    {% csrf_token %}
+    {{ redirect_field }}
+    <div>
+      <button type="submit"
+              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+        {% trans "Sign Out" %}
+      </button>
+    </div>
+  </form>
+  <div class="mt-4 text-center">
+    <a href="{% url 'core:home' %}"
+       class="text-sm text-gray-500 hover:text-gray-700">← {% trans "Cancel" %}</a>
+  </div>
+{% endblock inner_content %}

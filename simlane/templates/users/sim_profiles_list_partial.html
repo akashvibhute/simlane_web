@@ -1,0 +1,135 @@
+{% if user_profiles %}
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    {% for profile in user_profiles %}
+      <div class="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow">
+        <div class="p-6">
+          <!-- Profile Header -->
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-3">
+              <div class="flex-shrink-0">
+                {% if profile.simulator.icon %}
+                  <img class="h-10 w-10 rounded object-cover"
+                       src="{{ profile.simulator.icon.url }}"
+                       alt="{{ profile.simulator.name }}" />
+                {% else %}
+                  <div class="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                    <svg class="h-6 w-6 text-primary-600"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                {% endif %}
+              </div>
+              <div>
+                <h3 class="text-lg font-medium text-gray-900">{{ profile.simulator.name }}</h3>
+                <p class="text-sm text-gray-500">{{ profile.profile_name }}</p>
+              </div>
+            </div>
+          </div>
+          <!-- Profile Details -->
+          <div class="space-y-2 mb-4">
+            {% if profile.external_data_id %}
+              <div class="flex items-center text-sm text-gray-600">
+                ID: {{ profile.external_data_id }}
+                <!-- Status Badge -->
+                <span class="inline-flex items- px-2.5 py-1 ml-2 rounded-full text-xs font-medium {% if profile.is_verified %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                  {% if profile.is_verified %}
+                    Verified
+                  {% else %}
+                    Unverified
+                  {% endif %}
+                </span>
+              </div>
+            {% endif %}
+            {% if profile.last_active %}
+              <div class="flex items-center text-sm text-gray-600">
+                <svg class="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Last active: {{ profile.last_active|date:"M j, Y" }}
+              </div>
+            {% endif %}
+            {% comment %} <div class="flex items-center text-sm text-gray-600">
+                            <svg class="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4m-6 0V6a2 2 0 012-2h4a2 2 0 012 2v1m-6 0h8m-8 0v10a2 2 0 002 2h4a2 2 0 002-2V7m-8 0V5a2 2 0 012-2h4a2 2 0 012 2v2" />
+                            </svg>
+                            Created: {{ profile.created_at|date:"M j, Y" }}
+            </div> {% endcomment %}
+          </div>
+          <!-- Action Buttons -->
+          <div class="flex items-center justify-between pt-4 border-t border-gray-200">
+            <div class="flex space-x-2">
+              <!-- Edit Button -->
+              <button hx-get="{% url 'users:sim_profile_edit' profile.id %}"
+                      hx-target="#profile-modal"
+                      hx-swap="innerHTML"
+                      class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <svg class="-ml-0.5 mr-1 h-3 w-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </button>
+              <!-- Toggle Active Button -->
+              {% comment %} <button hx-post="{% url 'users:sim_profile_toggle_active' profile.id %}" hx-target="#profiles-container" hx-swap="innerHTML" hx-confirm="Are you sure you want to {% if profile.is_verified %}deactivate{% else %}activate{% endif %} this profile?" class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                {% if profile.is_verified %}
+                                    <svg class="-ml-0.5 mr-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Deactivate
+                                {% else %}
+                                    <svg class="-ml-0.5 mr-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Activate
+                                {% endif %}
+              </button> {% endcomment %}
+            </div>
+            <!-- Delete Button -->
+            {% comment %} <button hx-get="{% url 'users:sim_profile_delete' profile.id %}" hx-target="#profile-modal" hx-swap="innerHTML" class="inline-flex items-center px-3 py-1.5 border border-red-300 shadow-sm text-xs font-medium rounded text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <svg class="-ml-0.5 mr-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+            </button> {% endcomment %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <!-- Empty State -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400"
+           fill="none"
+           stroke="currentColor"
+           viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No sim profiles</h3>
+      <p class="mt-1 text-sm text-gray-500">Get started by creating your first sim racing profile.</p>
+      <div class="mt-6">
+        <button hx-get="{% url 'users:sim_profile_add' %}"
+                hx-target="#profile-modal"
+                hx-swap="innerHTML"
+                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+          <svg class="-ml-1 mr-2 h-5 w-5"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          Add your first profile
+        </button>
+      </div>
+    </div>
+  </div>
+{% endif %}

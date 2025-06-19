@@ -1,7 +1,6 @@
 """Utility functions for Discord bot operations"""
 
 from typing import Any
-from typing import Optional
 
 from allauth.socialaccount.models import SocialAccount
 from django.conf import settings

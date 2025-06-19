@@ -1,9 +1,14 @@
 from allauth.account.forms import SignupForm
 from allauth.socialaccount.forms import SignupForm as SocialSignupForm
+from django import forms
 from django.contrib.auth import forms as admin_forms
+from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 
-from .models import User
+from simlane.sim.models import SimProfile
+from simlane.sim.models import Simulator
+
+User = get_user_model()
 
 
 class UserAdminChangeForm(admin_forms.UserChangeForm):
@@ -11,7 +16,7 @@ class UserAdminChangeForm(admin_forms.UserChangeForm):
         model = User
 
 
-class UserAdminCreationForm(admin_forms.AdminUserCreationForm):
+class UserAdminCreationForm(admin_forms.UserCreationForm):
     """
     Form for User Creation in the Admin Area.
     To change user signup, see UserSignupForm and UserSocialSignupForm.
@@ -38,3 +43,76 @@ class UserSocialSignupForm(SocialSignupForm):
     Default fields will be added automatically.
     See UserSignupForm otherwise.
     """
+
+
+class SimProfileForm(forms.ModelForm):
+    """Form for creating and editing sim racing profiles."""
+
+    class Meta:
+        model = SimProfile
+        fields = ["simulator", "profile_name", "external_data_id"]
+        widgets = {
+            "simulator": forms.Select(
+                attrs={
+                    "class": "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm",
+                },
+            ),
+            "profile_name": forms.TextInput(
+                attrs={
+                    "class": "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm",
+                    "placeholder": "Enter your profile name",
+                },
+            ),
+            "external_data_id": forms.TextInput(
+                attrs={
+                    "class": "mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm",
+                    "placeholder": "External ID (optional)",
+                },
+            ),
+        }
+        labels = {
+            "simulator": "Simulator",
+            "profile_name": "Profile Name",
+            "external_data_id": "External Data ID",
+        }
+        help_texts = {
+            "profile_name": "Your username or display name in the simulator",
+            "external_data_id": "Optional: Your customer/user ID in the simulator (e.g., iRacing customer ID)",
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        # Only show active simulators
+        self.fields["simulator"].queryset = Simulator.objects.filter(
+            is_active=True,
+        ).order_by("name")
+
+        # Set default for is_active
+        # if 'is_active' not in self.initial:
+        #     self.initial['is_active'] = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        simulator = cleaned_data.get("simulator")
+        profile_name = cleaned_data.get("profile_name")
+
+        if simulator and profile_name and self.user:
+            # Check for duplicate profile names for the same user and simulator
+            # This is handled by the model's unique_together constraint, but we can provide a better error message
+            existing_profile = SimProfile.objects.filter(
+                user=self.user,
+                simulator=simulator,
+                profile_name=profile_name,
+            )
+
+            # Exclude the current instance if we're editing
+            if self.instance.pk:
+                existing_profile = existing_profile.exclude(pk=self.instance.pk)
+
+            if existing_profile.exists():
+                raise forms.ValidationError(
+                    f'You already have a profile named "{profile_name}" for {simulator.name}.',
+                )
+
+        return cleaned_data

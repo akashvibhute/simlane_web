@@ -16,9 +16,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # Requirements are installed here to ensure they will be cached.
 COPY ./requirements .
 
-# Create Python Dependency and Sub-Dependency Wheels.
-RUN pip wheel --wheel-dir /usr/src/app/wheels \
-  -r ${BUILD_ENVIRONMENT}.txt
+# Create Python Dependency and Sub-Dependency Wheels with BuildKit cache mount.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip wheel --wheel-dir /usr/src/app/wheels \
+    -r ${BUILD_ENVIRONMENT}.txt
 
 
 # Python 'run' stage
@@ -60,9 +61,10 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
 # copy python dependency wheels from python-build-stage
 COPY --from=python-build-stage /usr/src/app/wheels /wheels/
 
-# use wheels to install python dependencies
-RUN pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
-  && rm -rf /wheels/
+# use wheels to install python dependencies with BuildKit cache mount
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir --no-index --find-links=/wheels/ /wheels/* \
+    && rm -rf /wheels/
 
 COPY ./compose/production/django/entrypoint /entrypoint
 RUN sed -i 's/\r$//g' /entrypoint

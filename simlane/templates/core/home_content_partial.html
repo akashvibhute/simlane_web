@@ -5,8 +5,8 @@
   </p>
   {% if not user.is_authenticated %}
     <div class="flex justify-center space-x-4 mb-12">
-              <a href="{% url 'account_signup' %}"
-           class="inline-flex items-center px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+      <a href="{% url 'account_signup' %}"
+         class="inline-flex items-center px-8 py-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
         Get Started
         <svg class="w-5 h-5 ml-2"
              fill="none"
@@ -15,8 +15,8 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
         </svg>
       </a>
-      <a href="{% url 'about' %}"
-         hx-get="{% url 'about' %}"
+      <a href="{% url 'core:about' %}"
+         hx-get="{% url 'core:about' %}"
          hx-target="#main-content"
          hx-push-url="true"
          class="inline-flex items-center px-8 py-4 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
@@ -68,4 +68,4 @@
       </p>
     </div>
   </div>
-</div> 
+</div>
