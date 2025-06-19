@@ -41,10 +41,12 @@ class Command(BaseCommand):
 
         # Check configuration
         if not settings.IRACING_USERNAME or not settings.IRACING_PASSWORD:
-            raise CommandError(
+            error_msg = (
                 "iRacing credentials not configured. "
-                "Please set IRACING_USERNAME and IRACING_PASSWORD environment variables.",
+                "Please set IRACING_USERNAME and IRACING_PASSWORD "
+                "environment variables."
             )
+            raise CommandError(error_msg)
 
         if options["test_service"]:
             self.test_service(options.get("cust_id"))
@@ -59,6 +61,10 @@ class Command(BaseCommand):
                 ),
             )
 
+    def _raise_service_error(self, message: str):
+        """Helper method to raise service errors."""
+        raise CommandError(message)
+
     def test_service(self, cust_id=None):
         """Test the iRacing service directly."""
         self.stdout.write("Testing iRacing service...")
@@ -66,7 +72,7 @@ class Command(BaseCommand):
         try:
             # Test service availability
             if not iracing_service.is_available():
-                raise CommandError("iRacing service is not available")
+                self._raise_service_error("iRacing service is not available")
 
             self.stdout.write(self.style.SUCCESS("✓ iRacing service is available"))
 
@@ -74,12 +80,13 @@ class Command(BaseCommand):
             self.stdout.write("Testing member summary...")
             try:
                 data = iracing_service.get_member_summary(cust_id=cust_id)
+                customer_info = data.get("cust_id", "authenticated user")
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f"✓ Member summary fetched (customer: {data.get('cust_id', 'authenticated user')})",
+                        f"✓ Member summary fetched (customer: {customer_info})",
                     ),
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 self.stdout.write(self.style.ERROR(f"✗ Member summary failed: {e}"))
 
             # Test series data
@@ -92,7 +99,7 @@ class Command(BaseCommand):
                         f"✓ Series data fetched ({series_count} series)",
                     ),
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 self.stdout.write(self.style.ERROR(f"✗ Series data failed: {e}"))
 
             # Test cars data
@@ -103,7 +110,7 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.SUCCESS(f"✓ Cars data fetched ({cars_count} cars)"),
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 self.stdout.write(self.style.ERROR(f"✗ Cars data failed: {e}"))
 
             # Test tracks data
@@ -116,11 +123,12 @@ class Command(BaseCommand):
                         f"✓ Tracks data fetched ({tracks_count} tracks)",
                     ),
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 self.stdout.write(self.style.ERROR(f"✗ Tracks data failed: {e}"))
 
         except Exception as e:
-            raise CommandError(f"Service test failed: {e}")
+            error_msg = f"Service test failed: {e}"
+            raise CommandError(error_msg) from e
 
     def test_tasks(self, cust_id=None):
         """Test Celery tasks."""
@@ -163,11 +171,11 @@ class Command(BaseCommand):
                 ),
             )
 
-            self.stdout.write(
-                self.style.WARNING(
-                    "Note: Tasks have been queued. Check Celery worker logs for results.",
-                ),
+            warning_msg = (
+                "Note: Tasks have been queued. Check Celery worker logs for results."
             )
+            self.stdout.write(self.style.WARNING(warning_msg))
 
         except Exception as e:
-            raise CommandError(f"Task test failed: {e}")
+            error_msg = f"Task test failed: {e}"
+            raise CommandError(error_msg) from e

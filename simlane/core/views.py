@@ -186,7 +186,7 @@ def contact_view(request):
 
     # Handle different types of HTMX requests
     if request.htmx:
-        # Navigation request - return content partial (page content without header/footer)
+        # Navigation request - return content partial (page content without nav)
         return render(request, "core/contact_content_partial.html", {"form": form})
 
     # Direct page visit - return full page with base template

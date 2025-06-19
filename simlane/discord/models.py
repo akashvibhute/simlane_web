@@ -56,9 +56,10 @@ class BotCommand(models.Model):
                 provider="discord",
                 uid=self.discord_user_id,
             )
-            return social_account.user
         except SocialAccount.DoesNotExist:
             return None
+        else:
+            return social_account.user
 
 
 class BotSettings(models.Model):

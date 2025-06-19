@@ -63,16 +63,17 @@ class Garage61APIClient:
                 account=social_account,
                 app__provider="garage61",
             )
-            return token.token
         except (SocialAccount.DoesNotExist, SocialToken.DoesNotExist):
             return None
+        else:
+            return token.token
 
     def _make_request(
         self,
         endpoint: str,
         method: str = "GET",
-        params: dict = None,
-        data: dict = None,
+        params: dict | None = None,
+        data: dict | None = None,
     ) -> dict | None:
         """Make API request with logging"""
         url = f"{self.BASE_URL}/{endpoint.lstrip('/')}"
@@ -109,12 +110,12 @@ class Garage61APIClient:
 
             # Log the request
             self._log_request(
-                endpoint,
-                method,
-                response.status_code,
-                True,
-                "",
-                response_time,
+                endpoint=endpoint,
+                method=method,
+                status_code=response.status_code,
+                success=True,
+                error="",
+                response_time=response_time,
             )
 
             response.raise_for_status()
@@ -123,17 +124,18 @@ class Garage61APIClient:
         except requests.RequestException as e:
             response_time = int((time.time() - start_time) * 1000)
             self._log_request(
-                endpoint,
-                method,
-                getattr(e.response, "status_code", None),
-                False,
-                str(e),
-                response_time,
+                endpoint=endpoint,
+                method=method,
+                status_code=getattr(e.response, "status_code", None),
+                success=False,
+                error=str(e),
+                response_time=response_time,
             )
             return None
 
-    def _log_request(
+    def _log_request(  # noqa: PLR0913
         self,
+        *,
         endpoint: str,
         method: str,
         status_code: int | None,
@@ -253,7 +255,7 @@ class Garage61APIClient:
         end_time: float | None = None,
     ) -> dict | None:
         """Get telemetry data for a session"""
-        params = {}
+        params: dict[str, float] = {}
         if start_time:
             params["start_time"] = start_time
         if end_time:
@@ -323,9 +325,13 @@ class Garage61APIClient:
         """Get tire wear and temperature data for a session"""
         return self._make_request(f"driving/sessions/{session_id}/tires")
 
-    def export_session_data(self, session_id: str, format: str = "json") -> dict | None:
+    def export_session_data(
+        self,
+        session_id: str,
+        data_format: str = "json",
+    ) -> dict | None:
         """Export session data in various formats (json, csv, motec)"""
-        params = {"format": format}
+        params = {"format": data_format}
         return self._make_request(
             f"driving/sessions/{session_id}/export",
             params=params,
@@ -341,7 +347,8 @@ class Garage61Service:
         if user:
             return Garage61APIClient(user=user)
 
-        raise ValueError("No user provided for Garage61 OAuth authentication")
+        msg = "No user provided for Garage61 OAuth authentication"
+        raise ValueError(msg)
 
     @staticmethod
     def sync_user_data(user: User) -> dict[str, Any]:
@@ -366,5 +373,5 @@ class Garage61Service:
                 user=user,
                 provider="garage61",
             ).exists()
-        except Exception:
+        except SocialAccount.DoesNotExist:
             return False

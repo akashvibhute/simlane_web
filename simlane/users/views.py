@@ -84,7 +84,10 @@ def sim_profile_add_view(request):
 
             messages.success(
                 request,
-                f"Successfully added {sim_profile.simulator.name} profile: {sim_profile.profile_name}",
+                (
+                    f"Successfully added {sim_profile.simulator.name} profile: "
+                    f"{sim_profile.profile_name}"
+                ),
             )
 
             if request.htmx:
@@ -123,7 +126,10 @@ def sim_profile_edit_view(request, profile_id):
 
             messages.success(
                 request,
-                f"Successfully updated {sim_profile.simulator.name} profile: {sim_profile.profile_name}",
+                (
+                    f"Successfully updated {sim_profile.simulator.name} profile: "
+                    f"{sim_profile.profile_name}"
+                ),
             )
 
             if request.htmx:
@@ -203,7 +209,10 @@ def sim_profile_toggle_active_view(request, profile_id):
     status_text = "activated" if sim_profile.is_active else "deactivated"
     messages.success(
         request,
-        f"Successfully {status_text} {sim_profile.simulator.name} profile: {sim_profile.profile_name}",
+        (
+            f"Successfully {status_text} {sim_profile.simulator.name} profile: "
+            f"{sim_profile.profile_name}"
+        ),
     )
 
     # Return updated profiles list

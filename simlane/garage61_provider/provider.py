@@ -38,8 +38,7 @@ class Garage61Provider(OAuth2Provider):
 
     def get_auth_params(self, request, action):
         """Additional auth parameters"""
-        ret = super().get_auth_params(request, action)
-        return ret
+        return super().get_auth_params(request, action)
 
     def extract_uid(self, data):
         """Extract unique identifier from user data"""
@@ -47,12 +46,12 @@ class Garage61Provider(OAuth2Provider):
 
     def extract_common_fields(self, data):
         """Extract common user fields from OAuth2 user data"""
-        return dict(
-            email=data.get("email"),
-            username=data.get("username"),
-            first_name=data.get("first_name", ""),
-            last_name=data.get("last_name", ""),
-        )
+        return {
+            "email": data.get("email"),
+            "username": data.get("username"),
+            "first_name": data.get("first_name", ""),
+            "last_name": data.get("last_name", ""),
+        }
 
     def extract_extra_data(self, data):
         """Extract extra data to store with the social account"""
@@ -66,13 +65,7 @@ class Garage61Provider(OAuth2Provider):
             extra_data=self.extract_extra_data(response),
         )
 
-        login = SocialLogin(account=account)
-
-        # Extract common fields for user creation
-        common_fields = self.extract_common_fields(response)
-        login.account.populate_user(common_fields)
-
-        return login
+        return SocialLogin(account=account)
 
 
 class Garage61ProviderConfig(AppConfig):

@@ -14,49 +14,47 @@ class Command(BaseCommand):
         simulators_data = [
             {
                 "name": "iRacing",
-                "version": "2024.1",
                 "website": "https://www.iracing.com",
                 "description": "The premier online racing simulation service for PC.",
                 "logo_url": "",
             },
             {
                 "name": "Assetto Corsa Competizione",
-                "version": "1.10",
                 "website": "https://www.assettocorsa.it/competizione/",
-                "description": "Official GT World Challenge game with stunning graphics and physics.",
+                "description": (
+                    "Official GT World Challenge game with stunning "
+                    "graphics and physics."
+                ),
                 "logo_url": "",
             },
             {
                 "name": "rFactor 2",
-                "version": "1.1121",
                 "website": "https://www.studio-397.com",
-                "description": "Advanced racing simulation with realistic physics and AI.",
+                "description": (
+                    "Advanced racing simulation with realistic physics and AI."
+                ),
                 "logo_url": "",
             },
             {
                 "name": "Automobilista 2",
-                "version": "1.5.5",
                 "website": "https://www.game-automobilista2.com",
                 "description": "Brazilian racing simulation with diverse content.",
                 "logo_url": "",
             },
             {
                 "name": "F1 24",
-                "version": "1.0",
                 "website": "https://www.ea.com/games/f1",
                 "description": "Official Formula 1 racing game.",
                 "logo_url": "",
             },
             {
                 "name": "Gran Turismo 7",
-                "version": "1.0",
                 "website": "https://www.gran-turismo.com",
                 "description": "PlayStation exclusive racing simulation.",
                 "logo_url": "",
             },
             {
                 "name": "Forza Motorsport",
-                "version": "2023",
                 "website": "https://forza.net",
                 "description": "Xbox and PC racing simulation.",
                 "logo_url": "",
@@ -69,7 +67,6 @@ class Command(BaseCommand):
         for sim_data in simulators_data:
             simulator, created = Simulator.objects.get_or_create(
                 name=sim_data["name"],
-                version=sim_data["version"],
                 defaults={
                     "website": sim_data["website"],
                     "description": sim_data["description"],
@@ -81,20 +78,16 @@ class Command(BaseCommand):
             if created:
                 created_count += 1
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Created simulator: {simulator.name} {simulator.version}",
-                    ),
+                    self.style.SUCCESS(f"Created simulator: {simulator.name}"),
                 )
             else:
                 updated_count += 1
                 self.stdout.write(
-                    self.style.WARNING(
-                        f"Simulator already exists: {simulator.name} {simulator.version}",
-                    ),
+                    self.style.WARNING(f"Simulator already exists: {simulator.name}"),
                 )
 
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"\nCompleted! Created {created_count} new simulators, {updated_count} already existed.",
-            ),
+        success_msg = (
+            f"\nCompleted! Created {created_count} new simulators, "
+            f"{updated_count} already existed."
         )
+        self.stdout.write(self.style.SUCCESS(success_msg))

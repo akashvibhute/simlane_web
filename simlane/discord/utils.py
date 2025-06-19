@@ -16,9 +16,10 @@ def get_bot_setting(key: str, default: Any = None) -> Any:
     """Get a bot setting from the database"""
     try:
         setting = BotSettings.objects.get(key=key)
-        return setting.value
     except BotSettings.DoesNotExist:
         return default
+    else:
+        return setting.value
 
 
 def set_bot_setting(key: str, value: str, description: str = "") -> BotSettings:
@@ -48,18 +49,20 @@ def link_discord_guild_to_club(guild_id: str, club_id: str) -> DiscordGuild | No
         club.discord_guild_id = guild_id
         club.save()
 
-        return guild
     except (DiscordGuild.DoesNotExist, Club.DoesNotExist):
         return None
+    else:
+        return guild
 
 
 def get_club_for_guild(guild_id: str):
     """Get the racing club associated with a Discord guild"""
     try:
         guild = DiscordGuild.objects.get(guild_id=guild_id)
-        return guild.club
     except DiscordGuild.DoesNotExist:
         return None
+    else:
+        return guild.club
 
 
 def get_django_user_from_discord_id(discord_id: str) -> User | None:
@@ -69,9 +72,10 @@ def get_django_user_from_discord_id(discord_id: str) -> User | None:
             provider="discord",
             uid=discord_id,
         )
-        return social_account.user
     except SocialAccount.DoesNotExist:
         return None
+    else:
+        return social_account.user
 
 
 def get_discord_social_account(user: User) -> SocialAccount | None:

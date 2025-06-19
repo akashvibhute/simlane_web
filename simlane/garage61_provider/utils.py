@@ -32,16 +32,17 @@ def get_garage61_token(user: User) -> str | None:
             account=social_account,
             app__provider="garage61",
         )
-        return token.token
     except SocialToken.DoesNotExist:
         return None
+    else:
+        return token.token
 
 
 def make_garage61_api_request(
     user: User,
     endpoint: str,
     method: str = "GET",
-    data: dict = None,
+    data: dict | None = None,
 ) -> dict[Any, Any] | None:
     """Make an authenticated API request to Garage61"""
     token = get_garage61_token(user)
