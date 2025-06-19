@@ -97,7 +97,7 @@ All apps are in the `simlane/` directory:
 - `simlane.iracing` - iRacing integration
 - `simlane.discord` - Discord bot and integration
 - `simlane.garage61` - Garage61 API integration
-- `simlane.sim` - Sim racing utilities (FOV calculator, etc.)
+- `simlane.sim` - Sim racing utilities
 - `simlane.teams` - Team/club functionality
 
 ### Docker Configuration
