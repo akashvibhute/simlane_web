@@ -18,7 +18,7 @@ urlpatterns = [
     
     # Club Events Management
     path("<slug:club_slug>/events/add/", views.club_add_events, name="club_add_events"),
-    path("<slug:club_slug>/events/<uuid:event_id>/remove/", views.club_remove_event, name="club_remove_event"),
+    path("<slug:club_slug>/events/<slug:event_slug>/remove/", views.club_remove_event, name="club_remove_event"),
     
     # Club Invitation URLs (token-based, no club needed in URL)
     path("invite/<str:token>/accept/", views.club_invitation_accept, name="club_invitation_accept"),
@@ -39,17 +39,17 @@ urlpatterns = [
     path("<slug:club_slug>/signups/<uuid:signup_id>/allocate/", views.team_allocation_wizard, name="team_allocation_wizard"),
     path("<slug:club_slug>/signups/<uuid:signup_id>/allocate/preview/", views.team_allocation_preview, name="team_allocation_preview"),
     path("<slug:club_slug>/signups/<uuid:signup_id>/allocate/create/", views.team_allocation_create, name="team_allocation_create"),
-    path("<slug:club_slug>/allocations/<uuid:allocation_id>/update/", views.team_allocation_update, name="team_allocation_update"),
+    path("<slug:club_slug>/allocations/<slug:allocation_slug>/update/", views.team_allocation_update, name="team_allocation_update"),
     
     # Team Planning URLs (within club context)
-    path("<slug:club_slug>/allocations/<uuid:allocation_id>/planning/", views.team_planning_dashboard, name="team_planning_dashboard"),
-    path("<slug:club_slug>/allocations/<uuid:allocation_id>/stints/", views.stint_planning, name="stint_planning"),
-    path("<slug:club_slug>/allocations/<uuid:allocation_id>/stints/update/", views.stint_plan_update, name="stint_plan_update"),
-    path("<slug:club_slug>/allocations/<uuid:allocation_id>/stints/export/", views.stint_plan_export, name="stint_plan_export"),
+    path("<slug:club_slug>/allocations/<slug:allocation_slug>/planning/", views.team_planning_dashboard, name="team_planning_dashboard"),
+    path("<slug:club_slug>/allocations/<slug:allocation_slug>/stints/", views.stint_planning, name="stint_planning"),
+    path("<slug:club_slug>/allocations/<slug:allocation_slug>/stints/update/", views.stint_plan_update, name="stint_plan_update"),
+    path("<slug:club_slug>/allocations/<slug:allocation_slug>/stints/export/", views.stint_plan_export, name="stint_plan_export"),
     
     # HTMX Partial URLs (within club context)
     path("<slug:club_slug>/members/partial/", views.club_members_partial, name="club_members_partial"),
     path("<slug:club_slug>/signups/<uuid:signup_id>/entries/partial/", views.signup_entries_partial, name="signup_entries_partial"),
     path("<slug:club_slug>/signups/<uuid:signup_id>/allocate/partial/", views.team_allocation_partial, name="team_allocation_partial"),
-    path("<slug:club_slug>/allocations/<uuid:allocation_id>/stints/partial/", views.stint_plan_partial, name="stint_plan_partial"),
+    path("<slug:club_slug>/allocations/<slug:allocation_slug>/stints/partial/", views.stint_plan_partial, name="stint_plan_partial"),
 ]

@@ -374,17 +374,17 @@
                   </div>
                 </div>
                 <div class="flex items-center space-x-2 ml-4">
-                  <a href="{% url 'teams:event_signup_detail' club.slug club_event.id %}" class="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    View
+                  <a href="#" class="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    View Event
                   </a>
                   {% if club_event.status == 'signup_open' and club_event.signups.count > 0 %}
-                  <a href="{% url 'teams:team_allocation_wizard' club.slug club_event.id %}" class="inline-flex items-center px-3 py-1 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30">
-                    Allocate Teams
+                  <a href="#" class="inline-flex items-center px-3 py-1 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30">
+                    View Signups
                   </a>
                   {% endif %}
                   {% if user_role == 'admin' or user_role == 'teams_manager' %}
                   <button 
-                    hx-delete="{% url 'teams:club_remove_event' club.slug club_event.id %}"
+                                            hx-delete="{% url 'teams:club_remove_event' club.slug club_event.slug %}"
                     hx-confirm="Are you sure you want to remove this event from the club?"
                     hx-target="closest .space-y-4"
                     hx-swap="outerHTML"

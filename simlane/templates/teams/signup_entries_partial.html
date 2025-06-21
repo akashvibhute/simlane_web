@@ -211,7 +211,7 @@
                                 {% trans "Be the first to sign up for this event!" %}
                             </p>
                             {% if user_can_signup %}
-                            <a href="{% url 'teams:event_signup_join' signup.pk %}" 
+                            <a href="{% url 'teams:event_signup_join' signup.club_event.club.slug signup.pk %}" 
                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                                 {% trans "Sign Up Now" %}
                             </a>

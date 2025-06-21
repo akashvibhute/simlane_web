@@ -28,7 +28,7 @@
                     <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
                     </svg>
-                    <a href="{% url 'teams:event_signup_detail' signup.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                    <a href="{% url 'teams:event_signup_detail' signup.club_event.club.slug signup.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
                         {{ signup.title }}
                     </a>
                 </div>
@@ -300,7 +300,7 @@
 
                     <!-- Action Buttons -->
                     <div class="flex items-center justify-between pt-6 border-t border-gray-200">
-                        <a href="{% url 'teams:event_signup_detail' signup.pk %}" 
+                        <a href="{% url 'teams:event_signup_detail' signup.club_event.club.slug signup.pk %}" 
                            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             {% trans "Cancel" %}
                         </a>
@@ -417,7 +417,7 @@
                     
                     {% if current_signups > recent_signups|length %}
                     <div class="text-center pt-2">
-                        <a href="{% url 'teams:event_signup_detail' signup.pk %}" 
+                        <a href="{% url 'teams:event_signup_detail' signup.club_event.club.slug signup.pk %}" 
                            class="text-sm text-blue-600 hover:text-blue-800">
                             {% trans "View all" %} {{ current_signups }} {% trans "signups" %}
                         </a>

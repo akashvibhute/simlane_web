@@ -60,7 +60,7 @@
                   <div class="py-1">
                     {% for user_club in user_clubs %}
                       <a href="{% url 'teams:club_dashboard' user_club.club.slug %}"
-                         class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if user_club.club.id == club.id %}bg-gray-50 dark:bg-gray-700{% endif %}">
+                         class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if user_club.club.slug == club.slug %}bg-gray-50 dark:bg-gray-700{% endif %}">
                         {% if user_club.club.logo_url %}
                           <img src="{{ user_club.club.logo_url }}"
                                alt="{{ user_club.club.name }}"

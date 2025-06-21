@@ -37,7 +37,7 @@
                                 <svg class="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                                 </svg>
-                                <a href="{% url 'teams:event_signup_detail' event_signup.pk %}" class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">
+                                <a href="{% url 'teams:event_signup_detail' event_signup.club_event.club.slug event_signup.pk %}" class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">
                                     {{ event_signup.title }}
                                 </a>
                             </div>
@@ -341,7 +341,7 @@
                     
                     <div class="flex items-center space-x-3">
                         <!-- Back to Wizard -->
-                        <a href="{% url 'teams:team_allocation_wizard' event_signup.pk %}" 
+                        <a href="{% url 'teams:team_allocation_wizard' event_signup.club_event.club.slug event_signup.pk %}" 
                            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12"/>
@@ -423,7 +423,7 @@ function regenerateTeams() {
         btn.disabled = true;
         
         // Redirect to wizard with regenerate flag
-        window.location.href = `{% url 'teams:team_allocation_wizard' event_signup.pk %}?regenerate=true`;
+                        window.location.href = `{% url 'teams:team_allocation_wizard' event_signup.club_event.club.slug event_signup.pk %}?regenerate=true`;
     }
 }
 
