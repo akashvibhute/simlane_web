@@ -1,0 +1,570 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Team Planning" %} - {{ allocation.team.name }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-8" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'teams:clubs_dashboard' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% trans "Clubs" %}
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                    </svg>
+                    <a href="{% url 'teams:club_dashboard' allocation.event_signup.club.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                        {{ allocation.event_signup.club.name }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                    </svg>
+                    <a href="{% url 'teams:event_signup_detail' allocation.event_signup.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                        {{ allocation.event_signup.title }}
+                    </a>
+                </div>
+            </li>
+            <li aria-current="page">
+                <div class="flex items-center">
+                    <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                    </svg>
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ allocation.team.name }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-8">
+        <div class="relative h-32 bg-gradient-to-r from-blue-600 to-blue-800">
+            <div class="absolute inset-0 flex items-center">
+                <div class="px-6 text-white">
+                    <h1 class="text-3xl font-bold mb-2">{{ allocation.team.name }}</h1>
+                    <p class="text-blue-100">{{ allocation.event_signup.event.name }}</p>
+                </div>
+            </div>
+            
+            <!-- Race Date Countdown -->
+            <div class="absolute top-4 right-4 text-right text-white">
+                <div class="text-sm opacity-75">{% trans "Race in" %}</div>
+                <div id="race-countdown" class="text-lg font-bold" 
+                     data-race-time="{{ allocation.event_signup.event.start_time|date:'c' }}">
+                    --
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="flex items-center">
+                    <div class="w-12 h-8 bg-gray-200 rounded mr-3 flex items-center justify-center">
+                        {% if allocation.assigned_sim_car.image %}
+                            <img src="{{ allocation.assigned_sim_car.image.url }}" alt="{{ allocation.assigned_sim_car.name }}" class="w-full h-full object-cover rounded">
+                        {% else %}
+                            <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">{% trans "Car" %}</p>
+                        <p class="font-medium">{{ allocation.assigned_sim_car.name }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-gray-500">{% trans "Team Size" %}</p>
+                        <p class="font-medium">{{ allocation.members.count }} {% trans "members" %}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-gray-500">{% trans "Race Duration" %}</p>
+                        <p class="font-medium">{{ allocation.event_signup.event.duration_minutes }} {% trans "min" %}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-gray-500">{% trans "Planning Status" %}</p>
+                        <p class="font-medium">
+                            {% if stint_plan_complete %}
+                                <span class="text-green-600">{% trans "Complete" %}</span>
+                            {% else %}
+                                <span class="text-orange-600">{% trans "In Progress" %}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mb-6 flex flex-wrap gap-3">
+        <a href="{% url 'teams:stint_planning' allocation.pk %}" 
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            {% trans "Stint Planning" %}
+        </a>
+        
+        <button type="button" onclick="exportStintPlan()"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            {% trans "Export Plan" %}
+        </button>
+        
+        <button type="button" onclick="shareTeamLink()"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
+            </svg>
+            {% trans "Share Team Link" %}
+        </button>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <!-- Team Overview -->
+        <div class="xl:col-span-1">
+            <!-- Team Members -->
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    {% trans "Team Members" %}
+                </h3>
+                
+                <div class="space-y-4">
+                    {% for member in allocation.members.all %}
+                    <div class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                        <div class="flex-shrink-0">
+                            {% if member.user.avatar %}
+                                <img class="h-10 w-10 rounded-full" src="{{ member.user.avatar.url }}" alt="{{ member.user.get_full_name }}">
+                            {% else %}
+                                <div class="h-10 w-10 bg-gray-300 rounded-full flex items-center justify-center">
+                                    <span class="text-sm font-medium text-gray-700">
+                                        {{ member.user.first_name|first|default:member.user.username|first }){{ member.user.last_name|first }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="ml-3 flex-1">
+                            <div class="text-sm font-medium text-gray-900">
+                                {{ member.user.get_full_name|default:member.user.username }}
+                            </div>
+                            <div class="text-xs text-gray-500">@{{ member.user.username }}</div>
+                        </div>
+                        
+                        <div class="ml-2">
+                            {% if member.role == 'DRIVER' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {% trans "Driver" %}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    {% trans "Spectator" %}
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Contact Actions -->
+                        <div class="ml-3 flex space-x-1">
+                            {% if member.user.email %}
+                            <a href="mailto:{{ member.user.email }}" 
+                               class="text-gray-400 hover:text-gray-600"
+                               title="{% trans 'Send email' %}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                            </a>
+                            {% endif %}
+                            
+                            {% if member.user.profile.discord_username %}
+                            <span class="text-gray-400" title="Discord: {{ member.user.profile.discord_username }}">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0190 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1568 2.4189Z"/>
+                                </svg>
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Team Statistics" %}</h3>
+                
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">{% trans "Active Drivers" %}</span>
+                        <span class="text-lg font-semibold text-gray-900">{{ driver_count }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">{% trans "Total Driving Time" %}</span>
+                        <span class="text-lg font-semibold text-gray-900">{{ total_driving_time }} {% trans "min" %}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">{% trans "Planned Pit Stops" %}</span>
+                        <span class="text-lg font-semibold text-gray-900">{{ planned_pit_stops }}</span>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-500">{% trans "Avg Stint Length" %}</span>
+                        <span class="text-lg font-semibold text-gray-900">{{ avg_stint_length }} {% trans "min" %}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pit Strategy -->
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    {% trans "Pit Strategy" %}
+                </h3>
+                
+                {% if pit_data %}
+                <div class="space-y-3">
+                    <div class="bg-gray-50 rounded-lg p-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-700">{% trans "Fuel Consumption" %}</span>
+                            <span class="text-sm text-gray-900">{{ pit_data.fuel_consumption_per_lap }} L/lap</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-medium text-gray-700">{% trans "Tire Degradation" %}</span>
+                            <span class="text-sm text-gray-900">{{ pit_data.tire_degradation_per_lap }}%/lap</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <h4 class="text-sm font-medium text-gray-700">{% trans "Recommended Pit Windows" %}</h4>
+                        {% for window in recommended_pit_windows %}
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-gray-600">{% trans "Pit" %} {{ forloop.counter }}</span>
+                            <span class="font-medium text-gray-900">{{ window.start_time }}-{{ window.end_time }} {% trans "min" %}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-gray-500">
+                    <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <p class="text-sm">{% trans "No pit data available for this car/track combination" %}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Stint Overview & Communication -->
+        <div class="xl:col-span-2">
+            <!-- Stint Plan Overview -->
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        {% trans "Race Timeline" %}
+                    </h3>
+                    
+                    <div class="text-sm text-gray-500">
+                        {% blocktrans with duration=allocation.event_signup.event.duration_minutes %}{{ duration }} minute race{% endblocktrans %}
+                    </div>
+                </div>
+                
+                <!-- Timeline Visualization -->
+                <div class="stint-timeline mb-6" id="stint-timeline">
+                    <div class="timeline-container">
+                        <div class="timeline-track">
+                            <!-- Time markers -->
+                            <div class="time-markers">
+                                {% for i in timeline_markers %}
+                                <div class="time-marker" style="left: {{ i.position }}%;">
+                                    <div class="time-label">{{ i.time }}min</div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Stint assignments -->
+                            <div class="stint-assignments">
+                                {% for stint in stint_assignments %}
+                                <div class="stint-block driver-{{ stint.driver.pk }}" 
+                                     style="left: {{ stint.start_percentage }}%; width: {{ stint.duration_percentage }}%;"
+                                     data-driver="{{ stint.driver.get_full_name|default:stint.driver.username }}"
+                                     data-start="{{ stint.start_time }}"
+                                     data-duration="{{ stint.duration }}">
+                                    <div class="stint-label">
+                                        {{ stint.driver.first_name|default:stint.driver.username|truncatechars:8 }}
+                                    </div>
+                                    <div class="stint-duration">{{ stint.duration }}min</div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Pit stops -->
+                            <div class="pit-stops">
+                                {% for pit_stop in planned_pit_stops %}
+                                <div class="pit-stop" 
+                                     style="left: {{ pit_stop.time_percentage }}%;"
+                                     title="{% trans 'Pit Stop at' %} {{ pit_stop.time }} {% trans 'minutes' %}">
+                                    <div class="pit-icon">🔧</div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Driver Assignment Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for member in allocation.members.all %}
+                        {% if member.role == 'DRIVER' %}
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-4 h-4 rounded driver-color driver-{{ member.user.pk }} mr-3"></div>
+                                <span class="font-medium text-gray-900">
+                                    {{ member.user.get_full_name|default:member.user.username }}
+                                </span>
+                            </div>
+                            <div class="text-sm text-gray-600">
+                                {{ member.total_driving_time|default:0 }} {% trans "min" %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Team Communication -->
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+                    {% trans "Team Communication" %}
+                </h3>
+                
+                <!-- Communication Channels -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {% if team_discord_channel %}
+                    <a href="{{ team_discord_channel }}" target="_blank"
+                       class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div class="flex-shrink-0">
+                            <svg class="w-8 h-8 text-indigo-600" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419-.0190 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1568 2.4189Z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-medium text-gray-900">{% trans "Discord Channel" %}</h4>
+                            <p class="text-sm text-gray-500">{% trans "Join voice and text chat" %}</p>
+                        </div>
+                    </a>
+                    {% endif %}
+                    
+                    <button type="button" onclick="createGroupEmail()"
+                            class="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                        <div class="flex-shrink-0">
+                            <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-medium text-gray-900">{% trans "Group Email" %}</h4>
+                            <p class="text-sm text-gray-500">{% trans "Send message to all teammates" %}</p>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Quick Contact List -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">{% trans "Contact Information" %}</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        {% for member in allocation.members.all %}
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-900">{{ member.user.get_full_name|default:member.user.username }}</span>
+                            <div class="flex space-x-2">
+                                {% if member.user.email %}
+                                <a href="mailto:{{ member.user.email }}" class="text-blue-600 hover:text-blue-800">
+                                    {% trans "Email" %}
+                                </a>
+                                {% endif %}
+                                {% if member.user.profile.discord_username %}
+                                <span class="text-indigo-600">{{ member.user.profile.discord_username }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Race Day Checklist -->
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    {% trans "Race Day Checklist" %}
+                </h3>
+                
+                <div class="space-y-3">
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3">
+                        <span class="text-sm text-gray-700">{% trans "Verify all drivers are available and confirmed" %}</span>
+                    </label>
+                    
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3">
+                        <span class="text-sm text-gray-700">{% trans "Review stint assignments and pit strategy" %}</span>
+                    </label>
+                    
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3">
+                        <span class="text-sm text-gray-700">{% trans "Test communication channels (Discord, etc.)" %}</span>
+                    </label>
+                    
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3">
+                        <span class="text-sm text-gray-700">{% trans "Confirm race server details and password" %}</span>
+                    </label>
+                    
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3">
+                        <span class="text-sm text-gray-700">{% trans "Set up backup drivers if needed" %}</span>
+                    </label>
+                    
+                    <label class="flex items-center">
+                        <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-3">
+                        <span class="text-sm text-gray-700">{% trans "Download race schedule and stint plan" %}</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Race countdown timer
+function updateRaceCountdown() {
+    const countdownEl = document.getElementById('race-countdown');
+    if (!countdownEl) return;
+    
+    const raceTime = new Date(countdownEl.dataset.raceTime);
+    const now = new Date();
+    const diff = raceTime - now;
+    
+    if (diff <= 0) {
+        countdownEl.textContent = 'Race Day!';
+        return;
+    }
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    let countdownText = '';
+    if (days > 0) countdownText += `${days}d `;
+    if (hours > 0) countdownText += `${hours}h `;
+    if (minutes > 0) countdownText += `${minutes}m`;
+    
+    countdownEl.textContent = countdownText || '< 1m';
+}
+
+// Export stint plan
+function exportStintPlan() {
+    const url = `{% url 'teams:stint_plan_export' allocation.pk %}`;
+    window.open(url, '_blank');
+}
+
+// Share team link
+function shareTeamLink() {
+    const url = window.location.href;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ allocation.team.name }} - Team Planning',
+            text: 'Check out our team planning for {{ allocation.event_signup.event.name }}',
+            url: url
+        });
+    } else {
+        navigator.clipboard.writeText(url).then(() => {
+            alert('{% trans "Team link copied to clipboard!" %}');
+        });
+    }
+}
+
+// Create group email
+function createGroupEmail() {
+    const emails = [
+        {% for member in allocation.members.all %}
+            {% if member.user.email %}'{{ member.user.email }}'{% if not forloop.last %},{% endif %}{% endif %}
+        {% endfor %}
+    ];
+    
+    const subject = encodeURIComponent('{{ allocation.team.name }} - {{ allocation.event_signup.event.name }}');
+    const body = encodeURIComponent('Hi team,\n\n\n\nBest regards');
+    
+    window.location.href = `mailto:${emails.join(',')}?subject=${subject}&body=${body}`;
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    updateRaceCountdown();
+    setInterval(updateRateCountdown, 60000);
+    
+    // Save checklist state
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const checklistState = Array.from(checkboxes).map(cb => cb.checked);
+            localStorage.setItem(`checklist-${allocation.pk}`, JSON.stringify(checklistState));
+        });
+    });
+    
+    // Load checklist state
+    const savedState = localStorage.getItem(`checklist-{{ allocation.pk }}`);
+    if (savedState) {
+        const checklistState = JSON.parse(savedState);
+        checkboxes.forEach((checkbox, index) => {
+            if (checklistState[index]) {
+                checkbox.checked = true;
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

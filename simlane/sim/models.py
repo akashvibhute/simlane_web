@@ -1,4 +1,5 @@
 import uuid
+from django.utils.text import slugify
 
 from django.db import models
 
@@ -140,17 +141,30 @@ class PitData(models.Model):
 class CarClass(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, blank=True)
     category = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     icon_url = models.URLField(blank=True)
 
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure uniqueness
+            counter = 1
+            original_slug = self.slug
+            while CarClass.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class CarModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, blank=True)
     manufacturer = models.CharField(max_length=255)
     car_class = models.ForeignKey(
         CarClass,
@@ -162,13 +176,25 @@ class CarModel(models.Model):
     base_specs = models.JSONField(null=True, blank=True)
 
     class Meta:
-        unique_together = ["manufacturer", "name"]
+        unique_together = ["manufacturer", "name", "slug"]
         indexes = [
             models.Index(fields=["car_class"]),
+            models.Index(fields=["slug"]),
         ]
 
     def __str__(self):
         return f"{self.manufacturer} {self.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(f"{self.manufacturer} {self.name}")
+            # Ensure uniqueness
+            counter = 1
+            original_slug = self.slug
+            while CarModel.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class SimCar(models.Model):
@@ -210,6 +236,7 @@ class SimCar(models.Model):
 class TrackModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, blank=True)
     country = models.CharField(max_length=100, blank=True)
     location = models.CharField(max_length=255, blank=True)
     latitude = models.FloatField(null=True, blank=True)
@@ -218,10 +245,27 @@ class TrackModel(models.Model):
     description = models.TextField(blank=True)
 
     class Meta:
-        unique_together = ["name", "country"]
+        unique_together = ["name", "country", "slug"]
+        indexes = [
+            models.Index(fields=["slug"]),
+        ]
 
     def __str__(self):
-        return f"{self.name} ({self.country})" if self.country else self.name
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_name = f"{self.name}"
+            if self.country:
+                base_name += f" {self.country}"
+            self.slug = slugify(base_name)
+            # Ensure uniqueness
+            counter = 1
+            original_slug = self.slug
+            while TrackModel.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class SimTrack(models.Model):
@@ -236,6 +280,7 @@ class SimTrack(models.Model):
         on_delete=models.CASCADE,
         related_name="sim_tracks",
     )
+    slug = models.SlugField(max_length=300, blank=True)
     sim_api_id = models.CharField(max_length=255)
     display_name = models.CharField(max_length=255)
     is_laser_scanned = models.BooleanField(null=True, blank=True)
@@ -245,13 +290,26 @@ class SimTrack(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = [["simulator", "sim_api_id"], ["simulator", "track_model"]]
+        unique_together = [["simulator", "sim_api_id"], ["simulator", "track_model"], ["simulator", "slug"]]
         indexes = [
+            models.Index(fields=["simulator"]),
             models.Index(fields=["track_model"]),
+            models.Index(fields=["simulator", "slug"]),
         ]
 
     def __str__(self):
         return f"{self.simulator.name} - {self.track_model.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(f"{self.track_model.name}")
+            # Ensure uniqueness within simulator
+            counter = 1
+            original_slug = self.slug
+            while SimTrack.objects.filter(simulator=self.simulator, slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class SimLayout(models.Model):
@@ -263,6 +321,7 @@ class SimLayout(models.Model):
     )
     layout_code = models.CharField(max_length=50)
     name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, blank=True)
     type = models.CharField(max_length=20, choices=TrackType)
     length_km = models.FloatField()
     image_url = models.URLField(blank=True)
@@ -277,18 +336,31 @@ class SimLayout(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ["sim_track", "layout_code"]
+        unique_together = ["sim_track", "layout_code", "slug"]
         indexes = [
             models.Index(fields=["sim_track"]),
+            models.Index(fields=["sim_track", "slug"]),
         ]
 
     def __str__(self):
-        return f"{self.sim_track.name} - {self.layout_code}"
+        return f"{self.sim_track.track_model.name} - {self.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure uniqueness within sim_track
+            counter = 1
+            original_slug = self.slug
+            while SimLayout.objects.filter(sim_track=self.sim_track, slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class Series(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, blank=True)
     description = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)
     website = models.URLField(blank=True)
@@ -302,9 +374,23 @@ class Series(models.Model):
     class Meta:
         verbose_name = "Series"
         verbose_name_plural = "Series"
+        indexes = [
+            models.Index(fields=["slug"]),
+        ]
 
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure uniqueness
+            counter = 1
+            original_slug = self.slug
+            while Series.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class Event(models.Model):
@@ -327,6 +413,7 @@ class Event(models.Model):
         related_name="events",
     )
     name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, blank=True)
     description = models.TextField(blank=True)
     type = models.CharField(max_length=20, choices=EventType, default=EventType.CUSTOM)
     status = models.CharField(
@@ -348,14 +435,27 @@ class Event(models.Model):
 
     class Meta:
         indexes = [
-            models.Index(fields=["simulator"]),
             models.Index(fields=["series"]),
+            models.Index(fields=["simulator"]),
+            models.Index(fields=["sim_layout"]),
+            models.Index(fields=["event_date"]),
             models.Index(fields=["status"]),
-            models.Index(fields=["type"]),
+            models.Index(fields=["slug"]),
         ]
 
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure uniqueness
+            counter = 1
+            original_slug = self.slug
+            while Event.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class EventSession(models.Model):
@@ -381,6 +481,7 @@ class EventClass(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="classes")
     name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=280, blank=True)
     car_class = models.ForeignKey(
         CarClass,
         on_delete=models.SET_NULL,
@@ -392,18 +493,32 @@ class EventClass(models.Model):
     bop_overrides = models.JSONField(null=True, blank=True)
 
     class Meta:
+        unique_together = ["event", "slug"]
         indexes = [
             models.Index(fields=["event"]),
             models.Index(fields=["car_class"]),
+            models.Index(fields=["event", "slug"]),
         ]
 
     def __str__(self):
         return f"{self.event.name} - {self.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure uniqueness within event
+            counter = 1
+            original_slug = self.slug
+            while EventClass.objects.filter(event=self.event, slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class EventInstance(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="instances")
+    slug = models.SlugField(max_length=300, blank=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
     registration_open = models.DateTimeField()
@@ -412,15 +527,30 @@ class EventInstance(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        unique_together = ["event", "slug"]
         indexes = [
             models.Index(fields=["event"]),
             models.Index(fields=["start_time"]),
             models.Index(fields=["registration_open"]),
             models.Index(fields=["registration_ends"]),
+            models.Index(fields=["event", "slug"]),
         ]
 
     def __str__(self):
-        return f"{self.event.name} - {self.start_time} - {self.end_time}"
+        return f"{self.event.name} - {self.start_time.strftime('%Y-%m-%d %H:%M')}"
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            # Create slug from event name and date
+            date_str = self.start_time.strftime('%Y-%m-%d-%H%M') if self.start_time else 'tbd'
+            self.slug = slugify(f"{self.event.name} {date_str}")
+            # Ensure uniqueness within event
+            counter = 1
+            original_slug = self.slug
+            while EventInstance.objects.filter(event=self.event, slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
 
 class LapTime(models.Model):

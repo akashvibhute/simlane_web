@@ -1,0 +1,169 @@
+<!-- Events Selection Modal -->
+<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="events-modal-overlay">
+  <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+    <div class="mt-3">
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Add Events to {{ club.name }}</h3>
+        <button 
+          onclick="document.getElementById('events-modal').innerHTML = ''"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="py-4">
+        {% if available_events %}
+        <form hx-post="{% url 'teams:club_add_events' club.slug %}" hx-target="#events-modal" hx-swap="innerHTML">
+          {% csrf_token %}
+          
+          <div class="mb-4">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Select events from the sim database to add to your club. You can select multiple events at once.
+            </p>
+          </div>
+
+          <!-- Select All Controls -->
+          <div class="mb-4 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+              <button type="button" onclick="selectAllEvents()" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                Select All
+              </button>
+              <button type="button" onclick="deselectAllEvents()" class="text-sm text-gray-600 dark:text-gray-400 hover:underline">
+                Deselect All
+              </button>
+            </div>
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+              <span id="selected-count">0</span> events selected
+            </div>
+          </div>
+
+          <!-- Events List -->
+          <div class="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div class="space-y-0">
+              {% for event in available_events %}
+              <label class="flex items-center p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 last:border-b-0 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  name="events" 
+                  value="{{ event.id }}"
+                  onchange="updateSelectedCount()"
+                  class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <div class="ml-4 flex-1">
+                  <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center space-x-2">
+                        <h4 class="text-sm font-medium text-gray-900 dark:text-white">{{ event.name }}</h4>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                          {% if event.status == 'SCHEDULED' %}bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100
+                          {% elif event.status == 'DRAFT' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100
+                          {% else %}bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100{% endif %}">
+                          {{ event.get_status_display }}
+                        </span>
+                      </div>
+                      <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <span>{{ event.sim_layout.sim_track.track_model.name }}</span>
+                        <span class="mx-1">•</span>
+                        <span>{{ event.sim_layout.name }}</span>
+                        {% if event.series %}
+                        <span class="mx-1">•</span>
+                        <span>{{ event.series.name }}</span>
+                        {% endif %}
+                      </div>
+                      {% if event.event_date %}
+                      <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <svg class="w-3 h-3 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        {{ event.event_date|date:"M j, Y g:i A" }}
+                      </div>
+                      {% endif %}
+                      {% if event.description %}
+                      <div class="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                        {{ event.description|truncatewords:20 }}
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Modal Footer -->
+          <div class="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+            <button 
+              type="button"
+              onclick="document.getElementById('events-modal').innerHTML = ''"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+              Cancel
+            </button>
+            <button 
+              type="submit"
+              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              id="add-events-btn"
+              disabled>
+              Add Selected Events
+            </button>
+          </div>
+        </form>
+        {% else %}
+        <div class="text-center py-8">
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <h3 class="text-sm font-medium text-gray-900 dark:text-white">No available events</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            All available events have already been added to this club, or no events are available in the sim database.
+          </p>
+          <div class="mt-4">
+            <button 
+              onclick="document.getElementById('events-modal').innerHTML = ''"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600">
+              Close
+            </button>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function selectAllEvents() {
+  const checkboxes = document.querySelectorAll('input[name="events"]');
+  checkboxes.forEach(cb => cb.checked = true);
+  updateSelectedCount();
+}
+
+function deselectAllEvents() {
+  const checkboxes = document.querySelectorAll('input[name="events"]');
+  checkboxes.forEach(cb => cb.checked = false);
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  const checkboxes = document.querySelectorAll('input[name="events"]:checked');
+  const count = checkboxes.length;
+  document.getElementById('selected-count').textContent = count;
+  
+  const submitBtn = document.getElementById('add-events-btn');
+  if (submitBtn) {
+    submitBtn.disabled = count === 0;
+  }
+}
+
+// Close modal when clicking outside
+document.getElementById('events-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) {
+    document.getElementById('events-modal').innerHTML = '';
+  }
+});
+</script> 

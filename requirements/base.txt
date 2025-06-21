@@ -34,3 +34,4 @@ discord.py==2.4.0  # https://github.com/Rapptz/discord.py
 # django-allauth-ui==1.8.1 # https://pypi.org/project/django-allauth-ui/
 django-widget-tweaks==1.5.0 # https://pypi.org/project/django-widget-tweaks/
 django-cotton==2.1.2 # https://github.com/wrabit/django-cotton
+reportlab==4.2.5 # https://github.com/MrBitBucket/reportlab-mirror

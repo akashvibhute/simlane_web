@@ -104,8 +104,7 @@
                     <div class="flex items-center space-x-2">
                       {% if club_member.role == 'admin' or club_member.role == 'teams_manager' %}
                         <!-- Show club management link for admins/teams_managers -->
-                        <a href="#"
-                           onclick="alert('Club management dashboard coming soon!')"
+                                                            <a href="{% url 'teams:club_update' club_member.club.slug %}"
                            class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium cursor-pointer mr-2">
                           Manage Club
                         </a>
@@ -165,7 +164,7 @@
                       </div>
                     </div>
                     <div class="flex items-center space-x-2">
-                      <a href="{% url 'teams_dashboard:club_dashboard' team_data.team.name %}"
+                                                          <a href="{% url 'teams:club_dashboard' team_data.team.club.slug %}"
                          class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium cursor-pointer">
                         View Dashboard
                       </a>

@@ -20,9 +20,8 @@ urlpatterns = [
     path("sim/", include("simlane.sim.urls", namespace="sim")),
     # Dashboard routes
     path("dashboard/iracing/", include("simlane.sim.urls", namespace="sim_dashboard")),
-    path(
-        "dashboard/clubs/", include("simlane.teams.urls", namespace="teams_dashboard")
-    ),
+    # Teams/Clubs URLs at root level
+    path("clubs/", include("simlane.teams.urls", namespace="teams")),
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),

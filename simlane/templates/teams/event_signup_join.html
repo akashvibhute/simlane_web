@@ -1,0 +1,535 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sign Up" %} - {{ signup.title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex mb-8" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{% url 'teams:clubs_dashboard' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                    {% trans "Clubs" %}
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                    </svg>
+                    <a href="{% url 'teams:club_dashboard' signup.club.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                        {{ signup.club.name }}
+                    </a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                    </svg>
+                    <a href="{% url 'teams:event_signup_detail' signup.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                        {{ signup.title }}
+                    </a>
+                </div>
+            </li>
+            <li aria-current="page">
+                <div class="flex items-center">
+                    <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                    </svg>
+                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{% trans "Sign Up" %}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Event Header -->
+    <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-8">
+        <div class="relative h-48 bg-gradient-to-r from-blue-600 to-blue-800">
+            {% if signup.event.track.image %}
+                <img src="{{ signup.event.track.image.url }}" alt="{{ signup.event.track.name }}" class="w-full h-full object-cover opacity-30">
+            {% endif %}
+            <div class="absolute inset-0 flex items-center">
+                <div class="px-6 text-white">
+                    <h1 class="text-3xl font-bold mb-2">{{ signup.title }}</h1>
+                    <p class="text-blue-100 text-lg">{{ signup.event.name }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-gray-500">{% trans "Race Date" %}</p>
+                        <p class="font-medium">{{ signup.event.start_time|date:"M j, Y g:i A" }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-gray-500">{% trans "Track" %}</p>
+                        <p class="font-medium">{{ signup.event.track.name }}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-gray-500">{% trans "Duration" %}</p>
+                        <p class="font-medium">{{ signup.event.duration_minutes }} {% trans "minutes" %}</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm text-gray-500">{% trans "Signup Deadline" %}</p>
+                        <p class="font-medium">{{ signup.signup_deadline|date:"M j, g:i A" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Signup Form -->
+        <div class="lg:col-span-2">
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <div class="mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-2">{% trans "Event Signup" %}</h2>
+                    <p class="text-gray-600">
+                        {% trans "Complete your signup to participate in this event. Make sure to indicate your car preferences and availability." %}
+                    </p>
+                </div>
+
+                <form method="post" class="space-y-6" id="signup-form">
+                    {% csrf_token %}
+                    
+                    <!-- Role Selection -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">{% trans "Participation Role" %}</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="{{ form.role_preference.name }}" value="DRIVER" 
+                                       {% if form.role_preference.value == 'DRIVER' %}checked{% endif %}
+                                       class="sr-only peer">
+                                <div class="flex items-center p-4 border-2 border-gray-200 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-50 hover:bg-gray-50">
+                                    <div class="flex-shrink-0">
+                                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="text-sm font-medium text-gray-900">{% trans "Driver" %}</h3>
+                                        <p class="text-sm text-gray-500">{% trans "Actively participate in the race" %}</p>
+                                    </div>
+                                </div>
+                            </label>
+                            
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="{{ form.role_preference.name }}" value="SPECTATOR"
+                                       {% if form.role_preference.value == 'SPECTATOR' %}checked{% endif %}
+                                       class="sr-only peer">
+                                <div class="flex items-center p-4 border-2 border-gray-200 rounded-lg peer-checked:border-purple-500 peer-checked:bg-purple-50 hover:bg-gray-50">
+                                    <div class="flex-shrink-0">
+                                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="text-sm font-medium text-gray-900">{% trans "Spectator" %}</h3>
+                                        <p class="text-sm text-gray-500">{% trans "Watch and support the team" %}</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% if form.role_preference.errors %}
+                            <div class="mt-1 text-sm text-red-600">{{ form.role_preference.errors|first }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Car Selection (only for drivers) -->
+                    <div id="car-selection" class="driver-only">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Preferred Car -->
+                            <div>
+                                <label for="{{ form.preferred_sim_car.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.preferred_sim_car.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                <select id="{{ form.preferred_sim_car.id_for_label }}" 
+                                        name="{{ form.preferred_sim_car.name }}"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">{% trans "Select your preferred car..." %}</option>
+                                    {% for car in available_cars %}
+                                    <option value="{{ car.pk }}" 
+                                            {% if car.pk == form.preferred_sim_car.value %}selected{% endif %}
+                                            data-car-image="{{ car.image.url|default:'' }}"
+                                            data-car-description="{{ car.description|default:'' }}">
+                                        {{ car.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.preferred_sim_car.errors %}
+                                    <div class="mt-1 text-sm text-red-600">{{ form.preferred_sim_car.errors|first }}</div>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.preferred_sim_car.help_text }}</p>
+                            </div>
+
+                            <!-- Backup Car -->  
+                            <div>
+                                <label for="{{ form.backup_sim_car.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ form.backup_sim_car.label }}
+                                </label>
+                                <select id="{{ form.backup_sim_car.id_for_label }}" 
+                                        name="{{ form.backup_sim_car.name }}"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">{% trans "Select backup car (optional)..." %}</option>
+                                    {% for car in available_cars %}
+                                    <option value="{{ car.pk }}" 
+                                            {% if car.pk == form.backup_sim_car.value %}selected{% endif %}>
+                                        {{ car.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                {% if form.backup_sim_car.errors %}
+                                    <div class="mt-1 text-sm text-red-600">{{ form.backup_sim_car.errors|first }}</div>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">{{ form.backup_sim_car.help_text }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Car Preview -->
+                        <div id="car-preview" class="mt-4 hidden">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <div class="flex items-center">
+                                    <img id="car-preview-image" src="" alt="" class="w-16 h-10 object-cover rounded mr-4">
+                                    <div>
+                                        <h4 id="car-preview-name" class="font-medium text-gray-900"></h4>
+                                        <p id="car-preview-description" class="text-sm text-gray-600"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Availability Section -->
+                    {% if event_instances %}
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Availability" %}</h3>
+                        <p class="text-sm text-gray-600 mb-4">
+                            {% trans "Please indicate your availability for each session. This helps with team allocation and stint planning." %}
+                        </p>
+                        
+                        <div class="space-y-4">
+                            {% for instance in event_instances %}
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">
+                                            {{ instance.session_type|capfirst }}
+                                        </h4>
+                                        <p class="text-sm text-gray-500">
+                                            {{ instance.start_time|date:"l, F j \a\t g:i A" }}
+                                            ({{ instance.duration_minutes }} {% trans "minutes" %})
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="flex items-center space-x-4">
+                                        <label class="flex items-center">
+                                            <input type="checkbox" 
+                                                   name="availability_{{ instance.pk }}" 
+                                                   value="true"
+                                                   class="availability-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                            <span class="ml-2 text-sm font-medium text-gray-700">{% trans "Available" %}</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <!-- Stint Duration Preference (for drivers only) -->
+                                <div class="availability-details hidden driver-only">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        {% trans "Preferred stint duration (minutes)" %}
+                                    </label>
+                                    <input type="number" 
+                                           name="stint_duration_{{ instance.pk }}" 
+                                           min="10" 
+                                           max="{{ instance.duration_minutes }}"
+                                           placeholder="30"
+                                           class="w-24 px-3 py-1 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        {% trans "Leave empty for default stint length" %}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Notes -->
+                    <div>
+                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            {{ form.notes.label }}
+                        </label>
+                        <textarea id="{{ form.notes.id_for_label }}" 
+                                  name="{{ form.notes.name }}" 
+                                  rows="3"
+                                  placeholder="{% trans 'Any additional notes, special requests, or information for the organizers...' %}"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">{{ form.notes.value|default:'' }}</textarea>
+                        {% if form.notes.errors %}
+                            <div class="mt-1 text-sm text-red-600">{{ form.notes.errors|first }}</div>
+                        {% endif %}
+                        {% if form.notes.help_text %}
+                            <p class="mt-1 text-xs text-gray-500">{{ form.notes.help_text }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                        <a href="{% url 'teams:event_signup_detail' signup.pk %}" 
+                           class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            {% trans "Cancel" %}
+                        </a>
+                        
+                        <button type="submit" 
+                                class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            {% trans "Complete Signup" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <!-- Event Information -->
+            <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Event Information" %}</h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">{% trans "Participants" %}</dt>
+                        <dd class="text-lg font-semibold text-gray-900">
+                            {{ current_signups }}
+                            {% if signup.max_participants %}
+                                / {{ signup.max_participants }}
+                            {% endif %}
+                        </dd>
+                        {% if signup.max_participants %}
+                            <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: {{ signup_percentage }}%"></div>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">{% trans "Time Remaining" %}</dt>
+                        <dd class="text-lg font-semibold text-gray-900" id="deadline-countdown" 
+                            data-deadline="{{ signup.signup_deadline|date:'c' }}">
+                            --
+                        </dd>
+                    </div>
+                    
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">{% trans "Created By" %}</dt>
+                        <dd class="text-sm text-gray-900">{{ signup.created_by.get_full_name|default:signup.created_by.username }}</dd>
+                    </div>
+                </div>
+
+                {% if signup.description %}
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <dt class="text-sm font-medium text-gray-500 mb-2">{% trans "Description" %}</dt>
+                    <dd class="text-sm text-gray-900">{{ signup.description|linebreaks }}</dd>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Sim Profile Check -->
+            {% if not user.sim_profiles.exists %}
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+                <div class="flex">
+                    <svg class="w-5 h-5 text-yellow-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <h4 class="text-sm font-medium text-yellow-800">{% trans "Sim Profile Recommended" %}</h4>
+                        <p class="text-sm text-yellow-700 mt-1">
+                            {% trans "Consider completing your sim profile for better team allocation." %}
+                        </p>
+                        <a href="{% url 'users:sim_profiles' %}" 
+                           class="text-sm font-medium text-yellow-800 underline hover:text-yellow-900 mt-2 inline-block">
+                            {% trans "Complete Profile" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Current Signups -->
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Current Signups" %}</h3>
+                
+                {% if recent_signups %}
+                <div class="space-y-3">
+                    {% for entry in recent_signups %}
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-8 w-8">
+                            {% if entry.user.avatar %}
+                                <img class="h-8 w-8 rounded-full" src="{{ entry.user.avatar.url }}" alt="{{ entry.user.get_full_name }}">
+                            {% else %}
+                                <div class="h-8 w-8 bg-gray-300 rounded-full flex items-center justify-center">
+                                    <span class="text-xs font-medium text-gray-700">
+                                        {{ entry.user.first_name|first|default:entry.user.username|first }}
+                                    </span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="ml-3 flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ entry.user.get_full_name|default:entry.user.username }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                {{ entry.get_role_preference_display }}
+                                {% if entry.preferred_sim_car %}
+                                    • {{ entry.preferred_sim_car.name|truncatechars:20 }}
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if current_signups > recent_signups|length %}
+                    <div class="text-center pt-2">
+                        <a href="{% url 'teams:event_signup_detail' signup.pk %}" 
+                           class="text-sm text-blue-600 hover:text-blue-800">
+                            {% trans "View all" %} {{ current_signups }} {% trans "signups" %}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-500 text-center py-4">
+                    {% trans "Be the first to sign up!" %}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleRadios = document.querySelectorAll('input[name="{{ form.role_preference.name }}"]');
+    const driverOnlyElements = document.querySelectorAll('.driver-only');
+    const availabilityCheckboxes = document.querySelectorAll('.availability-checkbox');
+    const carSelect = document.getElementById('{{ form.preferred_sim_car.id_for_label }}');
+    const carPreview = document.getElementById('car-preview');
+    
+    // Handle role selection changes
+    function updateRoleVisibility() {
+        const selectedRole = document.querySelector('input[name="{{ form.role_preference.name }}"]:checked');
+        const isDriver = selectedRole && selectedRole.value === 'DRIVER';
+        
+        driverOnlyElements.forEach(element => {
+            element.style.display = isDriver ? 'block' : 'none';
+        });
+    }
+    
+    // Handle car selection preview
+    function updateCarPreview() {
+        if (!carSelect || !carPreview) return;
+        
+        const selectedOption = carSelect.options[carSelect.selectedIndex];
+        if (selectedOption.value) {
+            const carImage = selectedOption.dataset.carImage;
+            const carDescription = selectedOption.dataset.carDescription;
+            
+            document.getElementById('car-preview-image').src = carImage || '';
+            document.getElementById('car-preview-name').textContent = selectedOption.text;
+            document.getElementById('car-preview-description').textContent = carDescription || '';
+            
+            carPreview.classList.remove('hidden');
+        } else {
+            carPreview.classList.add('hidden');
+        }
+    }
+    
+    // Handle availability checkbox changes
+    function updateAvailabilityDetails() {
+        availabilityCheckboxes.forEach(checkbox => {
+            const container = checkbox.closest('.border');
+            const details = container.querySelector('.availability-details');
+            
+            if (details) {
+                details.style.display = checkbox.checked ? 'block' : 'none';
+            }
+        });
+    }
+    
+    // Countdown timer
+    function updateCountdown() {
+        const countdownEl = document.getElementById('deadline-countdown');
+        if (!countdownEl) return;
+        
+        const deadline = new Date(countdownEl.dataset.deadline);
+        const now = new Date();
+        const diff = deadline - now;
+        
+        if (diff <= 0) {
+            countdownEl.textContent = 'Expired';
+            return;
+        }
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        
+        let countdownText = '';
+        if (days > 0) countdownText += `${days}d `;
+        if (hours > 0) countdownText += `${hours}h `;
+        countdownText += `${minutes}m`;
+        
+        countdownEl.textContent = countdownText;
+    }
+    
+    // Event listeners
+    roleRadios.forEach(radio => {
+        radio.addEventListener('change', updateRoleVisibility);
+    });
+    
+    if (carSelect) {
+        carSelect.addEventListener('change', updateCarPreview);
+    }
+    
+    availabilityCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateAvailabilityDetails);
+    });
+    
+    // Initial setup
+    updateRoleVisibility();
+    updateCarPreview();
+    updateAvailabilityDetails();
+    updateCountdown();
+    
+    // Update countdown every minute
+    setInterval(updateCountdown, 60000);
+});
+</script>
+{% endblock %} 
