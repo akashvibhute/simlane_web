@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+  Clubs Dashboard - SimLane
+{% endblock title %}
+{% block content %}
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Dashboard Header -->
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <!-- Left section with title -->
+          <div class="flex items-center">
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Clubs Dashboard</h1>
+          </div>
+          <!-- Right section -->
+          <div class="flex items-center space-x-4">
+            <a href="{% url 'core:dashboard' %}"
+               class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer">
+              ← Back to Dashboard
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      {% if not show_club_discovery %}
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <svg class="w-8 h-8 text-blue-500"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                  </path>
+                </svg>
+              </div>
+              <div class="ml-5 w-0 flex-1">
+                <dl>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Clubs</dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ total_clubs }}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div class="flex items-center">
+              <div class="flex-shrink-0">
+                <svg class="w-8 h-8 text-green-500"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                  </path>
+                </svg>
+              </div>
+              <div class="ml-5 w-0 flex-1">
+                <dl>
+                  <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">Total Teams</dt>
+                  <dd class="text-lg font-medium text-gray-900 dark:text-white">
+                    {{ total_teams }}
+                  </dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      <!-- Clubs and Teams Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Your Clubs -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">Your Clubs</h2>
+          </div>
+          <div class="p-6">
+            {% if user_clubs %}
+              <div class="space-y-4">
+                {% for club_member in user_clubs %}
+                  <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="flex items-center space-x-4">
+                      {% if club_member.club.logo_url %}
+                        <img src="{{ club_member.club.logo_url }}"
+                             alt="{{ club_member.club.name }}"
+                             class="w-10 h-10 rounded-lg" />
+                      {% else %}
+                        <div class="w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
+                          <span class="text-sm font-bold text-white">{{ club_member.club.name|first }}</span>
+                        </div>
+                      {% endif %}
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">{{ club_member.club.name }}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ club_member.role|title }}</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      {% if club_member.role == 'admin' or club_member.role == 'teams_manager' %}
+                        <!-- Show club management link for admins/teams_managers -->
+                        <a href="#"
+                           onclick="alert('Club management dashboard coming soon!')"
+                           class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium cursor-pointer mr-2">
+                          Manage Club
+                        </a>
+                      {% endif %}
+                      {% if club_member.club.website %}
+                        <a href="{{ club_member.club.website }}"
+                           target="_blank"
+                           class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14">
+                            </path>
+                          </svg>
+                        </a>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                  </path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No clubs yet</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">You're not a member of any clubs yet.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        <!-- Your Teams -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-white">Your Teams</h2>
+          </div>
+          <div class="p-6">
+            {% if user_teams %}
+              <div class="space-y-4">
+                {% for team_data in user_teams %}
+                  <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div class="flex items-center space-x-4">
+                      {% if team_data.team.logo_url %}
+                        <img src="{{ team_data.team.logo_url }}"
+                             alt="{{ team_data.team.name }}"
+                             class="w-10 h-10 rounded-lg" />
+                      {% else %}
+                        <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                          <span class="text-sm font-bold text-white">{{ team_data.team.name|first }}</span>
+                        </div>
+                      {% endif %}
+                      <div>
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-white">{{ team_data.team.name }}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ team_data.club.name }}</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <a href="{% url 'teams_dashboard:club_dashboard' team_data.team.name %}"
+                         class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium cursor-pointer">
+                        View Dashboard
+                      </a>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center py-8">
+                <svg class="mx-auto h-12 w-12 text-gray-400"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                  </path>
+                </svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No teams yet</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">You're not a member of any teams yet.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% if show_club_discovery %}
+        <!-- Club Discovery Section -->
+        <div class="space-y-8">
+          <!-- Welcome Section -->
+          <div class="text-center">
+            <svg class="mx-auto h-16 w-16 text-gray-400"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+              </path>
+            </svg>
+            <h2 class="mt-4 text-2xl font-bold text-gray-900 dark:text-white">Welcome to SimLane Clubs</h2>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">
+              Join a racing club or create your own to start competing with teams!
+            </p>
+          </div>
+          <!-- Action Buttons -->
+          <div class="flex justify-center space-x-4">
+            <button class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
+              <svg class="w-5 h-5 mr-2"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Create Club
+            </button>
+            <button class="inline-flex items-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
+              <svg class="w-5 h-5 mr-2"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">
+                </path>
+              </svg>
+              Browse Clubs
+            </button>
+          </div>
+          <!-- Available Clubs -->
+          {% if all_clubs %}
+            <div class="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700">
+              <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Available Clubs</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Discover and join racing clubs in your area</p>
+              </div>
+              <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {% for club in all_clubs %}
+                    <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <div class="flex items-start space-x-4">
+                        {% if club.logo_url %}
+                          <img src="{{ club.logo_url }}"
+                               alt="{{ club.name }}"
+                               class="w-12 h-12 rounded-lg" />
+                        {% else %}
+                          <div class="w-12 h-12 bg-primary-500 rounded-lg flex items-center justify-center">
+                            <span class="text-lg font-bold text-white">{{ club.name|first }}</span>
+                          </div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                          <h4 class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ club.name }}</h4>
+                          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {{ club.description|default:"No description available"|truncatechars:80 }}
+                          </p>
+                          <div class="mt-3">
+                            <button class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-500 cursor-pointer">
+                              Request to Join
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </main>
+  </div>
+{% endblock content %}

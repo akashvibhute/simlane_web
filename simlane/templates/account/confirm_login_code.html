@@ -8,7 +8,7 @@
 
 {% block content %}
   {% trans "Sign In" as heading %}
-  {% #container heading=heading %}
+  <c-container :heading="heading">
   <div class="py-3">{% blocktranslate %}Enter Sign-In Code{% endblocktranslate %}</div>
   <div class="py-3">
     {% setvar email_link %}
@@ -17,10 +17,10 @@
   {% blocktranslate %}We’ve sent a code to {{ email_link }}. The code expires shortly, so please enter it soon.{% endblocktranslate %}
 </div>
 {% url 'account_confirm_login_code' as action_url %}
-{% #form form=form url=action_url button_text=heading %}
+<c-form :form="form" :url="action_url" :button_text="heading">
 {{ redirect_field }}
 {% csrf_token %}
-{% /form %}
+</c-form>
 <button type="submit" class="btn btn-red" form="logout-from-stage">{% translate "Cancel" %}</button>
 <form id="logout-from-stage"
       method="post"
@@ -28,6 +28,6 @@
   <input type="hidden" name="next" value="{% url 'account_login' %}" />
   {% csrf_token %}
 </form>
-{% /container %}
+</c-container>
 {% endblock content %}
 {% comment %}{% endcomment %}

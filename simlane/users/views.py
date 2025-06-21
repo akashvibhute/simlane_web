@@ -1,8 +1,10 @@
+from allauth.account.models import EmailAddress
+from allauth.socialaccount.models import SocialAccount
 from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.shortcuts import redirect
 from django.shortcuts import render
@@ -15,6 +17,7 @@ from django.views.generic import UpdateView
 from simlane.sim.models import SimProfile
 
 from .forms import SimProfileForm
+from .forms import UserUpdateForm
 
 User = get_user_model()
 
@@ -49,7 +52,7 @@ class UserRedirectView(LoginRequiredMixin, RedirectView):
     permanent = False
 
     def get_redirect_url(self):
-        return reverse("users:detail", kwargs={"username": self.request.user.username})
+        return reverse("users:profile")
 
 
 user_redirect_view = UserRedirectView.as_view()
@@ -161,8 +164,8 @@ def sim_profile_edit_view(request, profile_id):
     return render(request, "users/sim_profile_form.html", context)
 
 
-def sim_profile_delete_view(request, profile_id):
-    """Delete a sim racing profile with HTMX support."""
+def sim_profile_disconnect_view(request, profile_id):
+    """Disconnect a sim racing profile with HTMX support."""
     sim_profile = get_object_or_404(SimProfile, id=profile_id, user=request.user)
 
     if request.method == "POST":
@@ -172,7 +175,7 @@ def sim_profile_delete_view(request, profile_id):
 
         messages.success(
             request,
-            f"Successfully deleted {simulator_name} profile: {profile_name}",
+            f"Successfully disconnected {simulator_name} profile: {profile_name}",
         )
 
         if request.htmx:
@@ -189,37 +192,120 @@ def sim_profile_delete_view(request, profile_id):
 
     context = {
         "sim_profile": sim_profile,
-        "title": f"Delete {sim_profile.simulator.name} Profile",
+        "title": f"Disconnect {sim_profile.simulator.name} Profile",
     }
 
     if request.htmx:
-        return render(request, "users/sim_profile_delete_partial.html", context)
-    return render(request, "users/sim_profile_delete.html", context)
+        return render(request, "users/sim_profile_disconnect_partial.html", context)
+    return render(request, "users/sim_profile_disconnect.html", context)
 
 
-def sim_profile_toggle_active_view(request, profile_id):
-    """Toggle active status of a sim racing profile via HTMX."""
-    if not request.htmx or request.method != "POST":
-        return JsonResponse({"error": "Invalid request"}, status=400)
+# New unified profile views
 
-    sim_profile = get_object_or_404(SimProfile, id=profile_id, user=request.user)
-    sim_profile.is_active = not sim_profile.is_active
-    sim_profile.save()
 
-    status_text = "activated" if sim_profile.is_active else "deactivated"
-    messages.success(
-        request,
-        (
-            f"Successfully {status_text} {sim_profile.simulator.name} profile: "
-            f"{sim_profile.profile_name}"
-        ),
-    )
+@login_required
+def profile_view(request):
+    """Main profile dashboard - redirects to general settings by default."""
+    return redirect("users:profile_general")
 
-    # Return updated profiles list
+
+@login_required
+def profile_general_view(request):
+    """General profile settings."""
+    if request.method == "POST":
+        form = UserUpdateForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Profile updated successfully"))
+
+            if request.htmx:
+                context = {
+                    "form": form,
+                    "active_section": "general",
+                }
+                return render(request, "users/profile/general_partial.html", context)
+            return redirect("users:profile_general")
+    else:
+        form = UserUpdateForm(instance=request.user)
+
+    context = {
+        "form": form,
+        "active_section": "general",
+    }
+
+    if request.htmx:
+        return render(request, "users/profile/general_partial.html", context)
+    return render(request, "users/profile/profile.html", context)
+
+
+@login_required
+def profile_sim_profiles_view(request):
+    """Sim profiles management in profile area."""
     user_profiles = (
         SimProfile.objects.filter(user=request.user)
         .select_related("simulator")
         .order_by("-created_at")
     )
-    context = {"user_profiles": user_profiles}
-    return render(request, "users/sim_profiles_list_partial.html", context)
+
+    context = {
+        "user_profiles": user_profiles,
+        "active_section": "sim_profiles",
+    }
+
+    if request.htmx:
+        return render(request, "users/profile/sim_profiles_partial.html", context)
+    return render(request, "users/profile/profile.html", context)
+
+
+@login_required
+def profile_emails_view(request):
+    """Email management in profile area."""
+    email_addresses = EmailAddress.objects.filter(user=request.user)
+
+    context = {
+        "email_addresses": email_addresses,
+        "active_section": "emails",
+    }
+
+    if request.htmx:
+        return render(request, "users/profile/emails_partial.html", context)
+    return render(request, "users/profile/profile.html", context)
+
+
+@login_required
+def profile_social_accounts_view(request):
+    """Social accounts management in profile area."""
+    social_accounts = SocialAccount.objects.filter(user=request.user)
+
+    context = {
+        "social_accounts": social_accounts,
+        "active_section": "social_accounts",
+    }
+
+    if request.htmx:
+        return render(request, "users/profile/social_accounts_partial.html", context)
+    return render(request, "users/profile/profile.html", context)
+
+
+@login_required
+def profile_password_view(request):
+    """Password management in profile area."""
+    context = {
+        "active_section": "password",
+    }
+
+    if request.htmx:
+        return render(request, "users/profile/password_partial.html", context)
+    return render(request, "users/profile/profile.html", context)
+
+
+@login_required
+def profile_sessions_view(request):
+    """Session management in profile area."""
+    context = {
+        "active_section": "sessions",
+    }
+
+    if request.htmx:
+        return render(request, "users/profile/sessions_partial.html", context)
+    return render(request, "users/profile/profile.html", context)

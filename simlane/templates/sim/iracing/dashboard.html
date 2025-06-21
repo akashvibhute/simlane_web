@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+  Dashboard - SimLane
+{% endblock title %}
+{% block content %}
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Dashboard Header -->
+    <header class="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <!-- Left section with title -->
+          <div class="flex items-center">
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">iRacing Dashboard</h1>
+          </div>
+          <!-- Right section with sim profile selector -->
+          <div class="flex items-center">
+            {% if user_profiles %}
+              <!-- Sim Profile Selector -->
+              <div class="relative">
+                <button type="button"
+                        class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                        id="sim-profile-button"
+                        aria-haspopup="true"
+                        onclick="document.getElementById('sim-profile-menu').classList.toggle('hidden')">
+                  {% if selected_profile %}
+                    {% if selected_profile.simulator.icon %}
+                      <img src="{{ selected_profile.simulator.icon.url }}"
+                           alt="{{ selected_profile.simulator.name }}"
+                           class="w-5 h-5 rounded" />
+                    {% else %}
+                      <div class="w-5 h-5 bg-primary-500 rounded flex items-center justify-center">
+                        <span class="text-xs font-bold text-white">{{ selected_profile.simulator.name|first }}</span>
+                      </div>
+                    {% endif %}
+                    <span>{{ selected_profile.simulator.name }}</span>
+                    <span class="text-gray-500 dark:text-gray-400">{{ selected_profile.profile_name }}</span>
+                  {% else %}
+                    <span>Select Profile</span>
+                  {% endif %}
+                  <svg class="w-4 h-4 text-gray-400"
+                       fill="none"
+                       stroke="currentColor"
+                       viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <!-- Dropdown menu -->
+                <div class="hidden absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20"
+                     id="sim-profile-menu">
+                  <div class="py-1">
+                    {% for profile in user_profiles %}
+                      <button type="button"
+                              class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if selected_profile and profile.id == selected_profile.id %}bg-gray-50 dark:bg-gray-700{% endif %}"
+                              hx-post="{% url 'sim_dashboard:iracing_dashboard_section' active_section %}"
+                              hx-target="#dashboard-content"
+                              hx-vals='{"profile_id": "{{ profile.id }}"}'
+                              onclick="document.getElementById('sim-profile-menu').classList.add('hidden')">
+                        {% if profile.simulator.icon %}
+                          <img src="{{ profile.simulator.icon.url }}"
+                               alt="{{ profile.simulator.name }}"
+                               class="w-5 h-5 rounded mr-3" />
+                        {% else %}
+                          <div class="w-5 h-5 bg-primary-500 rounded flex items-center justify-center mr-3">
+                            <span class="text-xs font-bold text-white">{{ profile.simulator.name|first }}</span>
+                          </div>
+                        {% endif %}
+                        <div class="flex-1 text-left">
+                          <div class="font-medium">{{ profile.simulator.name }}</div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400">{{ profile.profile_name }}</div>
+                        </div>
+                        {% if profile.is_verified %}
+                          <svg class="w-4 h-4 text-green-500"
+                               fill="currentColor"
+                               viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd">
+                            </path>
+                          </svg>
+                        {% endif %}
+                      </button>
+                    {% endfor %}
+                    <div class="border-t border-gray-100 dark:border-gray-700">
+                      <a href="{% url 'users:sim_profiles' %}"
+                         class="flex items-center w-full px-4 py-2 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                        <svg class="w-4 h-4 mr-3"
+                             fill="none"
+                             stroke="currentColor"
+                             viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Manage Sim Profiles
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {% else %}
+              <!-- No profiles state -->
+              <div class="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                  </path>
+                </svg>
+                <span>No sim profiles configured</span>
+                <a href="{% url 'users:sim_profiles' %}"
+                   class="text-primary-600 dark:text-primary-400 hover:text-primary-500 cursor-pointer">Set up now</a>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- Main Dashboard Layout -->
+    <div class="flex h-full">
+      <!-- Sidebar -->
+      <nav class="w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen">
+        <div class="p-4">
+          <div class="space-y-1">
+            <!-- Overview -->
+            <a href="{% url 'sim_dashboard:iracing_dashboard' %}"
+               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'overview' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'overview' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'overview' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
+                </path>
+              </svg>
+              Overview
+            </a>
+            <!-- Performance -->
+            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'performance' %}"
+               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'performance' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'performance' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'performance' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                </path>
+              </svg>
+              Performance
+            </a>
+            <!-- Cars -->
+            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'cars' %}"
+               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'cars' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'cars' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'cars' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+              </svg>
+              Cars
+            </a>
+            <!-- Tracks -->
+            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'tracks' %}"
+               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'tracks' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'tracks' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'tracks' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                </path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              Tracks
+            </a>
+            <!-- Events -->
+            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'events' %}"
+               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'events' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'events' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'events' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                </path>
+              </svg>
+              Events
+            </a>
+            <!-- Teams (if available) -->
+            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'teams' %}"
+               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'teams' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'teams' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'teams' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                </path>
+              </svg>
+              Teams
+            </a>
+          </div>
+        </div>
+      </nav>
+      <!-- Main Content Area -->
+      <main class="flex-1 min-w-0 h-full" id="dashboard-content">
+        {% include "sim/iracing/dashboard_content_partial.html" %}
+      </main>
+    </div>
+  </div>
+  <!-- Close dropdown when clicking outside -->
+  <script>
+    document.addEventListener('click', function(event) {
+      const menu = document.getElementById('sim-profile-menu');
+      const button = document.getElementById('sim-profile-button');
+
+      if (!button.contains(event.target) && !menu.contains(event.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+  </script>
+</div>
+{% endblock content %}

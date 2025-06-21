@@ -9,6 +9,12 @@ from simlane.sim.models import SimCar
 from simlane.users.models import User
 
 
+class ClubRole(models.TextChoices):
+    ADMIN = "admin", "Admin"
+    TEAMS_MANAGER = "teams_manager", "Teams Manager"
+    MEMBER = "member", "Member"
+
+
 # Create your models here.
 class Club(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -35,7 +41,7 @@ class ClubMember(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="clubs")
     club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="members")
-    role = models.CharField(max_length=50)
+    role = models.CharField(max_length=50, choices=ClubRole, default=ClubRole.MEMBER)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -48,6 +54,14 @@ class ClubMember(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.club.name}"
+
+    def can_manage_club(self):
+        """Check if user has admin or teams manager privileges."""
+        return self.role in [ClubRole.ADMIN, ClubRole.TEAMS_MANAGER]
+
+    def is_admin(self):
+        """Check if user is club admin."""
+        return self.role == ClubRole.ADMIN
 
 
 class Team(models.Model):

@@ -13,7 +13,7 @@
 {% endblock head_title_inner %}
 {% block inner_content %}
   <div class="mb-6">
-    <p class="text-sm text-gray-600 text-center">
+    <p class="text-sm text-gray-600 dark:text-gray-300 text-center">
       {% if process == "connect" %}
         {% blocktrans with provider.name as provider %}You are about to connect a new third-party account from {{ provider }}.{% endblocktrans %}
       {% else %}
@@ -26,13 +26,13 @@
     {{ redirect_field }}
     <div>
       <button type="submit"
-              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+              class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-400 dark:focus:ring-offset-gray-800">
         {% trans "Continue" %}
       </button>
     </div>
   </form>
   <div class="mt-4 text-center">
     <a href="{% url 'account_login' %}"
-       class="text-sm text-primary-600 hover:text-primary-500">{% trans "Back to Sign In" %}</a>
+       class="text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">{% trans "Back to Sign In" %}</a>
   </div>
 {% endblock inner_content %}

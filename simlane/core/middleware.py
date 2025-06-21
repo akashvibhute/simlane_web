@@ -28,7 +28,6 @@ class AuthenticationRequiredMiddleware(MiddlewareMixin):
             "/terms/",
             "/contact/",
             "/contact/success/",
-            "/sim/fov-calculator/",
         ]
 
         # Check if current path matches any public path
@@ -37,6 +36,9 @@ class AuthenticationRequiredMiddleware(MiddlewareMixin):
 
         # Skip authentication for allauth URLs (login, signup, password reset, etc.)
         if request.path.startswith("/accounts/"):
+            return None
+
+        if request.path.startswith("/__debug__/"):
             return None
 
         # Redirect unauthenticated users to login page

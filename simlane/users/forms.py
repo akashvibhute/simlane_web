@@ -29,6 +29,38 @@ class UserAdminCreationForm(admin_forms.UserCreationForm):
         }
 
 
+class UserUpdateForm(forms.ModelForm):
+    """Form for updating user profile information."""
+
+    class Meta:
+        model = User
+        fields = ["name", "email"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": (
+                        "mt-1 block w-full rounded-md border-gray-300 shadow-sm "
+                        "focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    ),
+                    "placeholder": "Enter your full name",
+                },
+            ),
+            "email": forms.EmailInput(
+                attrs={
+                    "class": (
+                        "mt-1 block w-full rounded-md border-gray-300 shadow-sm "
+                        "focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    ),
+                    "placeholder": "Enter your email address",
+                },
+            ),
+        }
+        labels = {
+            "name": "Full Name",
+            "email": "Email Address",
+        }
+
+
 class UserSignupForm(SignupForm):
     """
     Form that will be rendered on a user sign up section/screen.

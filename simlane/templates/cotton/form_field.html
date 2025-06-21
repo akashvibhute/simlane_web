@@ -1,0 +1,13 @@
+{% load widget_tweaks %}
+
+<label class="label" for="{{ field.id_for_label }}">
+  <span class="label-text text-gray-700 dark:text-gray-300">{{ field.label }}</span>
+</label>
+{% if field.errors %}
+  {% render_field field placeholder="" class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400" %}
+{% else %}
+  {% render_field field placeholder="" class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400" %}
+{% endif %}
+{% for error in field.errors %}
+  <span class="flex items-center max-w-xs mt-1 ml-1 text-xs font-medium tracking-wide text-red-600 dark:text-red-400">{{ error }}</span>
+{% endfor %}

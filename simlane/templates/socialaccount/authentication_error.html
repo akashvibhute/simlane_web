@@ -6,6 +6,6 @@
 {% block content %}
   {% trans "Third-Party Login Failure" as heading %}
   {% trans "An error occurred while attempting to login via your third-party account." as subheading %}
-  {% #container heading=heading subheading=subheading %}
-  {% /container %}
+  <c-container :heading="heading" :subheading="subheading">
+  </c-container>
 {% endblock content %}

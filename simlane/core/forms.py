@@ -24,9 +24,11 @@ class ContactForm(forms.ModelForm):
             "name": forms.TextInput(
                 attrs={
                     "class": (
-                        "w-full px-4 py-3 border border-gray-300 rounded-lg "
-                        "focus:ring-2 focus:ring-blue-500 focus:border-blue-500 "
-                        "transition-colors"
+                        "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+                        "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+                        "placeholder-gray-500 dark:placeholder-gray-400 "
+                        "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+                        "focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                     ),
                     "placeholder": "Your full name",
                 },
@@ -34,9 +36,11 @@ class ContactForm(forms.ModelForm):
             "email": forms.EmailInput(
                 attrs={
                     "class": (
-                        "w-full px-4 py-3 border border-gray-300 rounded-lg "
-                        "focus:ring-2 focus:ring-blue-500 focus:border-blue-500 "
-                        "transition-colors"
+                        "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+                        "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+                        "placeholder-gray-500 dark:placeholder-gray-400 "
+                        "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+                        "focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                     ),
                     "placeholder": "your.email@example.com",
                 },
@@ -44,27 +48,31 @@ class ContactForm(forms.ModelForm):
             "subject": forms.Select(
                 attrs={
                     "class": (
-                        "w-full px-4 py-3 border border-gray-300 rounded-lg "
-                        "focus:ring-2 focus:ring-blue-500 focus:border-blue-500 "
-                        "transition-colors"
+                        "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+                        "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+                        "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+                        "focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                     ),
                 },
             ),
             "platform": forms.Select(
                 attrs={
                     "class": (
-                        "w-full px-4 py-3 border border-gray-300 rounded-lg "
-                        "focus:ring-2 focus:ring-blue-500 focus:border-blue-500 "
-                        "transition-colors"
+                        "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+                        "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+                        "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+                        "focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
                     ),
                 },
             ),
             "message": forms.Textarea(
                 attrs={
                     "class": (
-                        "w-full px-4 py-3 border border-gray-300 rounded-lg "
-                        "focus:ring-2 focus:ring-blue-500 focus:border-blue-500 "
-                        "transition-colors resize-vertical"
+                        "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+                        "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+                        "placeholder-gray-500 dark:placeholder-gray-400 "
+                        "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+                        "focus:border-blue-500 dark:focus:border-blue-400 transition-colors resize-vertical"
                     ),
                     "rows": 6,
                     "placeholder": "Please provide details about your inquiry...",

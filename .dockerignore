@@ -8,5 +8,10 @@
 .readthedocs.yml
 .travis.yml
 venv
+.venv
 .git
 .envs/
+
+# Documentation (kept in Git but excluded from Docker context)
+docs/
+*.md

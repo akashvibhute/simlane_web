@@ -79,9 +79,8 @@ DJANGO_APPS = [
     "django.forms",
 ]
 THIRD_PARTY_APPS = [
-    "crispy_forms",
-    "crispy_bootstrap5",
-    "allauth_ui",
+    # "crispy_forms",
+    # "crispy_bootstrap5",
     "allauth",
     "allauth.account",
     "allauth.mfa",
@@ -90,7 +89,7 @@ THIRD_PARTY_APPS = [
     "django_celery_beat",
     "webpack_loader",
     "widget_tweaks",
-    "slippers",
+    "django_cotton",
     "django_htmx",
 ]
 
@@ -208,6 +207,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "simlane.users.context_processors.allauth_settings",
             ],
+            "builtins": ["django_cotton.templatetags.cotton"],
         },
     },
 ]

@@ -1,0 +1,67 @@
+{% load i18n %}
+
+<div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-gray-700">
+  <div class="p-5">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        {% if icon %}
+          {{ icon }}
+        {% elif icon_component %}
+          {% if icon_color %}
+            {% include icon_component with class=icon_color %}
+          {% else %}
+            {% include icon_component with class="h-6 w-6 text-primary-600" %}
+          {% endif %}
+        {% elif icon_svg %}
+          <svg class="h-6 w-6 {% if icon_color %}{{ icon_color }}{% else %}text-primary-600{% endif %}"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            {{ icon_svg|safe }}
+          </svg>
+        {% endif %}
+      </div>
+      <div class="ml-5 w-0 flex-1">
+        <dl>
+          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{{ label }}</dt>
+          <dd class="flex items-baseline">
+            <div class="text-lg font-medium text-gray-900 dark:text-white">
+              {% if value %}
+                {{ value }}
+              {% else %}
+                {{ slot }}
+              {% endif %}
+            </div>
+            {% if delta %}
+              <div class="ml-2 flex items-baseline text-sm font-semibold {% if delta_type == 'up' %}text-green-600{% elif delta_type == 'down' %}text-red-600{% else %}text-gray-600{% endif %}">
+                {% if delta_type == 'up' %}
+                  <svg class="self-center flex-shrink-0 h-3 w-3 text-green-500"
+                       fill="currentColor"
+                       viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L10 6.414 6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                  </svg>
+                {% elif delta_type == 'down' %}
+                  <svg class="self-center flex-shrink-0 h-3 w-3 text-red-500"
+                       fill="currentColor"
+                       viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L10 13.586l3.293-3.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                  </svg>
+                {% endif %}
+                <span class="sr-only">
+                  {% if delta_type == 'up' %}
+                    {% trans "Increased by" %}
+                  {% elif delta_type == 'down' %}
+                    {% trans "Decreased by" %}
+                  {% else %}
+                    {% trans "Changed by" %}
+                  {% endif %}
+                </span>
+                {{ delta }}
+              </div>
+            {% endif %}
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>

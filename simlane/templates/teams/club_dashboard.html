@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+  {{ team.name }} Dashboard - SimLane
+{% endblock title %}
+{% block content %}
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Dashboard Header -->
+    <header class="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <!-- Left section with title -->
+          <div class="flex items-center space-x-4">
+            {% if team.logo_url %}
+              <img src="{{ team.logo_url }}"
+                   alt="{{ team.name }}"
+                   class="w-8 h-8 rounded" />
+            {% else %}
+              <div class="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+                <span class="text-sm font-bold text-white">{{ team.name|first }}</span>
+              </div>
+            {% endif %}
+            <div>
+              <h1 class="text-xl font-semibold text-gray-900 dark:text-white">{{ team.name }} Dashboard</h1>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ club.name }} • {{ user_role|title }}</p>
+            </div>
+          </div>
+          <!-- Right section -->
+          <div class="flex items-center space-x-4">
+            {% if user_clubs_with_teams|length > 1 %}
+              <!-- Club Selector Dropdown -->
+              <div class="relative">
+                <button type="button"
+                        class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                        id="club-selector-button"
+                        aria-haspopup="true"
+                        onclick="document.getElementById('club-selector-menu').classList.toggle('hidden')">
+                  {% if club.logo_url %}
+                    <img src="{{ club.logo_url }}"
+                         alt="{{ club.name }}"
+                         class="w-5 h-5 rounded" />
+                  {% else %}
+                    <div class="w-5 h-5 bg-primary-500 rounded flex items-center justify-center">
+                      <span class="text-xs font-bold text-white">{{ club.name|first }}</span>
+                    </div>
+                  {% endif %}
+                  <span>{{ club.name }}</span>
+                  <svg class="w-4 h-4 text-gray-400"
+                       fill="none"
+                       stroke="currentColor"
+                       viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <!-- Dropdown menu -->
+                <div class="hidden absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20"
+                     id="club-selector-menu">
+                  <div class="py-1">
+                    {% for club_data in user_clubs_with_teams %}
+                      {% for club_team in club_data.teams %}
+                        <a href="{% url 'teams_dashboard:club_dashboard' club_team.name %}"
+                           class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if club_team.id == team.id %}bg-gray-50 dark:bg-gray-700{% endif %}">
+                          {% if club_data.club.logo_url %}
+                            <img src="{{ club_data.club.logo_url }}"
+                                 alt="{{ club_data.club.name }}"
+                                 class="w-5 h-5 rounded mr-3" />
+                          {% else %}
+                            <div class="w-5 h-5 bg-primary-500 rounded flex items-center justify-center mr-3">
+                              <span class="text-xs font-bold text-white">{{ club_data.club.name|first }}</span>
+                            </div>
+                          {% endif %}
+                          <div class="flex-1 text-left">
+                            <div class="font-medium">{{ club_data.club.name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ club_team.name }}</div>
+                          </div>
+                        </a>
+                      {% endfor %}
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+            <a href="{% url 'teams_dashboard:clubs_dashboard' %}"
+               class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer">
+              ← Back to Clubs
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- Main Dashboard Layout -->
+    <div class="flex h-full">
+      <!-- Sidebar -->
+      <nav class="w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen">
+        <div class="p-4">
+          <div class="space-y-1">
+            <!-- Overview -->
+            <a href="{% url 'teams_dashboard:club_dashboard' team.name %}"
+               hx-get="{% url 'teams_dashboard:club_dashboard_section' team.name 'overview' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'teams_dashboard:club_dashboard_section' team.name 'overview' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'overview' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
+                </path>
+              </svg>
+              Overview
+            </a>
+            <!-- Members -->
+            <a href="{% url 'teams_dashboard:club_dashboard_section' team.name 'members' %}"
+               hx-get="{% url 'teams_dashboard:club_dashboard_section' team.name 'members' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'teams_dashboard:club_dashboard_section' team.name 'members' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'members' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
+                </path>
+              </svg>
+              Members
+            </a>
+            <!-- Events -->
+            <a href="{% url 'teams_dashboard:club_dashboard_section' team.name 'events' %}"
+               hx-get="{% url 'teams_dashboard:club_dashboard_section' team.name 'events' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'teams_dashboard:club_dashboard_section' team.name 'events' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'events' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                </path>
+              </svg>
+              Events
+            </a>
+            <!-- Results -->
+            <a href="{% url 'teams_dashboard:club_dashboard_section' team.name 'results' %}"
+               hx-get="{% url 'teams_dashboard:club_dashboard_section' team.name 'results' %}"
+               hx-target="#dashboard-content"
+               hx-push-url="{% url 'teams_dashboard:club_dashboard_section' team.name 'results' %}"
+               class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'results' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+              <svg class="w-5 h-5 mr-3"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                </path>
+              </svg>
+              Results
+            </a>
+            <!-- Settings (if admin/teams_manager) -->
+            {% if user_role == 'admin' or user_role == 'teams_manager' %}
+              <a href="{% url 'teams_dashboard:club_dashboard_section' team.name 'settings' %}"
+                 hx-get="{% url 'teams_dashboard:club_dashboard_section' team.name 'settings' %}"
+                 hx-target="#dashboard-content"
+                 hx-push-url="{% url 'teams_dashboard:club_dashboard_section' team.name 'settings' %}"
+                 class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'settings' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+                <svg class="w-5 h-5 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                  </path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Settings
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </nav>
+      <!-- Main Content Area -->
+      <main class="flex-1 min-w-0 h-full" id="dashboard-content">
+        {% include "teams/club_dashboard_content_partial.html" %}
+      </main>
+    </div>
+  </div>
+  <!-- Close dropdown when clicking outside -->
+  <script>
+    document.addEventListener('click', function(event) {
+      const menu = document.getElementById('club-selector-menu');
+      const button = document.getElementById('club-selector-button');
+
+      if (menu && button && !button.contains(event.target) && !menu.contains(event.target)) {
+        menu.classList.add('hidden');
+      }
+    });
+  </script>
+{% endblock content %}

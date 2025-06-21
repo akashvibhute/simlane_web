@@ -6,6 +6,6 @@
 {% block content %}
   {% trans "Sign Up Closed" as heading %}
   {% trans "We are sorry, but the sign up is currently closed." as subheading %}
-  {% #container heading=heading subheading=subheading %}
-  {% /container %}
+  <c-container :heading="heading" :subheading="subheading">
+  </c-container>
 {% endblock content %}

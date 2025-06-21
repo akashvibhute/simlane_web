@@ -1,11 +1,14 @@
 import logging
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
 from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import FormView
+
+from simlane.sim.models import SimProfile
 
 from .forms import ContactForm
 from .services import ContactEmailService
@@ -244,3 +247,51 @@ def terms_view(request):
 
     # Otherwise return the full page
     return render(request, "core/terms.html")
+
+
+@login_required
+def dashboard_view(request):
+    """Main dashboard view showing sim profiles and clubs overview."""
+
+    # Get user's sim profiles grouped by simulator
+    user_profiles = (
+        SimProfile.objects.filter(user=request.user)
+        .select_related("simulator")
+        .order_by("simulator__name", "-last_active")
+    )
+
+    # Group profiles by simulator
+    profiles_by_sim = {}
+    for profile in user_profiles:
+        sim_name = profile.simulator.name
+        if sim_name not in profiles_by_sim:
+            profiles_by_sim[sim_name] = []
+        profiles_by_sim[sim_name].append(profile)
+
+    # Get user's teams/clubs (if teams app has this model)
+    user_teams = []
+    total_clubs = 0
+    try:
+        from simlane.teams.models import ClubMember
+        from simlane.teams.models import TeamMember
+
+        # Get teams through TeamMember relationships
+        team_memberships = TeamMember.objects.filter(user=request.user).select_related(
+            "team"
+        )
+        user_teams = [tm.team for tm in team_memberships]
+
+        # Get clubs count through ClubMember relationships
+        total_clubs = ClubMember.objects.filter(user=request.user).count()
+    except:
+        pass  # Teams model might not exist yet
+
+    context = {
+        "profiles_by_sim": profiles_by_sim,
+        "user_teams": user_teams,
+        "total_profiles": user_profiles.count(),
+        "total_teams": len(user_teams),
+        "total_clubs": total_clubs,
+    }
+
+    return render(request, "core/dashboard.html", context)

@@ -166,7 +166,7 @@ All apps are in the `simlane/` directory:
 - Doppler is used for secret management (not .envs)
 - Project follows Django best practices with app-based organization
 - All apps are prefixed with `simlane.` in settings
-- Uses Tailwind CSS for styling
+- Uses Tailwind CSS for styling, v4 is used so no config file, tailwind is configured within the tailwind.css file using @theme. Do not attempt to add a config file or revert the version to v3.
 - Implements Celery for background tasks
 - Supports multiple authentication providers (Discord, Garage61)
 
@@ -194,3 +194,6 @@ const additionalInstructions = `
 
 
 The django app and the nodejs containers are set to restart continuously in dev mode whenever any files change so there is no need to ask to run the start or up commands, you can assume they will reload. We only need to run the just build command when we make changes to either pip or npm dependencies. Keep this in mind. The tailwind changes are also compiled automatically with this.
+
+## 🎨 Design Language
+Refer to `docs/design/DESIGN_LANGUAGE.md` for the official colour palette, typography, component styles and accessibility guidelines. Ensure any new UI code or template follows these tokens and classes.

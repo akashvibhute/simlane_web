@@ -1,0 +1,17 @@
+<div class="w-full h-full p-6">
+  {% if active_section == 'overview' %}
+    {% include "sim/iracing/dashboard_overview_partial.html" %}
+  {% elif active_section == 'performance' %}
+    {% include "sim/iracing/dashboard_performance_partial.html" %}
+  {% elif active_section == 'cars' %}
+    {% include "sim/iracing/dashboard_cars_partial.html" %}
+  {% elif active_section == 'tracks' %}
+    {% include "sim/iracing/dashboard_tracks_partial.html" %}
+  {% elif active_section == 'events' %}
+    {% include "sim/iracing/dashboard_events_partial.html" %}
+  {% elif active_section == 'teams' %}
+    {% include "sim/iracing/dashboard_teams_partial.html" %}
+  {% else %}
+    {% include "sim/iracing/dashboard_overview_partial.html" %}
+  {% endif %}
+</div>

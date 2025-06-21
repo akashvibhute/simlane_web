@@ -28,6 +28,15 @@ class ClubMemberAdmin(ModelAdmin):
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["user", "club"]
 
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        # Show role choices in admin
+        if "role" in form.base_fields:
+            from .models import ClubRole
+
+            form.base_fields["role"].widget.choices = ClubRole.choices
+        return form
+
 
 @admin.register(Team)
 class TeamAdmin(ModelAdmin):

@@ -6,6 +6,6 @@
 {% block content %}
   {% trans "Account Inactive" as heading %}
   {% trans "This account is inactive." as subheading %}
-  {% #container heading=heading subheading=subheading %}
-  {% /container %}
+  <c-container :heading="heading" :subheading="subheading">
+  </c-container>
 {% endblock content %}

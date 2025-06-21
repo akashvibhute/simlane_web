@@ -18,6 +18,11 @@ urlpatterns = [
     path("accounts/garage61/", include("simlane.garage61_provider.urls")),
     # Your stuff: custom urls includes go here
     path("sim/", include("simlane.sim.urls", namespace="sim")),
+    # Dashboard routes
+    path("dashboard/iracing/", include("simlane.sim.urls", namespace="sim_dashboard")),
+    path(
+        "dashboard/clubs/", include("simlane.teams.urls", namespace="teams_dashboard")
+    ),
     # ...
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),

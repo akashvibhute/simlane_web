@@ -1,0 +1,88 @@
+{% load static %}
+{% load i18n %}
+
+<div class="px-6 py-8">
+  <div class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-medium text-gray-900 dark:text-white">{% trans "Sim Racing Profiles" %}</h2>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          {% trans "Manage your sim racing profiles across different simulators" %}
+        </p>
+      </div>
+      <button hx-get="{% url 'users:sim_profile_add' %}"
+              hx-target="#profile-modal"
+              hx-swap="innerHTML"
+              class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-400 dark:focus:ring-offset-gray-900 transition-colors">
+        <svg class="-ml-1 mr-2 h-5 w-5"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        {% trans "Add Profile" %}
+      </button>
+    </div>
+  </div>
+  <!-- Profiles List -->
+  <div id="profiles-container">
+    {% if user_profiles %}
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+        {% for profile in user_profiles %}
+          {% url 'users:sim_profile_edit' profile.id as edit_url %}
+          {% url 'users:sim_profile_disconnect' profile.id as disconnect_url %}
+          {% include 'users/_sim_profile_card_partial.html' with sim_profile=profile %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">{% trans "No sim profiles" %}</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {% trans "Get started by creating your first sim racing profile." %}
+        </p>
+        <div class="mt-6">
+          <button hx-get="{% url 'users:sim_profile_add' %}"
+                  hx-target="#profile-modal"
+                  hx-swap="innerHTML"
+                  class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-400 dark:focus:ring-offset-gray-900">
+            <svg class="-ml-1 mr-2 h-5 w-5"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            {% trans "Add Your First Profile" %}
+          </button>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+<!-- Modal Container -->
+<div id="profile-modal" class="hidden"></div>
+<script>
+  // Show modal when content is loaded
+  document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.target.id === 'profile-modal') {
+      const modal = document.getElementById('profile-modal');
+      if (modal.innerHTML.trim()) {
+        modal.classList.remove('hidden');
+      }
+    }
+  });
+
+  // Hide modal on successful form submission
+  document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.target.id === 'profiles-container') {
+      const modal = document.getElementById('profile-modal');
+      modal.classList.add('hidden');
+      modal.innerHTML = '';
+    }
+  });
+</script>

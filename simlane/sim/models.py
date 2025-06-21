@@ -99,7 +99,7 @@ class SimProfile(models.Model):
     )
     profile_name = models.CharField(max_length=255)
     external_data_id = models.CharField(max_length=255, blank=True)
-    is_verified = models.BooleanField(default=True)
+    is_verified = models.BooleanField(default=False)
     last_active = models.DateTimeField(null=True, blank=True)
     preferences = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -2,7 +2,7 @@
 
 {% get_current_language as LANGUAGE_CODE %}
 <!DOCTYPE html>
-<html lang="{{ LANGUAGE_CODE }}">
+<html lang="{{ LANGUAGE_CODE }}" class="h-full">
   <head>
     <title>
       {% block title %}
@@ -10,19 +10,27 @@
       {% endblock title %}
     </title>
     {% include 'components/head.html' %}
+    <script>
+      // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    </script>
   </head>
   <body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'
-        class="{% block bodyclass %}bg-gray-50 min-h-screen flex flex-col{% endblock bodyclass %}">
+        class="{% block bodyclass %}bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col{% endblock bodyclass %}">
     {% block body %}
       <div class="flex-grow flex flex-col">
-        <div class="mb-4">{% include 'components/navbar.html' %}</div>
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'components/navbar.html' %}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
           {% include 'components/messages.html' %}
           <main id="main-content">
             {% block main %}
               {% block content %}
                 <div class="text-center py-12">
-                  <p class="text-lg text-gray-600">Use this document as a way to quick start any new project.</p>
+                  <p class="text-lg text-gray-600 dark:text-gray-400">Use this document as a way to quick start any new project.</p>
                 </div>
               {% endblock content %}
             {% endblock main %}
@@ -35,6 +43,54 @@
     {% endblock modal %}
     {% block inline_javascript %}
       <script>
+        // Theme toggle functionality
+        function setTheme(theme) {
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            localStorage.theme = 'dark';
+          } else if (theme === 'light') {
+            document.documentElement.classList.remove('dark');
+            localStorage.theme = 'light';
+          } else {
+            localStorage.removeItem('theme');
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+              document.documentElement.classList.add('dark');
+            } else {
+              document.documentElement.classList.remove('dark');
+            }
+          }
+          // Update all theme toggle buttons visual state
+          document.querySelectorAll('[data-theme-value]').forEach(button => {
+            const isActive = button.dataset.themeValue === theme ||
+              (theme === 'system' && button.dataset.themeValue === 'system') ||
+              (!localStorage.theme && button.dataset.themeValue === 'system');
+
+            if (isActive) {
+              button.classList.add('bg-primary-600', 'text-white');
+              button.classList.remove('text-gray-600', 'dark:text-gray-400');
+            } else {
+              button.classList.remove('bg-primary-600', 'text-white');
+              button.classList.add('text-gray-600', 'dark:text-gray-400');
+            }
+            button.setAttribute('aria-pressed', isActive);
+          });
+        }
+
+        // Initialize theme state on page load
+        document.addEventListener('DOMContentLoaded', function() {
+          const currentTheme = localStorage.theme || 'system';
+          setTheme(currentTheme);
+        });
+
+        // Watch for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ({
+          matches
+        }) => {
+          if (!localStorage.theme) {
+            setTheme(matches ? 'dark' : 'light');
+          }
+        });
+
         function toggleMobileMenu() {
           const menu = document.getElementById('mobile-menu');
           menu.classList.toggle('hidden');
