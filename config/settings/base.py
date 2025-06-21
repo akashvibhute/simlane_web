@@ -81,11 +81,13 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     # "crispy_forms",
     # "crispy_bootstrap5",
+    "corsheaders",
     "allauth",
     "allauth.account",
     "allauth.mfa",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.discord",
+    "allauth.headless",
     "django_celery_beat",
     "webpack_loader",
     "widget_tweaks",
@@ -102,6 +104,7 @@ LOCAL_APPS = [
     "simlane.discord",
     "simlane.garage61",
     "simlane.garage61_provider",
+    "simlane.api",
 ]
 # https://docs.djangoproject.com/en/dev/ref/settings/#installed-apps
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -150,6 +153,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/dev/ref/settings/#middleware
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -378,3 +382,44 @@ IRACING_PASSWORD = env("IRACING_PASSWORD", default="")
 # Discord Bot Configuration
 # ------------------------------------------------------------------------------
 DISCORD_BOT_TOKEN = env("DISCORD_BOT_TOKEN", default="")
+
+# CORS Configuration
+# ------------------------------------------------------------------------------
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React Native development
+    "http://127.0.0.1:3000",
+    "exp://192.168.1.100:19000",  # Expo development - update with your IP
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOWED_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# Django Allauth Headless Configuration
+# ------------------------------------------------------------------------------
+HEADLESS_FRONTEND_URLS = {
+    "account_confirm_email": "/auth/verify-email/{key}/",
+    "account_reset_password": "/auth/reset-password/",
+    "account_reset_password_from_key": "/auth/reset-password/{key}/",
+    "account_signup": "/auth/signup/",
+    "socialaccount_login_error": "/auth/provider/callback/",
+}
+
+# Custom JWT Token Strategy for mobile authentication
+HEADLESS_TOKEN_STRATEGY = "simlane.api.auth.JWTTokenStrategy"
+
+# JWT Configuration
+# JWT_SECRET_KEY will be set from SECRET_KEY in production/local settings
+JWT_ALGORITHM = "HS256"
+JWT_ACCESS_TOKEN_LIFETIME = 3600  # 1 hour in seconds
+JWT_REFRESH_TOKEN_LIFETIME = 86400 * 7  # 7 days in seconds
