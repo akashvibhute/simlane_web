@@ -221,31 +221,46 @@ class EventSignupService:
     @staticmethod
     def get_signup_summary(club_event_id: str) -> Dict:
         """Generate signup statistics and summaries"""
-        club_event = ClubEvent.objects.get(id=club_event_id)
-        signups = club_event.signups.all()
-        
-        summary = {
-            'total_signups': signups.count(),
-            'drivers': signups.filter(can_drive=True).count(),
-            'spectators': signups.filter(can_spectate=True).count(),
-            'experience_breakdown': signups.values('experience_level').annotate(
-                count=Count('id')
-            ),
-            'car_preferences': {},
-            'availability_matrix': {}
-        }
-        
-        # Analyze car preferences
-        for signup in signups:
-            for car in signup.preferred_cars.all():
-                if car.id not in summary['car_preferences']:
-                    summary['car_preferences'][car.id] = {
-                        'car': str(car),
-                        'count': 0
-                    }
-                summary['car_preferences'][car.id]['count'] += 1
-        
-        return summary
+        try:
+            club_event = ClubEvent.objects.get(id=club_event_id)
+            signups = club_event.signups.all()
+            
+            summary = {
+                'total_signups': signups.count(),
+                'driver_count': signups.filter(can_drive=True).count(),
+                'spectator_count': signups.filter(can_spectate=True).count(),
+                'experience_breakdown': list(signups.values('experience_level').annotate(
+                    count=Count('id')
+                )),
+                'car_preferences': {},
+                'unique_cars_count': 0
+            }
+            
+            # Analyze car preferences
+            unique_cars = set()
+            for signup in signups.prefetch_related('preferred_cars'):
+                for car in signup.preferred_cars.all():
+                    unique_cars.add(car.id)
+                    if car.id not in summary['car_preferences']:
+                        summary['car_preferences'][car.id] = {
+                            'car': str(car),
+                            'count': 0
+                        }
+                    summary['car_preferences'][car.id]['count'] += 1
+            
+            summary['unique_cars_count'] = len(unique_cars)
+            
+            return summary
+        except ClubEvent.DoesNotExist:
+            logger.error(f"ClubEvent with id {club_event_id} not found")
+            return {
+                'total_signups': 0,
+                'driver_count': 0,
+                'spectator_count': 0,
+                'experience_breakdown': [],
+                'car_preferences': {},
+                'unique_cars_count': 0
+            }
     
     @staticmethod
     @transaction.atomic

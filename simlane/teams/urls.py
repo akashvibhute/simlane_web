@@ -18,6 +18,7 @@ urlpatterns = [
     
     # Club Events Management
     path("<slug:club_slug>/events/add/", views.club_add_events, name="club_add_events"),
+    path("<slug:club_slug>/events/<uuid:event_id>/", views.club_event_detail, name="club_event_detail"),
     path("<slug:club_slug>/events/<slug:event_slug>/remove/", views.club_remove_event, name="club_remove_event"),
     
     # Club Invitation URLs (token-based, no club needed in URL)

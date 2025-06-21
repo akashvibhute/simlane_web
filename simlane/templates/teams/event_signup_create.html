@@ -195,10 +195,25 @@
                         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                         </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">{% trans "No events available" %}</h3>
-                        <p class="mt-1 text-sm text-gray-500">
-                            {% trans "There are no upcoming events available for signup sheets." %}
-                        </p>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">{% trans "No events available for signup" %}</h3>
+                        <div class="mt-4 space-y-3">
+                            <p class="text-sm text-gray-500">
+                                {% trans "To create event signups, you need to first add events to your club." %}
+                            </p>
+                            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                                <a href="{% url 'teams:club_dashboard_section' club.slug 'events' %}" 
+                                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                    </svg>
+                                    {% trans "Add Events to Club" %}
+                                </a>
+                                <a href="{% url 'teams:club_dashboard' club.slug %}" 
+                                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                    {% trans "Back to Club Dashboard" %}
+                                </a>
+                            </div>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>

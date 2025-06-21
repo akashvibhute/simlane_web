@@ -2,40 +2,52 @@
 
 <!-- Event Signup Entries Partial for HTMX Updates -->
 <div id="signup-entries-container">
-    <!-- Statistics Bar -->
-    <div class="bg-gray-50 border-b border-gray-200 px-6 py-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div class="text-center">
-                <div class="text-2xl font-bold text-blue-600">{{ total_signups }}</div>
-                <div class="text-sm text-gray-500">{% trans "Total Signups" %}</div>
-            </div>
-            <div class="text-center">
-                <div class="text-2xl font-bold text-green-600">{{ driver_count }}</div>
-                <div class="text-sm text-gray-500">{% trans "Drivers" %}</div>
-            </div>
-            <div class="text-center">
-                <div class="text-2xl font-bold text-purple-600">{{ spectator_count }}</div>
-                <div class="text-sm text-gray-500">{% trans "Spectators" %}</div>
-            </div>
-            <div class="text-center">
-                <div class="text-2xl font-bold text-orange-600">{{ unique_cars_count }}</div>
-                <div class="text-sm text-gray-500">{% trans "Different Cars" %}</div>
+    <!-- Header with Statistics and Filters -->
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">{% trans "Event Signups" %}</h3>
+            
+            <!-- Filters -->
+            <div class="flex items-center space-x-4">
+                <select id="role-filter" onchange="filterSignups()" class="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">{% trans "All Roles" %}</option>
+                    <option value="driver">{% trans "Drivers" %}</option>
+                    <option value="spectator">{% trans "Spectators" %}</option>
+                </select>
+                
+                <select id="experience-filter" onchange="filterSignups()" class="text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">{% trans "All Experience" %}</option>
+                    <option value="beginner">{% trans "Beginner" %}</option>
+                    <option value="intermediate">{% trans "Intermediate" %}</option>
+                    <option value="advanced">{% trans "Advanced" %}</option>
+                    <option value="professional">{% trans "Professional" %}</option>
+                </select>
             </div>
         </div>
         
-        <!-- Progress Bar for Max Participants -->
-        {% if signup.max_participants %}
-        <div class="mt-4">
-            <div class="flex justify-between text-sm text-gray-600 mb-1">
-                <span>{% trans "Participation" %}</span>
-                <span>{{ total_signups }}/{{ signup.max_participants }}</span>
+        <!-- Statistics -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ signups.count }}</div>
+                <div class="text-sm text-gray-500">{% trans "Total Signups" %}</div>
             </div>
-            <div class="w-full bg-gray-200 rounded-full h-2">
-                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                     style="width: {{ participation_percentage }}%"></div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-600">{{ signups|length }}</div>
+                <div class="text-sm text-gray-500">{% trans "Confirmed" %}</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-purple-600">
+                    {% for signup in signups %}{% if signup.can_drive %}{% if forloop.first %}1{% else %}{{ forloop.counter }}{% endif %}{% endif %}{% empty %}0{% endfor %}
+                </div>
+                <div class="text-sm text-gray-500">{% trans "Available to Drive" %}</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-orange-600">
+                    {% regroup signups by preferred_cars.first as car_groups %}{{ car_groups|length }}
+                </div>
+                <div class="text-sm text-gray-500">{% trans "Different Cars" %}</div>
             </div>
         </div>
-        {% endif %}
     </div>
 
     <!-- Signup Entries Table -->
@@ -45,19 +57,14 @@
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {% trans "Member" %}
-                        <button onclick="sortEntries('member')" class="ml-1 text-gray-400 hover:text-gray-600">
+                        <button onclick="sortSignups('member')" class="ml-1 text-gray-400 hover:text-gray-600">
                             <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                             </svg>
                         </button>
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {% trans "Role" %}
-                        <button onclick="sortEntries('role')" class="ml-1 text-gray-400 hover:text-gray-600">
-                            <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
-                            </svg>
-                        </button>
+                        {% trans "Role & Experience" %}
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {% trans "Car Preference" %}
@@ -67,13 +74,13 @@
                     </th>
                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {% trans "Signed Up" %}
-                        <button onclick="sortEntries('date')" class="ml-1 text-gray-400 hover:text-gray-600">
+                        <button onclick="sortSignups('date')" class="ml-1 text-gray-400 hover:text-gray-600">
                             <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                             </svg>
                         </button>
                     </th>
-                    {% if user_can_manage %}
+                    {% if can_manage %}
                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                         {% trans "Actions" %}
                     </th>
@@ -81,77 +88,89 @@
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200" id="signup-entries-list">
-                {% for entry in signup_entries %}
+                {% for signup in signups %}
                 <tr class="signup-entry hover:bg-gray-50 transition-colors"
-                    data-entry-id="{{ entry.pk }}"
-                    data-role="{{ entry.role_preference }}"
-                    data-car="{{ entry.preferred_sim_car.pk|default:'' }}"
-                    data-signup-date="{{ entry.created_at|date:'U' }}">
+                    data-entry-id="{{ signup.pk }}"
+                    data-role="{% if signup.can_drive %}driver{% else %}spectator{% endif %}"
+                    data-experience="{{ signup.experience_level }}"
+                    data-signup-date="{{ signup.created_at|date:'U' }}">
                     
                     <!-- Member Info -->
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="flex items-center">
                             <div class="flex-shrink-0 h-10 w-10">
-                                {% if entry.user.avatar %}
-                                    <img class="h-10 w-10 rounded-full object-cover" src="{{ entry.user.avatar.url }}" alt="{{ entry.user.get_full_name }}">
+                                {% if signup.user.avatar %}
+                                    <img class="h-10 w-10 rounded-full object-cover" src="{{ signup.user.avatar.url }}" alt="{{ signup.user.get_full_name }}">
                                 {% else %}
                                     <div class="h-10 w-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
                                         <span class="text-sm font-bold text-white">
-                                            {{ entry.user.first_name|first|default:entry.user.username|first }}{{ entry.user.last_name|first }}
+                                            {% if signup.user.first_name %}{{ signup.user.first_name|first }}{% else %}{{ signup.user.username|first }}{% endif %}{% if signup.user.last_name %}{{ signup.user.last_name|first }}{% endif %}
                                         </span>
                                     </div>
                                 {% endif %}
                             </div>
                             <div class="ml-4">
                                 <div class="text-sm font-medium text-gray-900">
-                                    {{ entry.user.get_full_name|default:entry.user.username }}
+                                    {{ signup.user.get_full_name|default:signup.user.username }}
                                 </div>
-                                <div class="text-sm text-gray-500">@{{ entry.user.username }}</div>
+                                <div class="text-sm text-gray-500">@{{ signup.user.username }}</div>
                                 
-                                <!-- Skill Rating -->
-                                {% if entry.user.sim_profiles.exists %}
+                                <!-- Sim Profile Info -->
+                                {% if signup.primary_sim_profile %}
                                 <div class="text-xs text-gray-400 mt-1">
-                                    {% trans "Skill:" %} {{ entry.user.sim_profiles.first.skill_rating|default:1000|floatformat:0 }}
+                                    {{ signup.primary_sim_profile.simulator.name }} - {{ signup.primary_sim_profile.profile_name }}
                                 </div>
                                 {% endif %}
                             </div>
                         </div>
                     </td>
                     
-                    <!-- Role -->
+                    <!-- Role & Experience -->
                     <td class="px-6 py-4 whitespace-nowrap">
-                        {% if entry.role_preference == 'DRIVER' %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/>
-                                </svg>
-                                {% trans "Driver" %}
+                        <div class="flex flex-col space-y-1">
+                            {% if signup.can_drive %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clip-rule="evenodd"/>
+                                    </svg>
+                                    {% trans "Driver" %}
+                                </span>
+                            {% endif %}
+                            {% if signup.can_spectate %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 12a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                    {% trans "Spectator" %}
+                                </span>
+                            {% endif %}
+                            
+                            <!-- Experience Level -->
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if signup.experience_level == 'beginner' %}bg-green-100 text-green-800{% elif signup.experience_level == 'intermediate' %}bg-yellow-100 text-yellow-800{% elif signup.experience_level == 'advanced' %}bg-orange-100 text-orange-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ signup.get_experience_level_display }}
                             </span>
-                        {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 12a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
-                                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
-                                </svg>
-                                {% trans "Spectator" %}
-                            </span>
-                        {% endif %}
+                        </div>
                     </td>
                     
                     <!-- Car Preference -->
                     <td class="px-6 py-4 whitespace-nowrap">
-                        {% if entry.preferred_sim_car %}
-                            <div class="flex items-center">
-                                {% if entry.preferred_sim_car.image %}
-                                    <img src="{{ entry.preferred_sim_car.image.url }}" alt="{{ entry.preferred_sim_car.name }}" 
-                                         class="h-6 w-10 object-cover rounded mr-2">
-                                {% endif %}
-                                <div>
-                                    <div class="text-sm font-medium text-gray-900">{{ entry.preferred_sim_car.name }}</div>
-                                    {% if entry.backup_sim_car %}
-                                        <div class="text-xs text-gray-500">{% trans "Backup:" %} {{ entry.backup_sim_car.name }}</div>
+                        {% if signup.preferred_cars.exists %}
+                            <div class="space-y-1">
+                                {% for car in signup.preferred_cars.all|slice:":2" %}
+                                <div class="flex items-center">
+                                    {% if car.image_url %}
+                                        <img src="{{ car.image_url }}" alt="{{ car.car_model.name }}" 
+                                             class="h-6 w-10 object-cover rounded mr-2">
                                     {% endif %}
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">{{ car.car_model.manufacturer }} {{ car.car_model.name }}</div>
+                                    </div>
                                 </div>
+                                {% endfor %}
+                                {% if signup.preferred_cars.count > 2 %}
+                                    <div class="text-xs text-gray-500">+{{ signup.preferred_cars.count|add:"-2" }} more</div>
+                                {% endif %}
                             </div>
                         {% else %}
                             <span class="text-sm text-gray-500">{% trans "No preference" %}</span>
@@ -160,36 +179,38 @@
                     
                     <!-- Availability -->
                     <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center space-x-1">
-                            {% for availability in entry.availabilities.all %}
-                                <div class="availability-dot w-3 h-3 rounded-full {% if availability.available %}bg-green-400{% else %}bg-red-400{% endif %}"
-                                     title="{{ availability.event_instance.session_type }} - {{ availability.event_instance.start_time|date:'M j, g:i A' }}{% if availability.available and availability.preferred_stint_duration %} ({{ availability.preferred_stint_duration }}min stints){% endif %}">
+                        <div class="flex flex-col">
+                            <div class="text-sm text-gray-900">
+                                {% if signup.max_stint_duration %}
+                                    {% trans "Max stint:" %} {{ signup.max_stint_duration }}min
+                                {% endif %}
+                            </div>
+                            {% if signup.availability_notes %}
+                                <div class="text-xs text-gray-500 mt-1">
+                                    {{ signup.availability_notes|truncatewords:10 }}
                                 </div>
-                            {% endfor %}
-                        </div>
-                        <div class="text-xs text-gray-500 mt-1">
-                            {{ entry.available_sessions_count }}/{{ entry.total_sessions_count }} {% trans "sessions" %}
+                            {% endif %}
                         </div>
                     </td>
                     
                     <!-- Signup Date -->
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <div>{{ entry.created_at|date:"M j, g:i A" }}</div>
-                        <div class="text-xs text-gray-400">{{ entry.created_at|timesince }} {% trans "ago" %}</div>
+                        <div>{{ signup.created_at|date:"M j, g:i A" }}</div>
+                        <div class="text-xs text-gray-400">{{ signup.created_at|timesince }} {% trans "ago" %}</div>
                     </td>
                     
                     <!-- Actions -->
-                    {% if user_can_manage %}
+                    {% if can_manage %}
                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div class="flex justify-end space-x-2">
-                            <button onclick="editSignupEntry('{{ entry.pk }}')"
-                                    class="text-blue-600 hover:text-blue-900 transition-colors">
+                            <a href="{% url 'teams:event_signup_update' club_event.club.slug club_event.pk signup.pk %}"
+                               class="text-blue-600 hover:text-blue-900 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                 </svg>
-                            </button>
+                            </a>
                             
-                            <button onclick="removeSignupEntry('{{ entry.pk }}', '{{ entry.user.get_full_name|default:entry.user.username|escapejs }}')"
+                            <button onclick="removeSignupEntry('{{ signup.pk }}', '{{ signup.user.get_full_name|default:signup.user.username|escapejs }}')"
                                     class="text-red-600 hover:text-red-900 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -201,7 +222,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="{% if user_can_manage %}6{% else %}5{% endif %}" class="px-6 py-12 text-center">
+                    <td colspan="{% if can_manage %}6{% else %}5{% endif %}" class="px-6 py-12 text-center">
                         <div class="flex flex-col items-center">
                             <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -210,8 +231,8 @@
                             <p class="text-gray-500 mb-4">
                                 {% trans "Be the first to sign up for this event!" %}
                             </p>
-                            {% if user_can_signup %}
-                            <a href="{% url 'teams:event_signup_join' signup.club_event.club.slug signup.pk %}" 
+                            {% if is_signup_open %}
+                            <a href="{% url 'teams:event_signup_join' club_event.club.slug club_event.pk %}" 
                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                                 {% trans "Sign Up Now" %}
                             </a>
@@ -224,31 +245,23 @@
         </table>
     </div>
     
-    <!-- Real-time Activity Feed -->
-    {% if recent_activity %}
+    <!-- Additional Notes Section -->
+    {% if signups and notes_exist %}
     <div class="bg-gray-50 border-t border-gray-200 px-6 py-4">
         <h4 class="text-sm font-medium text-gray-900 mb-3 flex items-center">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
             </svg>
-            {% trans "Recent Activity" %}
+            {% trans "Additional Notes" %}
         </h4>
-        <div class="space-y-2" id="activity-feed">
-            {% for activity in recent_activity %}
-            <div class="flex items-center text-sm text-gray-600">
-                <div class="w-2 h-2 bg-blue-400 rounded-full mr-3"></div>
-                <span>
-                    <strong>{{ activity.user.get_full_name|default:activity.user.username }}</strong>
-                    {% if activity.action == 'joined' %}
-                        {% trans "signed up" %}
-                    {% elif activity.action == 'updated' %}
-                        {% trans "updated their signup" %}
-                    {% elif activity.action == 'left' %}
-                        {% trans "withdrew from the event" %}
-                    {% endif %}
-                    <span class="text-gray-400">{{ activity.timestamp|timesince }} {% trans "ago" %}</span>
-                </span>
-            </div>
+        <div class="space-y-2">
+            {% for signup in signups %}
+                {% if signup.notes %}
+                <div class="flex items-start text-sm">
+                    <strong class="text-gray-900 mr-2">{{ signup.user.get_full_name|default:signup.user.username }}:</strong>
+                    <span class="text-gray-600">{{ signup.notes }}</span>
+                </div>
+                {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -256,139 +269,72 @@
 </div>
 
 <script>
-let currentSort = { field: 'date', direction: 'desc' };
-
-function sortEntries(field) {
-    // Toggle direction if same field, otherwise default to ascending
-    if (currentSort.field === field) {
-        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
-    } else {
-        currentSort.field = field;
-        currentSort.direction = 'asc';
-    }
+// Filter signups based on selected criteria
+function filterSignups() {
+    const roleFilter = document.getElementById('role-filter').value;
+    const experienceFilter = document.getElementById('experience-filter').value;
+    const rows = document.querySelectorAll('.signup-entry');
     
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+        const rowRole = row.dataset.role;
+        const rowExperience = row.dataset.experience;
+        
+        let showRow = true;
+        
+        if (roleFilter && rowRole !== roleFilter) {
+            showRow = false;
+        }
+        
+        if (experienceFilter && rowExperience !== experienceFilter) {
+            showRow = false;
+        }
+        
+        row.style.display = showRow ? '' : 'none';
+        if (showRow) visibleCount++;
+    });
+    
+    // Update visible count if needed
+    console.log(`Showing ${visibleCount} signups`);
+}
+
+// Sort signups table
+function sortSignups(sortBy) {
     const tbody = document.getElementById('signup-entries-list');
     const rows = Array.from(tbody.querySelectorAll('.signup-entry'));
     
     rows.sort((a, b) => {
-        let aVal, bVal;
+        let aValue, bValue;
         
-        switch (field) {
+        switch (sortBy) {
             case 'member':
-                aVal = a.querySelector('.text-sm.font-medium').textContent.trim();
-                bVal = b.querySelector('.text-sm.font-medium').textContent.trim();
-                break;
-            case 'role':
-                aVal = a.dataset.role;
-                bVal = b.dataset.role;
-                break;
+                aValue = a.querySelector('.text-sm.font-medium.text-gray-900').textContent.trim();
+                bValue = b.querySelector('.text-sm.font-medium.text-gray-900').textContent.trim();
+                return aValue.localeCompare(bValue);
+            
             case 'date':
-                aVal = parseInt(a.dataset.signupDate);
-                bVal = parseInt(b.dataset.signupDate);
-                break;
+                aValue = parseInt(a.dataset.signupDate);
+                bValue = parseInt(b.dataset.signupDate);
+                return bValue - aValue; // Most recent first
+            
             default:
                 return 0;
-        }
-        
-        if (currentSort.direction === 'asc') {
-            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-        } else {
-            return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
         }
     });
     
     // Re-append sorted rows
     rows.forEach(row => tbody.appendChild(row));
-    
-    // Add visual feedback to sort button
-    updateSortIndicators(field);
 }
 
-function updateSortIndicators(activeField) {
-    // Reset all sort indicators
-    document.querySelectorAll('th button svg').forEach(icon => {
-        icon.className = 'w-3 h-3 inline text-gray-400';
-    });
-    
-    // Highlight active sort
-    const activeButton = document.querySelector(`button[onclick="sortEntries('${activeField}')"] svg`);
-    if (activeButton) {
-        activeButton.className = `w-3 h-3 inline ${currentSort.direction === 'asc' ? 'text-blue-600' : 'text-blue-600 transform rotate-180'}`;
-    }
-}
-
-function editSignupEntry(entryId) {
-    // Open edit modal or redirect to edit page
-    window.location.href = `{% url 'teams:event_signup_update' signup.pk 'PLACEHOLDER' %}`.replace('PLACEHOLDER', entryId);
-}
-
+// Remove signup entry
 function removeSignupEntry(entryId, memberName) {
-    if (confirm(`{% trans "Are you sure you want to remove" %} ${memberName} {% trans "from this signup? This action cannot be undone." %}`)) {
-        htmx.ajax('DELETE', `{% url 'teams:event_signup_remove_entry' signup.pk 'PLACEHOLDER' %}`.replace('PLACEHOLDER', entryId), {
-            values: {'csrfmiddlewaretoken': '{{ csrf_token }}'},
-            target: '#signup-entries-container',
-            swap: 'outerHTML'
-        }).then(() => {
-            showNotification(`${memberName} {% trans "has been removed from the signup." %}`, 'success');
-        });
+    if (confirm(`{% trans "Are you sure you want to remove" %} ${memberName} {% trans "from this signup?" %}`)) {
+        // Implementation would go here - this would need to be connected to a backend endpoint
+        console.log(`Removing signup entry ${entryId} for ${memberName}`);
+        // You could use HTMX here to make the request
     }
 }
-
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all transform translate-x-full`;
-    
-    if (type === 'success') {
-        notification.classList.add('bg-green-500', 'text-white');
-    } else if (type === 'error') {
-        notification.classList.add('bg-red-500', 'text-white');
-    } else {
-        notification.classList.add('bg-blue-500', 'text-white');
-    }
-    
-    notification.innerHTML = `
-        <div class="flex items-center">
-            <span>${message}</span>
-            <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Animate in
-    setTimeout(() => {
-        notification.classList.remove('translate-x-full');
-    }, 100);
-    
-    // Auto remove after 5 seconds
-    setTimeout(() => {
-        notification.classList.add('translate-x-full');
-        setTimeout(() => notification.remove(), 300);
-    }, 5000);
-}
-
-// Initialize real-time updates
-document.addEventListener('DOMContentLoaded', function() {
-    // Update signup entries every 30 seconds
-    setInterval(() => {
-        htmx.ajax('GET', `{% url 'teams:signup_entries_partial' signup.pk %}`, {
-            target: '#signup-entries-container',
-            swap: 'outerHTML'
-        });
-    }, 30000);
-    
-    // Initialize tooltips for availability dots
-    document.querySelectorAll('.availability-dot').forEach(dot => {
-        dot.addEventListener('mouseenter', function() {
-            // Could add more detailed tooltip functionality here
-        });
-    });
-});
 </script>
 
 <style>

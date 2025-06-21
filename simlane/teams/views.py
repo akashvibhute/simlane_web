@@ -193,6 +193,7 @@ from .models import (
     Team, TeamAllocation, TeamAllocationMember, TeamEventStrategy,
     StintAssignment
 )
+from simlane.sim.models import Event
 from .services import (
     ClubInvitationService, EventSignupService, TeamAllocationService,
     StintPlanningService, NotificationService
@@ -374,6 +375,11 @@ def event_signup_create(request, club_slug):
     
     club = request.club
     
+    # DEBUG: Let's see what's available
+    total_sim_events = Event.objects.count()
+    total_club_events = ClubEvent.objects.filter(club=club).count()
+    draft_club_events_count = ClubEvent.objects.filter(club=club, status='draft').count()
+    
     # Get club events that don't have signups open yet (status is draft)
     available_club_events = (
         ClubEvent.objects.filter(club=club, status='draft')
@@ -387,6 +393,15 @@ def event_signup_create(request, club_slug):
     
     # Get all simulators for filtering
     simulators = Simulator.objects.filter(is_active=True).order_by('name')
+    
+    # DEBUG: Add debug information to messages if no events found
+    if not available_events:
+        messages.info(request, 
+            f"Debug Info: Total Sim Events: {total_sim_events}, "
+            f"Club Events: {total_club_events}, "
+            f"Draft Club Events: {draft_club_events_count}. "
+            f"{'No events added to club yet - use Add Events button.' if total_club_events == 0 else 'Club events exist but none are in draft status.'}"
+        )
     
     if request.method == 'POST':
         selected_event_id = request.POST.get('base_event')
@@ -415,14 +430,20 @@ def event_signup_create(request, club_slug):
         'club': club,
         'available_events': available_events,
         'simulators': simulators,
-        'title': f'Open Event Signup - {club.name}'
+        'title': f'Open Event Signup - {club.name}',
+        # DEBUG: Add debug context
+        'debug_info': {
+            'total_sim_events': total_sim_events,
+            'total_club_events': total_club_events,
+            'draft_club_events_count': draft_club_events_count,
+        }
     }
     
     return render(request, 'teams/event_signup_create.html', context)
 
 
 @event_signup_access
-def event_signup_detail(request, signup_id):
+def event_signup_detail(request, club_slug, signup_id):
     """View signup sheet details and entries"""
     club_event = request.club_event  # Set by decorator
     
@@ -459,7 +480,7 @@ def event_signup_detail(request, signup_id):
 
 @event_signup_access
 @require_http_methods(["GET", "POST"])
-def event_signup_join(request, signup_id):
+def event_signup_join(request, club_slug, signup_id):
     """Member signup form"""
     club_event = request.club_event
     
@@ -514,7 +535,7 @@ def event_signup_join(request, signup_id):
 
 
 @event_signup_access
-def event_signup_update(request, signup_id, entry_id):
+def event_signup_update(request, club_slug, signup_id, entry_id):
     """Update existing signup"""
     club_event = request.club_event
     signup = get_object_or_404(EventSignup, id=entry_id, club_event=club_event, user=request.user)
@@ -553,7 +574,7 @@ def event_signup_update(request, signup_id, entry_id):
 
 
 @club_manager_required
-def event_signup_close(request, signup_id):
+def event_signup_close(request, club_slug, signup_id):
     """Close signup for team allocation"""
     club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
     
@@ -573,7 +594,7 @@ def event_signup_close(request, signup_id):
 # Team Allocation Views
 
 @club_manager_required
-def team_allocation_wizard(request, signup_id):
+def team_allocation_wizard(request, club_slug, signup_id):
     """Multi-step team allocation interface"""
     club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
     
@@ -617,7 +638,7 @@ def team_allocation_wizard(request, signup_id):
 
 
 @club_manager_required
-def team_allocation_preview(request, signup_id):
+def team_allocation_preview(request, club_slug, signup_id):
     """Preview suggested allocations"""
     club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
     
@@ -632,7 +653,7 @@ def team_allocation_preview(request, signup_id):
 
 @club_manager_required
 @require_http_methods(["POST"])
-def team_allocation_create(request, signup_id):
+def team_allocation_create(request, club_slug, signup_id):
     """Finalize team allocations"""
     club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
     
@@ -791,7 +812,7 @@ def club_members_partial(request, club_slug):
 
 
 @event_signup_access
-def signup_entries_partial(request, signup_id):
+def signup_entries_partial(request, club_slug, signup_id):
     """Dynamic signup list"""
     club_event = request.club_event
     signups = club_event.signups.select_related('user').order_by('-created_at')
@@ -805,7 +826,7 @@ def signup_entries_partial(request, signup_id):
 
 
 @club_manager_required
-def team_allocation_partial(request, signup_id):
+def team_allocation_partial(request, club_slug, signup_id):
     """Dynamic team allocation interface"""
     club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
     
@@ -898,3 +919,35 @@ def club_remove_event(request, club_slug, event_id):
     
     # Return empty response to remove the element
     return HttpResponse(status=200)
+
+
+@club_member_required
+def club_event_detail(request, club_slug, event_id):
+    """View club event details"""
+    club_event = get_object_or_404(ClubEvent, id=event_id, club=request.club)
+    
+    # Check if user has signed up (if signup is open)
+    user_signup = None
+    if request.user.is_authenticated and club_event.status == 'signup_open':
+        user_signup = club_event.signups.filter(user=request.user).first()
+    
+    # Get signups count if needed
+    signups_count = 0
+    if club_event.status in ['signup_open', 'signup_closed', 'teams_assigned']:
+        signups_count = club_event.signups.count()
+    
+    context = {
+        'club_event': club_event,
+        'club': club_event.club,
+        'signups_count': signups_count,
+        'user_signup': user_signup,
+        'can_manage': request.club_member.can_manage_club(),
+        'is_signup_open': club_event.status == 'signup_open',
+        'can_signup': (
+            club_event.status == 'signup_open' and 
+            club_event.signup_deadline > timezone.now() and
+            not user_signup
+        )
+    }
+    
+    return render(request, 'teams/club_event_detail.html', context)
