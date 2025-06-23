@@ -8,7 +8,7 @@ django-celery-beat==2.8.1  # https://github.com/celery/django-celery-beat
 flower==2.0.1  # https://github.com/mher/flower
 uvicorn[standard]==0.34.3  # https://github.com/encode/uvicorn
 uvicorn-worker==0.3.0  # https://github.com/Kludex/uvicorn-worker
-
+PyJWT==2.10.1  # https://github.com/jpadilla/pyjwt
 # Django
 # ------------------------------------------------------------------------------
 django==5.1.11  # pyup: < 5.2 # https://www.djangoproject.com/
@@ -40,4 +40,5 @@ reportlab==4.2.5 # https://github.com/MrBitBucket/reportlab-mirror
 # ------------------------------------------------------------------------------
 django-ninja==1.1.0  # https://github.com/vitalik/django-ninja
 pydantic==2.5.0  # https://github.com/pydantic/pydantic
+email-validator==2.1.0  # https://github.com/JoshData/python-email-validator
 django-cors-headers==4.3.1  # https://github.com/adamchainz/django-cors-headers

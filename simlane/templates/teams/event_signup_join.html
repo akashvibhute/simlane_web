@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Sign Up" %} - {{ signup.title }}{% endblock %}
+{% block title %}{% trans "Sign Up" %} - {{ club_event.title }}{% endblock %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8">
@@ -18,8 +18,8 @@
                     <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
                     </svg>
-                    <a href="{% url 'teams:club_dashboard' signup.club.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
-                        {{ signup.club.name }}
+                    <a href="{% url 'teams:club_dashboard' club.slug %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                        {{ club.name }}
                     </a>
                 </div>
             </li>
@@ -28,8 +28,8 @@
                     <svg class="w-3 h-3 text-gray-400 mx-1" fill="none" stroke="currentColor" viewBox="0 0 6 10">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
                     </svg>
-                    <a href="{% url 'teams:event_signup_detail' signup.club_event.club.slug signup.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
-                        {{ signup.title }}
+                    <a href="{% url 'teams:event_signup_detail' club.slug club_event.id %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2">
+                        {{ club_event.title }}
                     </a>
                 </div>
             </li>
@@ -47,13 +47,13 @@
     <!-- Event Header -->
     <div class="bg-white shadow-lg rounded-lg overflow-hidden mb-8">
         <div class="relative h-48 bg-gradient-to-r from-blue-600 to-blue-800">
-            {% if signup.event.track.image %}
-                <img src="{{ signup.event.track.image.url }}" alt="{{ signup.event.track.name }}" class="w-full h-full object-cover opacity-30">
+            {% if club_event.base_event.sim_layout.sim_track.track_model.image %}
+                <img src="{{ club_event.base_event.sim_layout.sim_track.track_model.image.url }}" alt="{{ club_event.base_event.sim_layout.sim_track.name }}" class="w-full h-full object-cover opacity-30">
             {% endif %}
             <div class="absolute inset-0 flex items-center">
                 <div class="px-6 text-white">
-                    <h1 class="text-3xl font-bold mb-2">{{ signup.title }}</h1>
-                    <p class="text-blue-100 text-lg">{{ signup.event.name }}</p>
+                    <h1 class="text-3xl font-bold mb-2">{{ club_event.title }}</h1>
+                    <p class="text-blue-100 text-lg">{{ club_event.base_event.name }}</p>
                 </div>
             </div>
         </div>
@@ -66,7 +66,7 @@
                     </svg>
                     <div>
                         <p class="text-sm text-gray-500">{% trans "Race Date" %}</p>
-                        <p class="font-medium">{{ signup.event.start_time|date:"M j, Y g:i A" }}</p>
+                        <p class="font-medium">{{ club_event.base_event.start_time|date:"M j, Y g:i A" }}</p>
                     </div>
                 </div>
                 
@@ -76,7 +76,7 @@
                     </svg>
                     <div>
                         <p class="text-sm text-gray-500">{% trans "Track" %}</p>
-                        <p class="font-medium">{{ signup.event.track.name }}</p>
+                        <p class="font-medium">{{ club_event.base_event.sim_layout.sim_track.name }}</p>
                     </div>
                 </div>
                 
@@ -86,7 +86,7 @@
                     </svg>
                     <div>
                         <p class="text-sm text-gray-500">{% trans "Duration" %}</p>
-                        <p class="font-medium">{{ signup.event.duration_minutes }} {% trans "minutes" %}</p>
+                        <p class="font-medium">{{ club_event.base_event.duration_minutes }} {% trans "minutes" %}</p>
                     </div>
                 </div>
                 
@@ -96,7 +96,7 @@
                     </svg>
                     <div>
                         <p class="text-sm text-gray-500">{% trans "Signup Deadline" %}</p>
-                        <p class="font-medium">{{ signup.signup_deadline|date:"M j, g:i A" }}</p>
+                        <p class="font-medium">{{ club_event.signup_deadline|date:"M j, g:i A" }}</p>
                     </div>
                 </div>
             </div>
@@ -300,7 +300,7 @@
 
                     <!-- Action Buttons -->
                     <div class="flex items-center justify-between pt-6 border-t border-gray-200">
-                        <a href="{% url 'teams:event_signup_detail' signup.club_event.club.slug signup.pk %}" 
+                        <a href="{% url 'teams:event_signup_detail' club.slug club_event.id %}" 
                            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                             {% trans "Cancel" %}
                         </a>
@@ -328,11 +328,11 @@
                         <dt class="text-sm font-medium text-gray-500">{% trans "Participants" %}</dt>
                         <dd class="text-lg font-semibold text-gray-900">
                             {{ current_signups }}
-                            {% if signup.max_participants %}
-                                / {{ signup.max_participants }}
+                            {% if club_event.max_participants %}
+                                / {{ club_event.max_participants }}
                             {% endif %}
                         </dd>
-                        {% if signup.max_participants %}
+                        {% if club_event.max_participants %}
                             <div class="w-full bg-gray-200 rounded-full h-2 mt-1">
                                 <div class="bg-blue-600 h-2 rounded-full" style="width: {{ signup_percentage }}%"></div>
                             </div>
@@ -342,21 +342,21 @@
                     <div>
                         <dt class="text-sm font-medium text-gray-500">{% trans "Time Remaining" %}</dt>
                         <dd class="text-lg font-semibold text-gray-900" id="deadline-countdown" 
-                            data-deadline="{{ signup.signup_deadline|date:'c' }}">
+                            data-deadline="{{ club_event.signup_deadline|date:'c' }}">
                             --
                         </dd>
                     </div>
                     
                     <div>
                         <dt class="text-sm font-medium text-gray-500">{% trans "Created By" %}</dt>
-                        <dd class="text-sm text-gray-900">{{ signup.created_by.get_full_name|default:signup.created_by.username }}</dd>
+                        <dd class="text-sm text-gray-900">{{ club_event.created_by.get_full_name|default:club_event.created_by.username }}</dd>
                     </div>
                 </div>
 
-                {% if signup.description %}
+                {% if club_event.description %}
                 <div class="mt-6 pt-6 border-t border-gray-200">
                     <dt class="text-sm font-medium text-gray-500 mb-2">{% trans "Description" %}</dt>
-                    <dd class="text-sm text-gray-900">{{ signup.description|linebreaks }}</dd>
+                    <dd class="text-sm text-gray-900">{{ club_event.description|linebreaks }}</dd>
                 </div>
                 {% endif %}
             </div>
@@ -417,7 +417,7 @@
                     
                     {% if current_signups > recent_signups|length %}
                     <div class="text-center pt-2">
-                        <a href="{% url 'teams:event_signup_detail' signup.club_event.club.slug signup.pk %}" 
+                        <a href="{% url 'teams:event_signup_detail' club.slug club_event.id %}" 
                            class="text-sm text-blue-600 hover:text-blue-800">
                             {% trans "View all" %} {{ current_signups }} {% trans "signups" %}
                         </a>
