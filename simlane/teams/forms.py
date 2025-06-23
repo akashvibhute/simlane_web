@@ -602,3 +602,168 @@ class TeamAllocationForm(forms.Form):
             signup.save()
 
         return team_allocation
+
+
+# ===== ENHANCED FORMS FOR UNIFIED EVENT PARTICIPATION SYSTEM =====
+
+class EnhancedEventSignupForm(forms.Form):
+    """Enhanced form for event participation with availability support"""
+    
+    preferred_car = forms.ModelChoiceField(
+        queryset=SimCar.objects.none(),
+        widget=forms.Select(attrs={'class': 'w-full rounded-md border-gray-300'}),
+        help_text="Your preferred car for this event"
+    )
+    
+    backup_car = forms.ModelChoiceField(
+        queryset=SimCar.objects.none(),
+        required=False,
+        widget=forms.Select(attrs={'class': 'w-full rounded-md border-gray-300'}),
+        help_text="Alternative car choice (optional)"
+    )
+    
+    EXPERIENCE_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+        ('professional', 'Professional'),
+    ]
+    
+    experience_level = forms.ChoiceField(
+        choices=EXPERIENCE_CHOICES,
+        widget=forms.Select(attrs={'class': 'w-full rounded-md border-gray-300'})
+    )
+    
+    max_stint_duration = forms.IntegerField(
+        initial=60,
+        min_value=15,
+        max_value=180,
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full rounded-md border-gray-300',
+            'placeholder': '60'
+        }),
+        help_text="Maximum time you want to drive continuously (minutes)"
+    )
+    
+    min_rest_duration = forms.IntegerField(
+        initial=15,
+        min_value=5,
+        max_value=60,
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full rounded-md border-gray-300',
+            'placeholder': '15'
+        }),
+        help_text="Minimum break time needed between driving stints (minutes)"
+    )
+    
+    notes = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'w-full rounded-md border-gray-300',
+            'rows': 3,
+            'placeholder': 'Any additional notes about your availability or preferences...'
+        })
+    )
+    
+    def __init__(self, *args, **kwargs):
+        event = kwargs.pop('event', None)
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if event:
+            # Filter cars based on event simulator
+            available_cars = SimCar.objects.filter(
+                simulator=event.simulator,
+                is_active=True
+            )
+            self.fields['preferred_car'].queryset = available_cars
+            self.fields['backup_car'].queryset = available_cars
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        preferred_car = cleaned_data.get('preferred_car')
+        backup_car = cleaned_data.get('backup_car')
+        max_stint = cleaned_data.get('max_stint_duration')
+        min_rest = cleaned_data.get('min_rest_duration')
+        
+        # Validate car choices
+        if preferred_car and backup_car and preferred_car == backup_car:
+            raise ValidationError("Backup car must be different from preferred car")
+        
+        # Validate stint durations
+        if max_stint and max_stint < 15:
+            raise ValidationError("Maximum stint duration must be at least 15 minutes")
+        
+        if min_rest and min_rest < 5:
+            raise ValidationError("Minimum rest duration must be at least 5 minutes")
+        
+        return cleaned_data
+
+    def save(self, event=None, user=None, commit=True):
+        """Create event participation - placeholder implementation"""
+        # This will be enhanced when the models are fully implemented
+        # For now, return a mock object
+        from types import SimpleNamespace
+        
+        participation = SimpleNamespace()
+        participation.event = event
+        participation.user = user
+        participation.preferred_car = self.cleaned_data['preferred_car']
+        participation.backup_car = self.cleaned_data['backup_car']
+        participation.experience_level = self.cleaned_data['experience_level']
+        participation.max_stint_duration = self.cleaned_data['max_stint_duration']
+        participation.min_rest_duration = self.cleaned_data['min_rest_duration']
+        participation.notes = self.cleaned_data['notes']
+        
+        return participation
+
+
+class TeamFormationSettingsForm(forms.Form):
+    """Form for team formation settings"""
+    
+    ALGORITHM_CHOICES = [
+        ('availability', 'Availability Based'),
+        ('balanced', 'Balanced Experience'),
+        ('manual', 'Manual Selection'),
+    ]
+    
+    team_size = forms.IntegerField(
+        min_value=2,
+        max_value=6,
+        initial=3,
+        widget=forms.NumberInput(attrs={'class': 'w-full rounded-md border-gray-300'})
+    )
+    
+    max_teams = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=20,
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full rounded-md border-gray-300',
+            'placeholder': 'No limit'
+        })
+    )
+    
+    algorithm = forms.ChoiceField(
+        choices=ALGORITHM_CHOICES,
+        initial='availability',
+        widget=forms.Select(attrs={'class': 'w-full rounded-md border-gray-300'})
+    )
+    
+    min_overlap_hours = forms.FloatField(
+        initial=4.0,
+        min_value=1.0,
+        max_value=24.0,
+        widget=forms.NumberInput(attrs={
+            'class': 'w-full rounded-md border-gray-300',
+            'step': '0.5'
+        }),
+        help_text="Minimum availability overlap required between team members"
+    )
+    
+    balance_experience = forms.BooleanField(
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'rounded border-gray-300'}),
+        help_text="Try to balance experience levels within teams"
+    )

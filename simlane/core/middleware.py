@@ -34,8 +34,8 @@ class AuthenticationRequiredMiddleware(MiddlewareMixin):
         if request.path in public_paths:
             return None
 
-        # Skip authentication for allauth URLs (login, signup, password reset, etc.)
-        if request.path.startswith("/accounts/"):
+        # Skip authentication for allauth and headless URLs (login, signup, password reset, etc.)
+        if request.path.startswith("/accounts/") or request.path.startswith("/auth/"):
             return None
 
         if request.path.startswith("/__debug__/"):

@@ -1,805 +1,611 @@
+"""
+Business logic services for the unified event participation system.
+Handles team formation, availability management, and workflow orchestration.
+"""
+
 import logging
 from datetime import timedelta
-
+from typing import List, Dict, Any, Optional, Tuple
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from django.db import transaction
+from django.db import transaction, connection
 from django.db.models import Count
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.html import strip_tags
+from django.core.exceptions import ValidationError
 
-# Removed EmailService import - using Django's send_mail directly
-from .models import Club
-from .models import ClubEvent
-from .models import ClubInvitation
-from .models import ClubMember
-from .models import EventEntry
-from .models import EventSignup
-from .models import EventSignupAvailability
-from .models import StintAssignment
-from .models import TeamAllocation
-from .models import TeamAllocationMember
+# from simlane.core.services import EmailService
+from simlane.sim.models import Event, EventInstance, SimCar, EventClass
+from simlane.users.models import User
+from .models import (
+    EventParticipation, 
+    AvailabilityWindow, 
+    EventSignupInvitation,
+    Team, 
+    ClubEvent,
+    TeamAllocation,
+    Club
+)
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
 
-class ClubInvitationService:
-    """Handle club invitation workflow"""
+class EventParticipationService:
+    """Service for managing event participation workflows"""
 
     @staticmethod
-    def send_invitation(
-        club: Club,
-        inviter: User,
-        email: str,
-        role: str,
-        message: str = "",
-    ) -> ClubInvitation:
-        """Create and send invitation emails"""
-        try:
-            # Create invitation
-            invitation = ClubInvitation.objects.create(
-                club=club,
-                email=email,
-                invited_by=inviter,
-                role=role,
-                personal_message=message,
-                token=ClubInvitation.generate_token(),
-                expires_at=timezone.now() + timedelta(days=7),
+    def create_individual_entry(event, user, car=None, **kwargs):
+        """Create direct individual event entry"""
+        with transaction.atomic():
+            participation = EventParticipation.objects.create(
+                event=event,
+                user=user,
+                participation_type='individual',
+                status='entered',
+                preferred_car=car,
+                participant_timezone=kwargs.get('timezone', user.timezone if hasattr(user, 'timezone') else 'UTC'),
+                entered_at=timezone.now(),
+                **kwargs
             )
-
-            # Prepare email context
-            context = {
-                "invitation": invitation,
-                "club": club,
-                "inviter": inviter,
-                "personal_message": message,
-                "accept_url": f"{settings.SITE_URL}/teams/invite/{invitation.token}/accept/",
-                "decline_url": f"{settings.SITE_URL}/teams/invite/{invitation.token}/decline/",
-            }
-
-            # Send email
-            subject = f"You're invited to join {club.name} on SimLane"
-            html_message = render_to_string(
-                "templates/emails/club_invitation.html",
-                context,
-            )
-            text_message = strip_tags(html_message)
-
-            send_mail(
-                subject=subject,
-                message=text_message,
-                html_message=html_message,
-                recipient_list=[email],
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                fail_silently=False,
-            )
-
-            logger.info(f"Invitation sent to {email} for club {club.name}")
-            return invitation
-
-        except Exception as e:
-            logger.error(f"Failed to send invitation: {e!s}")
-            raise
+            return participation
 
     @staticmethod
-    @transaction.atomic
-    def accept_invitation(token: str, user: User) -> ClubMember:
-        """Process invitation acceptance"""
-        try:
-            invitation = ClubInvitation.objects.select_for_update().get(
-                token=token,
-                accepted_at__isnull=True,
-                declined_at__isnull=True,
-            )
-
-            if invitation.is_expired():
-                raise ValueError("Invitation has expired")
-
-            # Use the model's accept method
-            club_member = invitation.accept(user)
-
-            # Send notification to inviter
-            ClubInvitationService._send_acceptance_notification(invitation, user)
-
-            logger.info(
-                f"User {user.username} accepted invitation to {invitation.club.name}",
-            )
-            return club_member
-
-        except ClubInvitation.DoesNotExist:
-            raise ValueError("Invalid or already used invitation")
-        except Exception as e:
-            logger.error(f"Failed to accept invitation: {e!s}")
-            raise
-
-    @staticmethod
-    def decline_invitation(token: str) -> None:
-        """Process invitation decline"""
-        try:
-            invitation = ClubInvitation.objects.get(
-                token=token,
-                accepted_at__isnull=True,
-                declined_at__isnull=True,
-            )
-
-            invitation.decline()
-
-            # Send notification to inviter
-            ClubInvitationService._send_decline_notification(invitation)
-
-            logger.info(f"Invitation to {invitation.club.name} was declined")
-
-        except ClubInvitation.DoesNotExist:
-            raise ValueError("Invalid or already used invitation")
-
-    @staticmethod
-    def cleanup_expired_invitations() -> int:
-        """Remove expired invitations"""
-        expired_count = ClubInvitation.objects.filter(
-            expires_at__lt=timezone.now(),
-            accepted_at__isnull=True,
-            declined_at__isnull=True,
-        ).delete()[0]
-
-        logger.info(f"Cleaned up {expired_count} expired invitations")
-        return expired_count
-
-    @staticmethod
-    def _send_acceptance_notification(invitation: ClubInvitation, user: User) -> None:
-        """Send notification to inviter when invitation is accepted"""
-        subject = f"{user.username} joined {invitation.club.name}"
-        message = f"{user.username} has accepted your invitation to join {invitation.club.name}."
-
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[invitation.invited_by.email],
-            fail_silently=False,
-        )
-
-    @staticmethod
-    def _send_decline_notification(invitation: ClubInvitation) -> None:
-        """Send notification to inviter when invitation is declined"""
-        subject = f"Invitation to {invitation.club.name} was declined"
-        message = f"The invitation sent to {invitation.email} was declined."
-
-        send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[invitation.invited_by.email],
-            fail_silently=False,
-        )
-
-
-class EventSignupService:
-    """Manage event signup workflows"""
-
-    @staticmethod
-    @transaction.atomic
-    def create_signup_sheet(
-        club: Club,
-        event,
-        creator: User,
-        details: dict,
-    ) -> ClubEvent:
-        """Create new signup sheet"""
-        club_event = ClubEvent.objects.create(
-            club=club,
-            base_event=event,
-            created_by=creator,
-            **details,
-        )
-
-        # Send notification to club members
-        EventSignupService._notify_signup_open(club_event)
-
-        logger.info(f"Created signup sheet for {club_event.title}")
-        return club_event
-
-    @staticmethod
-    @transaction.atomic
-    def process_member_signup(
-        club_event: ClubEvent,
-        user: User,
-        preferences: dict,
-        availability: list[dict],
-    ) -> EventSignup:
-        """Handle member signups"""
-        # Create signup
-        signup = EventSignup.objects.create(
-            club_event=club_event,
-            user=user,
-            **preferences,
-        )
-
-        # Add car preferences
-        if "preferred_cars" in preferences:
-            signup.preferred_cars.set(preferences["preferred_cars"])
-        if "backup_cars" in preferences:
-            signup.backup_cars.set(preferences["backup_cars"])
-
-        # Add availability
-        for avail_data in availability:
-            EventSignupAvailability.objects.create(
-                signup=signup,
-                **avail_data,
-            )
-
-        # Send confirmation
-        EventSignupService._send_signup_confirmation(signup)
-
-        logger.info(f"User {user.username} signed up for {club_event.title}")
-        return signup
-
-    @staticmethod
-    def get_signup_summary(club_event_id: str) -> dict:
-        """Generate signup statistics and summaries"""
-        try:
-            club_event = ClubEvent.objects.get(id=club_event_id)
-            signups = club_event.signups.all()
-
-            summary = {
-                "total_signups": signups.count(),
-                "driver_count": signups.filter(can_drive=True).count(),
-                "spectator_count": signups.filter(can_spectate=True).count(),
-                "experience_breakdown": list(
-                    signups.values("experience_level").annotate(
-                        count=Count("id"),
-                    ),
-                ),
-                "car_preferences": {},
-                "unique_cars_count": 0,
-            }
-
-            # Analyze car preferences
-            unique_cars = set()
-            for signup in signups.prefetch_related("preferred_cars"):
-                for car in signup.preferred_cars.all():
-                    unique_cars.add(car.id)
-                    if car.id not in summary["car_preferences"]:
-                        summary["car_preferences"][car.id] = {
-                            "car": str(car),
-                            "count": 0,
-                        }
-                    summary["car_preferences"][car.id]["count"] += 1
-
-            summary["unique_cars_count"] = len(unique_cars)
-
-            return summary
-        except ClubEvent.DoesNotExist:
-            logger.error(f"ClubEvent with id {club_event_id} not found")
-            return {
-                "total_signups": 0,
-                "driver_count": 0,
-                "spectator_count": 0,
-                "experience_breakdown": [],
-                "car_preferences": {},
-                "unique_cars_count": 0,
-            }
-
-    @staticmethod
-    @transaction.atomic
-    def close_signup(club_event_id: str) -> None:
-        """Close signup and prepare for team allocation"""
-        club_event = ClubEvent.objects.get(id=club_event_id)
-        club_event.status = "signup_closed"
-        club_event.save()
-
-        # Notify members that signup is closed
-        EventSignupService._notify_signup_closed(club_event)
-
-        logger.info(f"Closed signup for {club_event.title}")
-
-    @staticmethod
-    def _notify_signup_open(club_event: ClubEvent) -> None:
-        """Notify club members when signup opens"""
-        members = club_event.club.members.all()
-        for member in members:
-            # Send email notification
-            subject = f"New event signup: {club_event.title}"
-            context = {
-                "club_event": club_event,
-                "member": member,
-                "signup_url": f"{settings.SITE_URL}/teams/signups/{club_event.id}/join/",
-            }
-
-            html_message = render_to_string("emails/event_signup_open.html", context)
-            text_message = strip_tags(html_message)
-
-            send_mail(
-                subject=subject,
-                message=text_message,
-                html_message=html_message,
-                recipient_list=[member.user.email],
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                fail_silently=False,
-            )
-
-    @staticmethod
-    def _send_signup_confirmation(signup: EventSignup) -> None:
-        """Send confirmation email for signup"""
-        subject = f"Signup confirmed: {signup.club_event.title}"
-        context = {
-            "signup": signup,
-            "club_event": signup.club_event,
-            "user": signup.user,
-        }
-
-        html_message = render_to_string(
-            "emails/event_signup_confirmation.html",
-            context,
-        )
-        text_message = strip_tags(html_message)
-
-        send_mail(
-            subject=subject,
-            message=text_message,
-            html_message=html_message,
-            recipient_list=[signup.user.email],
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            fail_silently=False,
-        )
-
-    @staticmethod
-    def _notify_signup_closed(club_event: ClubEvent) -> None:
-        """Notify participants when signup closes"""
-        signups = club_event.signups.all()
-        for signup in signups:
-            subject = f"Signup closed: {club_event.title}"
-            message = f"Signup for {club_event.title} is now closed. Team assignments will be announced soon."
-
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[signup.user.email],
-                fail_silently=False,
-            )
-
-
-class TeamAllocationService:
-    """Handle team splitting and allocation"""
-
-    @staticmethod
-    def suggest_team_allocations(
-        club_event_id: str,
-        criteria: dict | None = None,
-    ) -> list[list[EventSignup]]:
-        """AI-assisted team splitting based on availability, car preferences, and skill levels"""
-        club_event = ClubEvent.objects.get(id=club_event_id)
-        signups = list(club_event.signups.filter(can_drive=True))
-
-        if not signups:
-            return []
-
-        # Calculate team count
-        team_count = max(1, len(signups) // club_event.team_size_max)
-        if len(signups) % club_event.team_size_max > club_event.team_size_min:
-            team_count += 1
-
-        # Get skill ratings and experience
-        signup_data = []
-        for signup in signups:
-            skill_rating = signup.get_skill_rating() or 1000  # Default rating
-            track_experience = signup.get_track_experience()
-            lap_count = track_experience.count() if track_experience else 0
-
-            signup_data.append(
-                {
-                    "signup": signup,
-                    "skill_rating": skill_rating,
-                    "lap_count": lap_count,
-                    "availability_score": TeamAllocationService._calculate_availability_score(
-                        signup,
-                    ),
-                    "car_preference_match": TeamAllocationService._calculate_car_preference_match(
-                        signup,
-                        club_event,
-                    ),
-                },
-            )
-
-        # Sort by skill rating
-        signup_data.sort(key=lambda x: x["skill_rating"], reverse=True)
-
-        # Distribute evenly across teams (snake draft style)
-        teams = [[] for _ in range(team_count)]
-        for i, data in enumerate(signup_data):
-            if i // team_count % 2 == 0:
-                # Forward pass
-                team_idx = i % team_count
-            else:
-                # Reverse pass (snake draft)
-                team_idx = team_count - 1 - (i % team_count)
-            teams[team_idx].append(data["signup"])
-
-        return teams
-
-    @staticmethod
-    @transaction.atomic
-    def create_team_allocation(
-        club_event_id: str,
-        allocations: list[dict],
-    ) -> list[TeamAllocation]:
-        """Create team allocations from admin decisions"""
-        club_event = ClubEvent.objects.get(id=club_event_id)
-        created_allocations = []
-
-        for allocation_data in allocations:
-            # Create team allocation
-            team_allocation = TeamAllocation.objects.create(
+    def create_team_signup(event, user, club_event=None, invitation=None, **preferences):
+        """Create team event signup (Phase 1)"""
+        with transaction.atomic():
+            participation = EventParticipation.objects.create(
+                event=event,
+                user=user,
+                participation_type='team_signup',
+                status='signed_up',
                 club_event=club_event,
-                team=allocation_data["team"],
-                assigned_sim_car=allocation_data["assigned_car"],
-                created_by=allocation_data["created_by"],
+                signup_invitation=invitation,
+                participant_timezone=preferences.get('timezone', user.timezone if hasattr(user, 'timezone') else 'UTC'),
+                preferred_car=preferences.get('preferred_car'),
+                backup_car=preferences.get('backup_car'),
+                experience_level=preferences.get('experience_level', 'intermediate'),
+                max_stint_duration=preferences.get('max_stint_duration'),
+                min_rest_duration=preferences.get('min_rest_duration'),
+                notes=preferences.get('notes', ''),
+                signed_up_at=timezone.now()
             )
-
-            # Assign members
-            for member_data in allocation_data["members"]:
-                signup = member_data["signup"]
-                TeamAllocationMember.objects.create(
-                    team_allocation=team_allocation,
-                    event_signup=signup,
-                    role=member_data.get("role", "driver"),
-                )
-
-                # Update signup with team assignment
-                signup.assigned_team = allocation_data["team"]
-                signup.assigned_at = timezone.now()
-                signup.save()
-
-            created_allocations.append(team_allocation)
-
-        # Send notifications
-        TeamAllocationService._notify_team_assignments(club_event)
-
-        return created_allocations
+            
+            # Add preferred classes if provided
+            if preferences.get('preferred_classes'):
+                participation.preferred_classes.set(preferences['preferred_classes'])
+            
+            return participation
 
     @staticmethod
-    def validate_allocation(allocation_data: dict) -> tuple[bool, list[str]]:
-        """Ensure allocations meet event requirements"""
-        errors = []
+    def assign_participants_to_team(participant_ids: List[int], team: Team, assigned_by: User):
+        """Assign multiple participants to a team (Phase 2)"""
+        with transaction.atomic():
+            participants = EventParticipation.objects.filter(
+                id__in=participant_ids,
+                status='signed_up',
+                participation_type='team_signup'
+            )
+            
+            if not participants.exists():
+                raise ValidationError("No valid participants found for team assignment")
+            
+            assigned_participants = []
+            for participation in participants:
+                participation.assign_to_team(team, assigned_by)
+                assigned_participants.append(participation)
+            
+            return assigned_participants
 
-        # Check team size constraints
-        member_count = len(allocation_data.get("members", []))
-        club_event = allocation_data.get("club_event")
+    @staticmethod
+    def create_team_entry(team: Team, event: Event, car: SimCar, **kwargs):
+        """Create team entry (Phase 3)"""
+        with transaction.atomic():
+            participation = EventParticipation.objects.create(
+                event=event,
+                team=team,
+                participation_type='team_entry',
+                status='entered',
+                assigned_car=car,
+                assigned_class=kwargs.get('event_class'),
+                car_number=kwargs.get('car_number'),
+                entered_at=timezone.now()
+            )
+            return participation
 
-        if club_event:
-            if member_count < club_event.team_size_min:
-                errors.append(
-                    f"Team must have at least {club_event.team_size_min} members",
-                )
-            if member_count > club_event.team_size_max:
-                errors.append(f"Team cannot exceed {club_event.team_size_max} members")
+    @staticmethod
+    def get_participation_summary(event: Event) -> Dict[str, Any]:
+        """Get comprehensive participation summary for an event"""
+        participations = EventParticipation.objects.filter(event=event)
+        
+        summary = {
+            'total_participants': participations.count(),
+            'by_type': {},
+            'by_status': {},
+            'team_signups_ready': 0,
+            'confirmed_entries': 0,
+            'availability_coverage': {}
+        }
+        
+        # Count by type and status
+        for participation in participations:
+            summary['by_type'][participation.participation_type] = summary['by_type'].get(participation.participation_type, 0) + 1
+            summary['by_status'][participation.status] = summary['by_status'].get(participation.status, 0) + 1
+        
+        # Count signups ready for team formation
+        summary['team_signups_ready'] = participations.filter(
+            participation_type='team_signup',
+            status='signed_up'
+        ).count()
+        
+        # Count confirmed entries
+        summary['confirmed_entries'] = participations.filter(
+            status__in=['confirmed', 'entered']
+        ).count()
+        
+        return summary
 
-        # Check if all members can drive
-        drivers = sum(
-            1 for m in allocation_data.get("members", []) if m["signup"].can_drive
+
+class AvailabilityService:
+    """Service for managing availability windows and timezone handling"""
+
+    @staticmethod
+    def create_availability_window(participation: EventParticipation, 
+                                 start_time_local, end_time_local, 
+                                 timezone_str: str, **preferences):
+        """Create availability window with timezone conversion"""
+        import pytz
+        
+        # Convert local times to UTC
+        user_tz = pytz.timezone(timezone_str)
+        start_utc = user_tz.localize(start_time_local).astimezone(pytz.UTC)
+        end_utc = user_tz.localize(end_time_local).astimezone(pytz.UTC)
+        
+        window = AvailabilityWindow.objects.create(
+            participation=participation,
+            start_time=start_utc,
+            end_time=end_utc,
+            can_drive=preferences.get('can_drive', True),
+            can_spot=preferences.get('can_spot', True),
+            can_strategize=preferences.get('can_strategize', False),
+            preference_level=preferences.get('preference_level', 3),
+            max_consecutive_stints=preferences.get('max_consecutive_stints', 1),
+            preferred_stint_length=preferences.get('preferred_stint_length'),
+            notes=preferences.get('notes', '')
         )
-        if drivers == 0:
-            errors.append("Team must have at least one driver")
-
-        return len(errors) == 0, errors
+        
+        return window
 
     @staticmethod
-    @transaction.atomic
-    def finalize_allocations(club_event_id: str) -> None:
-        """Convert allocations to actual EventEntry records"""
-        club_event = ClubEvent.objects.get(id=club_event_id)
-        allocations = club_event.allocations.all()
-
-        for allocation in allocations:
-            # Create EventEntry for the team
-            event_entry = EventEntry.objects.create(
-                event=club_event.base_event,
-                sim_car=allocation.assigned_sim_car,
-                team=allocation.team,
-            )
-
-            # Create driver availabilities
-            for member in allocation.members.all():
-                signup = member.event_signup
-                for availability in signup.availabilities.all():
-                    if availability.available:
-                        DriverAvailability.objects.create(
-                            event_entry=event_entry,
-                            user=signup.user,
-                            instance=availability.event_instance,
-                            available=True,
-                        )
-
-        club_event.status = "teams_assigned"
-        club_event.save()
-
-        logger.info(f"Finalized allocations for {club_event.title}")
+    def bulk_create_availability(participation: EventParticipation, 
+                               availability_data: List[Dict], 
+                               timezone_str: str):
+        """Create multiple availability windows efficiently"""
+        import pytz
+        
+        user_tz = pytz.timezone(timezone_str)
+        windows = []
+        
+        for data in availability_data:
+            start_utc = user_tz.localize(data['start_time_local']).astimezone(pytz.UTC)
+            end_utc = user_tz.localize(data['end_time_local']).astimezone(pytz.UTC)
+            
+            windows.append(AvailabilityWindow(
+                participation=participation,
+                start_time=start_utc,
+                end_time=end_utc,
+                can_drive=data.get('can_drive', True),
+                can_spot=data.get('can_spot', True),
+                can_strategize=data.get('can_strategize', False),
+                preference_level=data.get('preference_level', 3),
+                max_consecutive_stints=data.get('max_consecutive_stints', 1),
+                preferred_stint_length=data.get('preferred_stint_length'),
+                notes=data.get('notes', '')
+            ))
+        
+        return AvailabilityWindow.objects.bulk_create(windows)
 
     @staticmethod
-    def _calculate_availability_score(signup: EventSignup) -> float:
-        """Calculate how available a driver is across all instances"""
-        total_instances = signup.club_event.base_event.instances.count()
-        available_instances = signup.availabilities.filter(available=True).count()
-
-        return available_instances / total_instances if total_instances > 0 else 0
-
-    @staticmethod
-    def _calculate_car_preference_match(
-        signup: EventSignup,
-        club_event: ClubEvent,
-    ) -> float:
-        """Calculate how well driver's car preferences match available cars"""
-        # This is a simplified version - could be enhanced with more complex matching
-        preferred_cars = set(signup.preferred_cars.all())
-        available_cars = set(club_event.base_event.sim_cars.all())
-
-        if not preferred_cars:
-            return 0.5  # Neutral score if no preferences
-
-        matches = preferred_cars & available_cars
-        return len(matches) / len(preferred_cars)
-
-    @staticmethod
-    def _notify_team_assignments(club_event: ClubEvent) -> None:
-        """Notify members of their team assignments"""
-        signups = club_event.signups.filter(assigned_team__isnull=False)
-
-        for signup in signups:
-            subject = f"Team assignment: {club_event.title}"
-            context = {
-                "signup": signup,
-                "club_event": club_event,
-                "team": signup.assigned_team,
-                "planning_url": f"{settings.SITE_URL}/teams/allocations/{signup.assigned_team.id}/planning/",
-            }
-
-            html_message = render_to_string(
-                "emails/team_allocation_notification.html",
-                context,
-            )
-            text_message = strip_tags(html_message)
-
-            send_mail(
-                subject=subject,
-                message=text_message,
-                html_message=html_message,
-                recipient_list=[signup.user.email],
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                fail_silently=False,
-            )
-
-
-class StintPlanningService:
-    """Generate stint plans and pit strategies"""
+    def get_availability_conflicts(event: Event, target_start, target_end) -> List[Dict]:
+        """Find availability conflicts for stint assignment"""
+        conflicts = []
+        
+        # Find overlapping windows where users are NOT available for driving
+        unavailable_windows = AvailabilityWindow.objects.filter(
+            participation__event=event,
+            start_time__lt=target_end,
+            end_time__gt=target_start,
+            can_drive=False
+        ).select_related('participation__user')
+        
+        for window in unavailable_windows:
+            conflicts.append({
+                'user': window.participation.user,
+                'reason': 'Not available for driving',
+                'window_start': window.start_time,
+                'window_end': window.end_time,
+                'available_roles': window.get_roles_list()
+            })
+        
+        return conflicts
 
     @staticmethod
-    def generate_stint_plan(
-        team_allocation: TeamAllocation,
-        event_instance,
-    ) -> list[StintAssignment]:
-        """Create initial stint assignments"""
-        # Get team members who can drive
-        drivers = team_allocation.members.filter(
-            event_signup__can_drive=True,
-        ).select_related("event_signup__user")
-
-        if not drivers:
-            return []
-
-        # Get event duration
-        duration = event_instance.end_time - event_instance.start_time
-        total_minutes = int(duration.total_seconds() / 60)
-
-        # Calculate stint length based on driver count
-        driver_count = drivers.count()
-        avg_stint_length = min(
-            120,
-            max(30, total_minutes // (driver_count * 2)),
-        )  # 2 stints per driver
-
-        # Generate stints
-        stints = []
-        current_time = event_instance.start_time
-        stint_number = 1
-        driver_index = 0
-
-        while current_time < event_instance.end_time:
-            driver = drivers[driver_index % driver_count]
-            stint_end = min(
-                current_time + timedelta(minutes=avg_stint_length),
-                event_instance.end_time,
-            )
-
-            stint = StintAssignment(
-                team_strategy=team_allocation.strategy,  # Assumes strategy exists
-                driver=driver.event_signup.user,
-                stint_number=stint_number,
-                estimated_start_time=current_time,
-                estimated_end_time=stint_end,
-                estimated_duration_minutes=int(
-                    (stint_end - current_time).total_seconds() / 60,
-                ),
-                role="primary_driver",
-            )
-            stints.append(stint)
-
-            current_time = stint_end
-            stint_number += 1
-            driver_index += 1
-
-        return stints
-
-    @staticmethod
-    def calculate_pit_windows(event_instance, sim_car) -> list[dict]:
-        """Use PitData to suggest optimal pit stops"""
-        if not sim_car.pit_data:
-            return []
-
-        pit_data = sim_car.pit_data
-        duration = event_instance.end_time - event_instance.start_time
-        total_minutes = duration.total_seconds() / 60
-
-        # Simple calculation - would be more complex in reality
-        # Assume fuel tank lasts 60 minutes
-        fuel_stint_length = 60
-        pit_stops_needed = int(total_minutes / fuel_stint_length)
-
-        pit_windows = []
-        for i in range(1, pit_stops_needed + 1):
-            window_center = i * fuel_stint_length
-            pit_windows.append(
-                {
-                    "lap_estimate": i * 40,  # Rough estimate
-                    "time_window": {
-                        "earliest": window_center - 5,
-                        "latest": window_center + 5,
-                        "optimal": window_center,
-                    },
-                    "fuel_needed": 60,  # Liters
-                    "tire_change": i % 2 == 0,  # Change tires every other stop
-                    "estimated_duration": StintPlanningService._calculate_pit_duration(
-                        pit_data,
-                        60,
-                        i % 2 == 0,
-                    ),
-                },
-            )
-
-        return pit_windows
-
-    @staticmethod
-    def optimize_driver_rotation(
-        team_allocation: TeamAllocation,
-        availability: dict,
-    ) -> list[StintAssignment]:
-        """Balance driving time based on availability"""
-        # This is a placeholder for more complex optimization
-        # Could use linear programming or other optimization techniques
-        return StintPlanningService.generate_stint_plan(
-            team_allocation,
-            team_allocation.club_event.base_event.instances.first(),
-        )
-
-    @staticmethod
-    def export_stint_plan(team_allocation: TeamAllocation) -> dict:
-        """Generate exportable stint plan"""
-        stints = team_allocation.strategy.stint_assignments.all().order_by(
-            "stint_number",
-        )
-
-        plan = {
-            "team": str(team_allocation.team),
-            "event": str(team_allocation.club_event),
-            "car": str(team_allocation.assigned_sim_car),
-            "stints": [],
+    def generate_coverage_report(event: Event, timezone_display='UTC') -> Dict[str, Any]:
+        """Generate comprehensive availability coverage report"""
+        import pytz
+        
+        display_tz = pytz.timezone(timezone_display)
+        windows = AvailabilityWindow.objects.filter(
+            participation__event=event
+        ).select_related('participation__user').order_by('start_time')
+        
+        # Group by hour for coverage analysis
+        coverage = {}
+        total_participants = EventParticipation.objects.filter(event=event).count()
+        
+        for window in windows:
+            start_hour = window.start_time.replace(minute=0, second=0, microsecond=0)
+            end_hour = window.end_time.replace(minute=0, second=0, microsecond=0)
+            
+            current_hour = start_hour
+            while current_hour <= end_hour:
+                hour_key = current_hour.astimezone(display_tz).strftime('%Y-%m-%d %H:00')
+                
+                if hour_key not in coverage:
+                    coverage[hour_key] = {
+                        'drivers': 0,
+                        'spotters': 0,
+                        'strategists': 0,
+                        'total_available': 0,
+                        'users': set()
+                    }
+                
+                if window.can_drive:
+                    coverage[hour_key]['drivers'] += 1
+                if window.can_spot:
+                    coverage[hour_key]['spotters'] += 1
+                if window.can_strategize:
+                    coverage[hour_key]['strategists'] += 1
+                
+                coverage[hour_key]['users'].add(window.participation.user.id)
+                current_hour += timedelta(hours=1)
+        
+        # Convert sets to counts and calculate percentages
+        for hour_data in coverage.values():
+            hour_data['total_available'] = len(hour_data['users'])
+            hour_data['coverage_percentage'] = (hour_data['total_available'] / total_participants * 100) if total_participants > 0 else 0
+            hour_data['users'] = list(hour_data['users'])  # Convert set to list for JSON serialization
+        
+        return {
+            'total_participants': total_participants,
+            'hourly_coverage': coverage,
+            'timezone': timezone_display
         }
 
-        for stint in stints:
-            plan["stints"].append(
-                {
-                    "number": stint.stint_number,
-                    "driver": stint.driver.username,
-                    "start": stint.estimated_start_time.isoformat(),
-                    "end": stint.estimated_end_time.isoformat(),
-                    "duration": stint.estimated_duration_minutes,
-                    "pit_entry": stint.pit_entry_planned,
-                    "fuel_load": stint.fuel_load_start,
-                    "tire_compound": stint.tire_compound,
-                },
-            )
 
-        return plan
+class TeamFormationService:
+    """Service for intelligent team formation using availability analysis"""
 
     @staticmethod
-    def _calculate_pit_duration(
-        pit_data,
-        fuel_amount: float,
-        tire_change: bool,
-    ) -> float:
-        """Calculate total pit stop duration"""
-        duration = 0
-
-        # Refuel time
-        if fuel_amount > 0:
-            duration += fuel_amount / pit_data.refuel_flow_rate
-
-        # Tire change time
-        if tire_change:
-            if pit_data.simultaneous_actions and fuel_amount > 0:
-                # Tires and fuel at same time
-                duration = max(duration, pit_data.tire_change_all_four_sec)
-            else:
-                # Sequential
-                duration += pit_data.tire_change_all_four_sec
-
-        # Add base loss time
-        duration += pit_data.stop_go_base_loss_sec
-
-        return duration
-
-
-class NotificationService:
-    """Handle email and future Discord notifications"""
+    def analyze_compatibility(event: Event, user_ids: List[int]) -> Dict[str, Any]:
+        """Analyze compatibility between potential team members"""
+        overlaps = AvailabilityWindow.find_overlapping_availability(user_ids, event, min_overlap_hours=1)
+        
+        compatibility_matrix = {}
+        total_overlap_by_user = {}
+        
+        for overlap in overlaps:
+            user1, user2 = overlap['user1_id'], overlap['user2_id']
+            overlap_hours = overlap['total_overlap_hours']
+            
+            # Build compatibility matrix
+            if user1 not in compatibility_matrix:
+                compatibility_matrix[user1] = {}
+            if user2 not in compatibility_matrix:
+                compatibility_matrix[user2] = {}
+            
+            compatibility_matrix[user1][user2] = overlap_hours
+            compatibility_matrix[user2][user1] = overlap_hours
+            
+            # Track total overlap per user
+            total_overlap_by_user[user1] = total_overlap_by_user.get(user1, 0) + overlap_hours
+            total_overlap_by_user[user2] = total_overlap_by_user.get(user2, 0) + overlap_hours
+        
+        return {
+            'compatibility_matrix': compatibility_matrix,
+            'total_overlap_by_user': total_overlap_by_user,
+            'pairwise_overlaps': overlaps
+        }
 
     @staticmethod
-    def send_invitation_email(invitation: ClubInvitation) -> None:
-        """Send club invitation emails"""
-        ClubInvitationService.send_invitation(
-            invitation.club,
-            invitation.invited_by,
-            invitation.email,
-            invitation.role,
-            invitation.personal_message,
+    def suggest_optimal_teams(event: Event, team_size: int = 3, max_teams: int = None) -> List[Dict]:
+        """Generate optimal team suggestions using advanced algorithms"""
+        participants = EventParticipation.objects.filter(
+            event=event,
+            status='signed_up',
+            participation_type='team_signup'
+        ).values_list('user_id', flat=True)
+        
+        if len(participants) < team_size:
+            return []
+        
+        # Get AI recommendations from the model
+        recommendations = AvailabilityWindow.get_team_formation_recommendations(
+            event, team_size=team_size
+        )
+        
+        # Enhance recommendations with additional data
+        enhanced_recommendations = []
+        for rec in recommendations:
+            # Get user objects and their preferences
+            team_users = User.objects.filter(id__in=rec['team_members'])
+            team_participations = EventParticipation.objects.filter(
+                event=event,
+                user__in=team_users
+            ).select_related('user')
+            
+            # Calculate team stats
+            car_preferences = {}
+            experience_levels = []
+            total_availability_hours = 0
+            
+            for participation in team_participations:
+                if participation.preferred_car:
+                    car_name = str(participation.preferred_car)
+                    car_preferences[car_name] = car_preferences.get(car_name, 0) + 1
+                
+                if participation.experience_level:
+                    experience_levels.append(participation.experience_level)
+                
+                # Calculate total availability
+                for window in participation.availability_windows.all():
+                    total_availability_hours += window.duration_hours()
+            
+            enhanced_recommendations.append({
+                'team_members': list(team_users.values('id', 'username', 'first_name', 'last_name')),
+                'compatibility_score': rec['total_overlap_score'],
+                'total_availability_hours': total_availability_hours,
+                'car_preferences': car_preferences,
+                'experience_levels': experience_levels,
+                'recommended_car': max(car_preferences.keys()) if car_preferences else None,
+                'team_balance_score': TeamFormationService._calculate_balance_score(team_participations)
+            })
+        
+        return sorted(enhanced_recommendations, key=lambda x: x['compatibility_score'], reverse=True)[:max_teams]
+
+    @staticmethod
+    def _calculate_balance_score(participations) -> float:
+        """Calculate team balance score based on experience and preferences"""
+        if not participations:
+            return 0.0
+        
+        experience_mapping = {'beginner': 1, 'intermediate': 2, 'advanced': 3, 'professional': 4}
+        experience_scores = []
+        
+        for p in participations:
+            score = experience_mapping.get(p.experience_level, 2)
+            experience_scores.append(score)
+        
+        if len(experience_scores) < 2:
+            return 0.5
+        
+        # Calculate variance (lower variance = better balance)
+        mean_score = sum(experience_scores) / len(experience_scores)
+        variance = sum((score - mean_score) ** 2 for score in experience_scores) / len(experience_scores)
+        
+        # Convert to 0-1 scale (lower variance = higher balance score)
+        max_variance = 2.25  # Max possible variance for our 1-4 scale
+        balance_score = 1 - (variance / max_variance)
+        
+        return max(0, min(1, balance_score))
+
+    @staticmethod
+    def create_teams_from_recommendations(event: Event, recommendations: List[Dict], 
+                                        club: Club = None, created_by: User = None) -> List[Team]:
+        """Create actual teams from recommendations"""
+        created_teams = []
+        
+        with transaction.atomic():
+            for i, rec in enumerate(recommendations):
+                # Create team
+                team_name = f"Team {chr(65 + i)}"  # Team A, Team B, etc.
+                if club:
+                    team_name = f"{club.name} {team_name}"
+                
+                team = Team.objects.create(
+                    name=team_name,
+                    owner_user=created_by,
+                    club=club,
+                    is_temporary=not bool(club),
+                    description=f"Auto-generated team with {rec['compatibility_score']:.1f}h overlap"
+                )
+                
+                # Assign participants to team
+                user_ids = [member['id'] for member in rec['team_members']]
+                EventParticipationService.assign_participants_to_team(
+                    user_ids, team, created_by
+                )
+                
+                created_teams.append(team)
+        
+        return created_teams
+
+
+class InvitationService:
+    """Service for managing event signup invitations"""
+
+    @staticmethod
+    def send_event_invitation(organizer: User, event: Event, invitee_email: str, 
+                            team_name: str, message: str = "") -> EventSignupInvitation:
+        """Send invitation for individual team formation"""
+        
+        # Check if invitation already exists
+        existing = EventSignupInvitation.objects.filter(
+            event=event,
+            organizer_user=organizer,
+            invitee_email=invitee_email,
+            status='pending'
+        ).first()
+        
+        if existing and not existing.is_expired():
+            raise ValidationError(f"Pending invitation already exists for {invitee_email}")
+        
+        # Create new invitation
+        invitation = EventSignupInvitation.objects.create(
+            event=event,
+            organizer_user=organizer,
+            team_name=team_name,
+            invitee_email=invitee_email,
+            message=message,
+            token=EventSignupInvitation.generate_token(),
+            expires_at=timezone.now() + timedelta(days=7)
+        )
+        
+        # Send email
+        InvitationService._send_invitation_email(invitation)
+        
+        return invitation
+
+    @staticmethod
+    def _send_invitation_email(invitation: EventSignupInvitation):
+        """Send invitation email to invitee"""
+        # This would integrate with your email service
+        # For now, just a placeholder
+        email_service = EmailService()
+        
+        context = {
+            'invitation': invitation,
+            'organizer': invitation.organizer_user,
+            'event': invitation.event,
+            'team_name': invitation.team_name,
+            'accept_url': f"/teams/invitations/{invitation.token}/accept/",
+            'decline_url': f"/teams/invitations/{invitation.token}/decline/"
+        }
+        
+        email_service.send_template_email(
+            to_email=invitation.invitee_email,
+            template_name='teams/emails/event_signup_invitation.html',
+            context=context,
+            subject=f"Join {invitation.team_name} for {invitation.event.name}"
         )
 
     @staticmethod
-    def send_signup_confirmation(signup: EventSignup) -> None:
-        """Confirm event signup"""
-        EventSignupService._send_signup_confirmation(signup)
+    def process_invitation_response(token: str, user: User, accepted: bool):
+        """Process invitation acceptance or decline"""
+        try:
+            invitation = EventSignupInvitation.objects.get(token=token)
+        except EventSignupInvitation.DoesNotExist:
+            raise ValidationError("Invalid invitation token")
+        
+        if invitation.is_expired():
+            raise ValidationError("Invitation has expired")
+        
+        if invitation.status != 'pending':
+            raise ValidationError("Invitation has already been responded to")
+        
+        with transaction.atomic():
+            if accepted:
+                participation = invitation.accept(user)
+                return {'status': 'accepted', 'participation': participation}
+            else:
+                invitation.decline()
+                return {'status': 'declined'}
+
+
+class WorkflowService:
+    """Service for managing participation workflow transitions"""
 
     @staticmethod
-    def send_team_allocation_notification(allocation: TeamAllocation) -> None:
-        """Notify members of team assignments"""
-        for member in allocation.members.all():
-            subject = f"Team assignment: {allocation.team.name}"
-            context = {
-                "member": member,
-                "team": allocation.team,
-                "event": allocation.club_event,
-                "car": allocation.assigned_sim_car,
-            }
-
-            html_message = render_to_string(
-                "emails/team_allocation_notification.html",
-                context,
+    def close_signup_phase(event: Event, club_event: ClubEvent = None):
+        """Close signup phase and prepare for team formation"""
+        with transaction.atomic():
+            # Update all signed up participants to team formation status
+            participants = EventParticipation.objects.filter(
+                event=event,
+                status='signed_up',
+                participation_type='team_signup'
             )
-            text_message = strip_tags(html_message)
-
-            send_mail(
-                subject=subject,
-                message=text_message,
-                html_message=html_message,
-                recipient_list=[member.event_signup.user.email],
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                fail_silently=False,
-            )
+            
+            if club_event:
+                participants = participants.filter(club_event=club_event)
+            
+            participants.update(status='team_formation')
+            
+            # Update club event status if provided
+            if club_event:
+                club_event.status = 'signup_closed'
+                club_event.save()
+            
+            return participants.count()
 
     @staticmethod
-    def send_stint_plan_update(team_allocation: TeamAllocation) -> None:
-        """Notify team of stint plan changes"""
-        members = team_allocation.members.all()
-
-        for member in members:
-            subject = f"Stint plan updated: {team_allocation.club_event.title}"
-            message = f"The stint plan for {team_allocation.team.name} has been updated. Please review your assignments."
-
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[member.event_signup.user.email],
-                fail_silently=False,
+    def finalize_team_allocations(event: Event, club_event: ClubEvent = None):
+        """Finalize team allocations and create event entries"""
+        with transaction.atomic():
+            participants = EventParticipation.objects.filter(
+                event=event,
+                status='team_assigned',
+                participation_type='team_signup'
             )
+            
+            if club_event:
+                participants = participants.filter(club_event=club_event)
+            
+            # Convert team signups to team entries
+            for participation in participants:
+                if participation.team:
+                    # Create or update team entry
+                    team_entry, created = EventParticipation.objects.get_or_create(
+                        event=event,
+                        team=participation.team,
+                        participation_type='team_entry',
+                        defaults={
+                            'status': 'entered',
+                            'assigned_car': participation.preferred_car,
+                            'entered_at': timezone.now()
+                        }
+                    )
+                    
+                    # Update individual participation status
+                    participation.status = 'entered'
+                    participation.entered_at = timezone.now()
+                    participation.save()
+            
+            # Update club event status
+            if club_event:
+                club_event.status = 'teams_assigned'
+                club_event.save()
+            
+            return participants.count()
+
+    @staticmethod
+    def get_workflow_status(event: Event) -> Dict[str, Any]:
+        """Get comprehensive workflow status for an event"""
+        participations = EventParticipation.objects.filter(event=event)
+        
+        status_counts = {}
+        for participation in participations:
+            key = f"{participation.participation_type}_{participation.status}"
+            status_counts[key] = status_counts.get(key, 0) + 1
+        
+        # Determine overall workflow phase
+        if status_counts.get('team_signup_signed_up', 0) > 0:
+            phase = 'signup_active'
+        elif status_counts.get('team_signup_team_formation', 0) > 0:
+            phase = 'team_formation'
+        elif status_counts.get('team_signup_team_assigned', 0) > 0:
+            phase = 'team_allocation'
+        elif status_counts.get('team_entry_entered', 0) > 0:
+            phase = 'event_ready'
+        else:
+            phase = 'not_started'
+        
+        return {
+            'phase': phase,
+            'status_counts': status_counts,
+            'total_participants': participations.count(),
+            'ready_for_team_formation': status_counts.get('team_signup_signed_up', 0),
+            'ready_for_finalization': status_counts.get('team_signup_team_assigned', 0)
+        }

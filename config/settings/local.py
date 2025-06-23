@@ -52,17 +52,21 @@ DEBUG_TOOLBAR_CONFIG = {
 }
 # https://django-debug-toolbar.readthedocs.io/en/latest/installation.html#internal-ips
 INTERNAL_IPS = ["127.0.0.1", "10.0.2.2"]
-if env("USE_DOCKER") == "yes":
+if env("USE_DOCKER") in ["yes", "True"]:
     import socket
 
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
+    # Add gateway IPs for Docker networks
     INTERNAL_IPS += [".".join(ip.split(".")[:-1] + ["1"]) for ip in ips]
+    # Add the node container IP since requests come through it
     try:
-        _, _, ips = socket.gethostbyname_ex("node")
-        INTERNAL_IPS.extend(ips)
+        _, _, node_ips = socket.gethostbyname_ex("node")
+        INTERNAL_IPS.extend(node_ips)
     except socket.gaierror:
         # The node container isn't started (yet?)
         pass
+    # Add the Django container's own IP
+    INTERNAL_IPS.extend(ips)
 
 # django-extensions
 # ------------------------------------------------------------------------------

@@ -1,0 +1,213 @@
+{% load static %}
+{% load i18n %}
+
+<div class="bg-gray-50 dark:bg-gray-900">
+  <div class="mx-auto px-4 sm:px-6 lg:px-8 py-8" style="max-width: 1400px;">
+    <!-- Header -->
+    <div class="mb-8">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{% trans "Profile Settings" %}</h1>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        {% trans "Manage your account settings, sim profiles, and preferences" %}
+      </p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-[200px_600px] lg:grid-cols-[256px_800px] xl:grid-cols-[256px_900px] 2xl:grid-cols-[256px_1000px] gap-8 justify-start max-w-full w-full">
+      <!-- Sidebar -->
+      <div class="w-full">
+        <nav class="bg-white dark:bg-gray-800 shadow rounded-lg p-4 md:sticky md:top-24">
+          <ul class="space-y-2">
+            <li>
+              <a href="{% url 'users:profile_general' %}"
+                 hx-get="{% url 'users:profile_general' %}"
+                 hx-target="#profile-content"
+                 hx-push-url="true"
+                 class="nav-link flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {% if active_section == 'general' %}bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                <svg class="w-5 h-5 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                {% trans "General" %}
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'users:profile_sim_profiles' %}"
+                 hx-get="{% url 'users:profile_sim_profiles' %}"
+                 hx-target="#profile-content"
+                 hx-push-url="true"
+                 class="nav-link flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {% if active_section == 'sim_profiles' %}bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                <svg class="w-5 h-5 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                {% trans "Sim Profiles" %}
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'users:profile_emails' %}"
+                 hx-get="{% url 'users:profile_emails' %}"
+                 hx-target="#profile-content"
+                 hx-push-url="true"
+                 class="nav-link flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {% if active_section == 'emails' %}bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                <svg class="w-5 h-5 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                {% trans "Email Addresses" %}
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'users:profile_social_accounts' %}"
+                 hx-get="{% url 'users:profile_social_accounts' %}"
+                 hx-target="#profile-content"
+                 hx-push-url="true"
+                 class="nav-link flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {% if active_section == 'social_accounts' %}bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                <svg class="w-5 h-5 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                {% trans "Social Accounts" %}
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'users:profile_password' %}"
+                 hx-get="{% url 'users:profile_password' %}"
+                 hx-target="#profile-content"
+                 hx-push-url="true"
+                 class="nav-link flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {% if active_section == 'password' %}bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                <svg class="w-5 h-5 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                {% trans "Password" %}
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'users:profile_sessions' %}"
+                 hx-get="{% url 'users:profile_sessions' %}"
+                 hx-target="#profile-content"
+                 hx-push-url="true"
+                 class="nav-link flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors {% if active_section == 'sessions' %}bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100{% endif %}">
+                <svg class="w-5 h-5 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                {% trans "Sessions" %}
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <!-- Main Content -->
+      <div class="w-full min-w-0 max-w-full overflow-hidden">
+        <div id="profile-content"
+             class="bg-white dark:bg-gray-800 shadow rounded-lg min-h-[600px] w-full max-w-none"
+             style="width: 100% !important">
+          {% if active_section == 'general' %}
+            {% include 'users/profile/general_partial.html' %}
+          {% elif active_section == 'sim_profiles' %}
+            {% include 'users/profile/sim_profiles_partial.html' %}
+          {% elif active_section == 'emails' %}
+            {% include 'users/profile/emails_partial.html' %}
+          {% elif active_section == 'social_accounts' %}
+            {% include 'users/profile/social_accounts_partial.html' %}
+          {% elif active_section == 'password' %}
+            {% include 'users/profile/password_partial.html' %}
+          {% elif active_section == 'sessions' %}
+            {% include 'users/profile/sessions_partial.html' %}
+          {% else %}
+            {% include 'users/profile/general_partial.html' %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+  /* Smooth transitions for content changes */
+  #profile-content {
+    transition: opacity 0.15s ease-in-out;
+    position: relative;
+  }
+
+  /* Prevent layout shifts during HTMX swaps */
+  .htmx-swapping #profile-content {
+    opacity: 0.7;
+  }
+
+  /* Ensure consistent width and positioning */
+  #profile-content>div {
+    width: 100% !important;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  /* Force consistent container behavior */
+  #profile-content {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Fix single-column layout width consistency */
+  @media (max-width: 767.98px) {
+
+    /* Force all content to use consistent widths on single-column layout */
+    .grid.grid-cols-1>div:last-child {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    #profile-content {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    #profile-content>div {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box;
+    }
+
+    /* Ensure all form elements and content stay within bounds */
+    #profile-content input,
+    #profile-content textarea,
+    #profile-content select,
+    #profile-content .grid,
+    #profile-content .flex {
+      max-width: 100% !important;
+      box-sizing: border-box;
+    }
+
+    /* Force consistent content width regardless of content type */
+    #profile-content .px-6 {
+      width: 100% !important;
+      box-sizing: border-box;
+    }
+  }
+</style>
+<script>
+  // Update active nav link after HTMX requests
+  document.body.addEventListener('htmx:afterRequest', function(evt) {
+    // Remove active class from all nav links
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.classList.remove('bg-primary-100', 'dark:bg-primary-900/20', 'text-primary-700', 'dark:text-primary-300');
+      link.classList.add('text-gray-600', 'dark:text-gray-400');
+    });
+
+    // Add active class to clicked link
+    if (evt.detail.elt && evt.detail.elt.classList.contains('nav-link')) {
+      evt.detail.elt.classList.remove('text-gray-600', 'dark:text-gray-400');
+      evt.detail.elt.classList.add('bg-primary-100', 'dark:bg-primary-900/20', 'text-primary-700', 'dark:text-primary-300');
+    }
+  });
+</script> 

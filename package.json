@@ -39,6 +39,12 @@
   "dependencies": {
     "@tailwindcss/node": "^4.1.10",
     "@tailwindcss/postcss": "^4.1.10",
-    "tailwindcss": "^4.1.10"
+    "tailwindcss": "^4.1.10",
+    "@fullcalendar/core": "^6.1.10",
+    "@fullcalendar/daygrid": "^6.1.10",
+    "@fullcalendar/timegrid": "^6.1.10",
+    "@fullcalendar/interaction": "^6.1.10",
+    "d3": "^7.8.5",
+    "alpinejs": "^3.13.3"
   }
 }

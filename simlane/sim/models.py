@@ -70,6 +70,21 @@ class EventType(models.TextChoices):
     CUSTOM = "CUSTOM", "Custom"
 
 
+class EventSource(models.TextChoices):
+    SPECIAL = "SPECIAL", "Special Event - Official"
+    SERIES = "SERIES", "Series Event - Official"
+    CLUB = "CLUB", "Club-Organized Event"
+    USER = "USER", "User-Created Event"
+
+
+class EventVisibility(models.TextChoices):
+    PUBLIC = "PUBLIC", "Public - Anyone can view and join"
+    UNLISTED = "UNLISTED", "Unlisted - Anyone with link can join"
+    CLUB_ONLY = "CLUB_ONLY", "Club Only - Only club members"
+    INVITE_ONLY = "INVITE_ONLY", "Invite Only - By invitation"
+    PRIVATE = "PRIVATE", "Private - Specific users only"
+
+
 class Simulator(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, unique=True)
@@ -431,6 +446,71 @@ class Event(models.Model):
         choices=EventStatus,
         default=EventStatus.DRAFT,
     )
+    
+    # Enhanced: Event ownership and organization
+    event_source = models.CharField(
+        max_length=20,
+        choices=EventSource,
+        default=EventSource.USER,
+        help_text="Source/type of this event"
+    )
+    
+    # Organizer can be a club OR user (using string reference to avoid circular import)
+    organizing_club = models.ForeignKey(
+        "teams.Club",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="organized_events",
+        help_text="Club organizing this event (if club-organized)"
+    )
+    organizing_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="organized_events",
+        help_text="User organizing this event (if user-created)"
+    )
+    
+    # Enhanced: Visibility and access control
+    visibility = models.CharField(
+        max_length=20,
+        choices=EventVisibility,
+        default=EventVisibility.PUBLIC,
+        help_text="Who can see and join this event"
+    )
+    
+    # Enhanced: Entry requirements
+    min_license_level = models.CharField(
+        max_length=10,
+        blank=True,
+        help_text="Minimum license level required (e.g., 'D', 'C', 'B')"
+    )
+    min_safety_rating = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Minimum safety rating required"
+    )
+    min_skill_rating = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Minimum skill rating required"
+    )
+    max_entries = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum number of entries allowed"
+    )
+    
+    # Enhanced: Custom entry requirements
+    entry_requirements = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Custom requirements like specific licenses, achievements, etc."
+    )
+    
+    # Existing fields
     event_date = models.DateTimeField(null=True, blank=True)
     registration_deadline = models.DateTimeField(null=True, blank=True)
     is_team_event = models.BooleanField(null=True, blank=True)
@@ -451,6 +531,23 @@ class Event(models.Model):
             models.Index(fields=["event_date"]),
             models.Index(fields=["status"]),
             models.Index(fields=["slug"]),
+            # Enhanced indexes for new fields
+            models.Index(fields=["event_source"]),
+            models.Index(fields=["organizing_club"]),
+            models.Index(fields=["organizing_user"]),
+            models.Index(fields=["visibility"]),
+            models.Index(fields=["event_source", "visibility"]),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    # Must have exactly one organizer type (or none for imported events)
+                    models.Q(organizing_club__isnull=False, organizing_user__isnull=True) |
+                    models.Q(organizing_club__isnull=True, organizing_user__isnull=False) |
+                    models.Q(organizing_club__isnull=True, organizing_user__isnull=True)
+                ),
+                name='event_has_single_organizer_or_none'
+            )
         ]
 
     def __str__(self):
@@ -466,6 +563,145 @@ class Event(models.Model):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
+    
+    @property
+    def effective_organizer(self):
+        """Get the effective organizer user (if any)"""
+        if self.organizing_user:
+            return self.organizing_user
+        elif self.organizing_club:
+            return self.organizing_club.created_by
+        return None
+    
+    @property
+    def is_user_organized(self):
+        """Check if this event is organized by an individual user"""
+        return self.event_source == EventSource.USER and self.organizing_user
+    
+    @property
+    def is_club_organized(self):
+        """Check if this event is organized by a club"""
+        return self.event_source == EventSource.CLUB and self.organizing_club
+    
+    @property
+    def is_official(self):
+        """Check if this is an official event"""
+        return self.event_source in [EventSource.OFFICIAL, EventSource.SERIES]
+    
+    def can_user_view(self, user):
+        """Check if a user can view this event"""
+        # Public events are visible to all
+        if self.visibility == EventVisibility.PUBLIC:
+            return True
+        
+        # Unlisted events are visible to all (but not discoverable)
+        if self.visibility == EventVisibility.UNLISTED:
+            return True
+        
+        # Organizer can always view
+        if user == self.organizing_user:
+            return True
+        
+        # Club organizer - check club membership
+        if self.organizing_club:
+            try:
+                from django.apps import apps
+                ClubMember = apps.get_model('teams', 'ClubMember')
+                member = ClubMember.objects.get(user=user, club=self.organizing_club)
+                
+                if self.visibility == EventVisibility.CLUB_ONLY:
+                    return True  # Any club member can view
+                elif self.visibility in [EventVisibility.INVITE_ONLY, EventVisibility.PRIVATE]:
+                    return member.can_manage_club()  # Only club managers can view
+                    
+            except ClubMember.DoesNotExist:
+                pass
+        
+        # For invite-only events, check if user has been invited
+        if self.visibility == EventVisibility.INVITE_ONLY:
+            # This would need EventInvitation model which we'll implement later
+            pass
+        
+        return False
+    
+    def can_user_join(self, user):
+        """Check if a user can join this event"""
+        # Must be able to view first
+        if not self.can_user_view(user):
+            return False
+        
+        # Check if event is open for registration
+        if self.status not in [EventStatus.DRAFT, EventStatus.SCHEDULED]:
+            return False
+        
+        # Check entry limits (TODO: implement when EventParticipation model is ready)
+        # if self.max_entries:
+        #     current_entries = self.participations.count()
+        #     if current_entries >= self.max_entries:
+        #         return False
+        
+        # Check skill requirements (if user has sim profiles)
+        if self.min_skill_rating or self.min_safety_rating:
+            user_profiles = user.sim_profiles.filter(simulator=self.simulator)
+            if not user_profiles.exists():
+                return False
+            
+            # Check if any profile meets requirements
+            for profile in user_profiles:
+                if self._check_profile_requirements(profile):
+                    break
+            else:
+                return False
+        
+        return True
+    
+    def can_user_manage(self, user):
+        """Check if a user can manage this event"""
+        # Direct organizer can always manage
+        if user == self.organizing_user:
+            return True
+        
+        # Club organizer - check club admin/manager permissions
+        if self.organizing_club:
+            try:
+                from django.apps import apps
+                ClubMember = apps.get_model('teams', 'ClubMember')
+                member = ClubMember.objects.get(user=user, club=self.organizing_club)
+                return member.can_manage_club()
+            except ClubMember.DoesNotExist:
+                pass
+        
+        return False
+    
+    def _check_profile_requirements(self, sim_profile):
+        """Check if a sim profile meets event requirements"""
+        # Check skill rating
+        if self.min_skill_rating:
+            skill_ratings = sim_profile.ratings.filter(
+                rating_system__category='SKILL'
+            ).order_by('-recorded_at')
+            if not skill_ratings.exists():
+                return False
+            if skill_ratings.first().value < self.min_skill_rating:
+                return False
+        
+        # Check safety rating
+        if self.min_safety_rating:
+            safety_ratings = sim_profile.ratings.filter(
+                rating_system__category='SAFETY'
+            ).order_by('-recorded_at')
+            if not safety_ratings.exists():
+                return False
+            if safety_ratings.first().value < self.min_safety_rating:
+                return False
+        
+        # Check license level (would need license data in sim profile)
+        if self.min_license_level:
+            # This would need license information stored in sim profile
+            # For now, assume it passes
+            pass
+        
+        return True
 
 
 class EventSession(models.Model):

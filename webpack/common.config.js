@@ -6,7 +6,14 @@ module.exports = {
   target: 'web',
   context: path.join(__dirname, '../'),
   entry: {
+    // Global bundle - loaded on all pages
     project: path.resolve(__dirname, '../simlane/static/js/project'),
+    
+    // Event signup bundle - only for signup pages
+    'event-signup': path.resolve(__dirname, '../simlane/static/js/event-signup'),
+    
+    // Team formation bundle - only for team management pages  
+    'team-formation': path.resolve(__dirname, '../simlane/static/js/team-formation'),
   },
   output: {
     path: path.resolve(__dirname, '../simlane/static/webpack_bundles/'),

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Event Invitation - {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="text-center">
+            <h2 class="text-3xl font-extrabold text-gray-900">
+                Event Team Invitation
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                You've been invited to join a team
+            </p>
+        </div>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <!-- Event Details -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Event Details</h3>
+                <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-500">Event:</span>
+                        <span class="text-sm font-medium text-gray-900">{{ event.name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-500">Date:</span>
+                        <span class="text-sm font-medium text-gray-900">{{ event.start_date|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-500">Track:</span>
+                        <span class="text-sm font-medium text-gray-900">{{ event.track.name }}</span>
+                    </div>
+                    {% if event.duration_hours %}
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-500">Duration:</span>
+                        <span class="text-sm font-medium text-gray-900">{{ event.duration_hours }}h</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Invitation Details -->
+            <div class="mb-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Invitation Details</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-sm text-gray-500">From:</span>
+                        <p class="text-sm font-medium text-gray-900">
+                            {{ organizer.get_full_name|default:organizer.username }}
+                            <span class="text-gray-500">(@{{ organizer.username }})</span>
+                        </p>
+                    </div>
+                    <div>
+                        <span class="text-sm text-gray-500">Team Name:</span>
+                        <p class="text-sm font-medium text-gray-900">{{ invitation.team_name }}</p>
+                    </div>
+                    {% if invitation.message %}
+                    <div>
+                        <span class="text-sm text-gray-500">Message:</span>
+                        <p class="mt-1 text-sm text-gray-700 bg-gray-50 p-3 rounded-md">
+                            {{ invitation.message }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Status Messages -->
+            {% if invitation.is_expired %}
+                <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">
+                                Invitation Expired
+                            </h3>
+                            <p class="mt-1 text-sm text-yellow-700">
+                                This invitation expired on {{ invitation.expires_at|date:"M d, Y" }}.
+                                Please contact {{ organizer.first_name|default:organizer.username }} for a new invitation.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% elif invitation.status != 'pending' %}
+                <div class="mb-6 bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">
+                                Already Responded
+                            </h3>
+                            <p class="mt-1 text-sm text-blue-700">
+                                You have already {{ invitation.get_status_display|lower }} this invitation.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            {% if invitation.status == 'pending' and not invitation.is_expired %}
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    {% if not user.is_authenticated %}
+                        <div class="mb-4 text-sm text-gray-600 text-center">
+                            Please log in or create an account to respond to this invitation.
+                        </div>
+                        <button type="submit" name="action" value="accept"
+                                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Log In to Accept
+                        </button>
+                    {% else %}
+                        <button type="submit" name="action" value="accept"
+                                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Accept Invitation
+                        </button>
+                    {% endif %}
+                    
+                    <button type="submit" name="action" value="decline"
+                            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Decline Invitation
+                    </button>
+                </form>
+            {% else %}
+                <div class="text-center">
+                    <a href="{% url 'core:home' %}"
+                       class="text-sm text-blue-600 hover:text-blue-800">
+                        Return to Home
+                    </a>
+                </div>
+            {% endif %}
+
+            <!-- Additional Info -->
+            <div class="mt-6 text-center">
+                <p class="text-xs text-gray-500">
+                    Expires {{ invitation.expires_at|timeuntil }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

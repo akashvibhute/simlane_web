@@ -33,13 +33,15 @@ from .models import ClubMember
 from .models import EventSignup
 from .models import Team
 from .models import TeamEventStrategy
-from .services import ClubInvitationService
-from .services import EventSignupService
-from .services import NotificationService
-from .services import StintPlanningService
-from .services import TeamAllocationService
+from .services import EventParticipationService
 from .utils import export_signup_data
 from .utils import generate_stint_plan_pdf
+
+# Enhanced views imports
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json
 
 
 @login_required
@@ -1031,3 +1033,252 @@ def club_event_detail(request, club_slug, event_id):
     }
 
     return render(request, "teams/club_event_detail.html", context)
+
+
+# ===== UNIFIED EVENT PARTICIPATION SYSTEM =====
+# These views implement the enhanced event participation workflow
+# They work alongside the existing views and will eventually replace some of them
+
+@login_required
+def enhanced_event_signup_create(request, event_id):
+    """Enhanced event signup with availability collection"""
+    try:
+        from simlane.sim.models import Event
+        from .models import EventParticipation, ClubEvent
+        from .forms_enhanced import EnhancedEventSignupForm
+        from .services import EventParticipationService
+        
+        event = get_object_or_404(Event, id=event_id)
+        
+        # Check if this is a club event
+        club_event = None
+        try:
+            club_event = ClubEvent.objects.get(event=event)
+        except ClubEvent.DoesNotExist:
+            pass
+        
+        # Check if user already has a participation
+        existing_participation = EventParticipation.objects.filter(
+            event=event, user=request.user
+        ).first()
+        
+        if existing_participation:
+            messages.info(request, "You are already signed up for this event.")
+            return redirect('teams:team_formation_dashboard', club_event_id=club_event.id if club_event else event.id)
+        
+        if request.method == 'POST':
+            form = EnhancedEventSignupForm(request.POST, event=event, user=request.user)
+            if form.is_valid():
+                participation = form.save()
+                messages.success(request, "Successfully signed up for the event!")
+                
+                if request.headers.get('HX-Request'):
+                    return JsonResponse({'status': 'success', 'redirect': True})
+                
+                return redirect('teams:team_formation_dashboard', club_event_id=club_event.id if club_event else event.id)
+        else:
+            form = EnhancedEventSignupForm(event=event, user=request.user)
+        
+        context = {
+            'form': form,
+            'event': event,
+            'club_event': club_event,
+            'existing_participation': existing_participation,
+        }
+        
+        return render(request, 'teams/event_signup_create_enhanced.html', context)
+        
+    except ImportError:
+        messages.error(request, "Enhanced signup system not available yet.")
+        return redirect('teams:clubs_dashboard')
+
+
+@login_required  
+def enhanced_team_formation_dashboard(request, club_event_id):
+    """Enhanced team formation dashboard with analytics"""
+    try:
+        from .models import ClubEvent, EventParticipation
+        from .services import EventParticipationService, WorkflowService, AvailabilityService
+        
+        club_event = get_object_or_404(ClubEvent, id=club_event_id)
+        event = club_event.event
+        
+        # Check permissions
+        if not request.user.clubmember_set.filter(club=club_event.club).exists():
+            raise Http404("Access denied")
+        
+        # Get participation data
+        participations = EventParticipation.objects.filter(
+            event=event
+        ).select_related('user', 'preferred_car', 'backup_car', 'team').prefetch_related(
+            'availability_windows'
+        )
+        
+        # Get analytics
+        summary = EventParticipationService.get_participation_summary(event)
+        workflow = WorkflowService.get_workflow_status(event)
+        coverage = AvailabilityService.generate_coverage_report(event)
+        
+        context = {
+            'club_event': club_event,
+            'event': event,
+            'participations': participations,
+            'summary': summary,
+            'workflow': workflow,
+            'coverage': coverage,
+        }
+        
+        return render(request, 'teams/team_formation_dashboard.html', context)
+        
+    except ImportError:
+        messages.error(request, "Enhanced team formation not available yet.")
+        return redirect('teams:clubs_dashboard')
+
+
+@login_required
+@require_POST
+def generate_team_suggestions(request, club_event_id):
+    """Generate team suggestions based on availability overlap"""
+    try:
+        from .models import ClubEvent
+        from .services import TeamFormationService
+        
+        club_event = get_object_or_404(ClubEvent, id=club_event_id)
+        
+        # Check permissions
+        if not request.user.clubmember_set.filter(club=club_event.club).exists():
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
+        # Generate suggestions
+        suggestions = TeamFormationService.generate_team_suggestions(
+            event=club_event.event,
+            team_size=int(request.POST.get('team_size', 3)),
+            algorithm=request.POST.get('algorithm', 'availability_overlap')
+        )
+        
+        # Store suggestions in session for later use
+        request.session[f'team_suggestions_{club_event_id}'] = suggestions
+        
+        if request.headers.get('HX-Request'):
+            context = {'suggestions': suggestions}
+            return render(request, 'teams/partials/team_suggestions.html', context)
+        
+        return JsonResponse({'status': 'success', 'suggestions_count': len(suggestions)})
+        
+    except ImportError:
+        return JsonResponse({'error': 'Team formation service not available'}, status=500)
+
+
+@login_required
+@require_POST  
+def create_teams_from_suggestions(request, club_event_id):
+    """Create teams from selected suggestions"""
+    try:
+        from .models import ClubEvent
+        from .services import TeamFormationService
+        
+        club_event = get_object_or_404(ClubEvent, id=club_event_id)
+        
+        # Check permissions
+        if not request.user.clubmember_set.filter(club=club_event.club).exists():
+            return JsonResponse({'error': 'Access denied'}, status=403)
+        
+        # Get suggestions from session
+        suggestions = request.session.get(f'team_suggestions_{club_event_id}', [])
+        if not suggestions:
+            return JsonResponse({'error': 'No suggestions found'}, status=400)
+        
+        # Get selected suggestion indices
+        selected_indices = json.loads(request.POST.get('selected_teams', '[]'))
+        
+        # Create teams from selected suggestions
+        created_teams = TeamFormationService.create_teams_from_suggestions(
+            club_event=club_event,
+            suggestions=suggestions,
+            selected_indices=selected_indices,
+            creator=request.user
+        )
+        
+        messages.success(request, f"Created {len(created_teams)} teams successfully!")
+        
+        if request.headers.get('HX-Request'):
+            return JsonResponse({'status': 'success', 'teams_created': len(created_teams)})
+        
+        return redirect('teams:team_formation_dashboard', club_event_id=club_event_id)
+        
+    except ImportError:
+        return JsonResponse({'error': 'Team formation service not available'}, status=500)
+
+
+@login_required
+def participant_list_partial(request, club_event_id):
+    """HTMX partial for participant list"""
+    try:
+        from .models import ClubEvent, EventParticipation
+        
+        club_event = get_object_or_404(ClubEvent, id=club_event_id)
+        
+        participations = EventParticipation.objects.filter(
+            event=club_event.event
+        ).select_related('user', 'preferred_car', 'team').prefetch_related(
+            'availability_windows'
+        )
+        
+        context = {'participants': participations}
+        return render(request, 'teams/partials/participant_list.html', context)
+        
+    except ImportError:
+        return HttpResponse("Service not available", status=500)
+
+
+@login_required
+def team_suggestions_partial(request, club_event_id):
+    """HTMX partial for team suggestions"""
+    try:
+        suggestions = request.session.get(f'team_suggestions_{club_event_id}', [])
+        context = {'suggestions': suggestions}
+        return render(request, 'teams/partials/team_suggestions.html', context)
+        
+    except Exception:
+        return HttpResponse("Error loading suggestions", status=500)
+
+
+# Placeholder views for other enhanced endpoints
+@login_required
+def formation_dashboard_data(request, club_event_id):
+    """API endpoint for dashboard data"""
+    return JsonResponse({'status': 'not_implemented'})
+
+@login_required  
+def close_signup_phase(request, club_event_id):
+    """Close signup phase and move to team formation"""
+    return JsonResponse({'status': 'not_implemented'})
+
+@login_required
+def finalize_teams(request, club_event_id):
+    """Finalize team allocations"""
+    return JsonResponse({'status': 'not_implemented'})
+
+@login_required
+def availability_coverage_heatmap(request, event_id):
+    """Generate availability coverage heatmap"""
+    return JsonResponse({'status': 'not_implemented'})
+
+@login_required
+def workflow_status(request, event_id):
+    """Get current workflow status"""
+    return JsonResponse({'status': 'not_implemented'})
+
+@login_required
+def send_signup_invitation(request, event_id):
+    """Send signup invitation for individual team formation"""
+    return JsonResponse({'status': 'not_implemented'})
+
+def process_invitation(request, token):
+    """Process signup invitation response"""
+    return render(request, 'teams/invitation_response.html', {'token': token})
+
+@login_required
+def notify_signup_update(request, event_id):
+    """WebSocket helper for real-time updates"""
+    return JsonResponse({'status': 'not_implemented'})

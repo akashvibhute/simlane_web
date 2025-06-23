@@ -205,8 +205,17 @@ def sim_profile_disconnect_view(request, profile_id):
 
 @login_required
 def profile_view(request):
-    """Main profile dashboard - redirects to general settings by default."""
-    return redirect("users:profile_general")
+    """Main profile dashboard - shows general settings by default."""
+    if request.htmx:
+        # For HTMX requests, render just the profile content without base template
+        context = {
+            "active_section": "general",
+            "form": UserUpdateForm(instance=request.user),
+        }
+        return render(request, "users/profile/profile_content_partial.html", context)
+    else:
+        # For regular requests, redirect to general settings
+        return redirect("users:profile_general")
 
 
 @login_required
@@ -301,11 +310,112 @@ def profile_password_view(request):
 
 @login_required
 def profile_sessions_view(request):
-    """Session management in profile area."""
+    """View and manage user sessions."""
     context = {
-        "active_section": "sessions",
+        "title": "Active Sessions",
     }
 
     if request.htmx:
         return render(request, "users/profile/sessions_partial.html", context)
-    return render(request, "users/profile/profile.html", context)
+    return render(request, "users/profile/sessions.html", context)
+
+
+def auth_verify_email_view(request, key):
+    """
+    Handle email verification for both web and API requests.
+    Web requests are redirected to standard allauth URLs.
+    API requests continue to headless functionality.
+    """
+    # Detect if this is an API request
+    is_api_request = (
+        request.headers.get('Accept', '').startswith('application/json') or
+        request.headers.get('Content-Type', '').startswith('application/json') or
+        'api' in request.path.lower()
+    )
+    
+    if is_api_request:
+        # For API requests, let the headless functionality handle it
+        # This would typically be handled by allauth.headless
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
+    else:
+        # For web requests, redirect to standard allauth email confirmation
+        from django.shortcuts import redirect
+        return redirect('account_confirm_email', key=key)
+
+
+def auth_reset_password_view(request):
+    """
+    Handle password reset for both web and API requests.
+    Web requests are redirected to standard allauth URLs.
+    """
+    # Detect if this is an API request
+    is_api_request = (
+        request.headers.get('Accept', '').startswith('application/json') or
+        request.headers.get('Content-Type', '').startswith('application/json') or
+        'api' in request.path.lower()
+    )
+    
+    if is_api_request:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
+    else:
+        from django.shortcuts import redirect
+        return redirect('account_reset_password')
+
+
+def auth_reset_password_from_key_view(request, key):
+    """
+    Handle password reset from key for both web and API requests.
+    """
+    # Detect if this is an API request
+    is_api_request = (
+        request.headers.get('Accept', '').startswith('application/json') or
+        request.headers.get('Content-Type', '').startswith('application/json') or
+        'api' in request.path.lower()
+    )
+    
+    if is_api_request:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
+    else:
+        from django.shortcuts import redirect
+        return redirect('account_reset_password_from_key', key=key)
+
+
+def auth_signup_view(request):
+    """
+    Handle signup for both web and API requests.
+    """
+    # Detect if this is an API request
+    is_api_request = (
+        request.headers.get('Accept', '').startswith('application/json') or
+        request.headers.get('Content-Type', '').startswith('application/json') or
+        'api' in request.path.lower()
+    )
+    
+    if is_api_request:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
+    else:
+        from django.shortcuts import redirect
+        return redirect('account_signup')
+
+
+def auth_socialaccount_login_error_view(request):
+    """
+    Handle social account login errors for both web and API requests.
+    """
+    # Detect if this is an API request
+    is_api_request = (
+        request.headers.get('Accept', '').startswith('application/json') or
+        request.headers.get('Content-Type', '').startswith('application/json') or
+        'api' in request.path.lower()
+    )
+    
+    if is_api_request:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
+    else:
+        from django.shortcuts import redirect
+        return redirect('socialaccount_login_error')

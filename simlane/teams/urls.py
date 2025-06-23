@@ -137,4 +137,68 @@ urlpatterns = [
         views.stint_plan_partial,
         name="stint_plan_partial",
     ),
+    
+    # === UNIFIED EVENT PARTICIPATION SYSTEM ===
+    # Event Signup (replaces old signup system)  
+    path('events/<uuid:event_id>/signup/', 
+         views.enhanced_event_signup_create, 
+         name='event_signup_enhanced'),
+    
+    # Team Formation Dashboard (replaces old allocation wizard)
+    path('events/<uuid:club_event_id>/formation/', 
+         views.enhanced_team_formation_dashboard, 
+         name='team_formation_dashboard'),
+    
+    # HTMX API Endpoints for team formation
+    path('events/<uuid:club_event_id>/data/', 
+         views.formation_dashboard_data, 
+         name='formation_dashboard_data'),
+    
+    path('events/<uuid:club_event_id>/close-signup/', 
+         views.close_signup_phase, 
+         name='close_signup_phase'),
+    
+    path('events/<uuid:club_event_id>/generate-suggestions/', 
+         views.generate_team_suggestions, 
+         name='generate_team_suggestions'),
+    
+    path('events/<uuid:club_event_id>/create-teams/', 
+         views.create_teams_from_suggestions, 
+         name='create_teams_from_suggestions'),
+    
+    path('events/<uuid:club_event_id>/finalize/', 
+         views.finalize_teams, 
+         name='finalize_teams'),
+    
+    # Availability & Analytics
+    path('events/<uuid:event_id>/availability-heatmap/', 
+         views.availability_coverage_heatmap, 
+         name='availability_heatmap'),
+    
+    path('events/<uuid:event_id>/workflow-status/', 
+         views.workflow_status, 
+         name='workflow_status'),
+    
+    # Individual Team Formation (for non-club users)
+    path('events/<uuid:event_id>/invite/', 
+         views.send_signup_invitation, 
+         name='send_signup_invitation'),
+    
+    path('invitations/<str:token>/', 
+         views.process_invitation, 
+         name='process_invitation'),
+    
+    # HTMX Partials for dynamic updates
+    path('events/<uuid:club_event_id>/partials/participants/', 
+         views.participant_list_partial, 
+         name='participant_list_partial'),
+    
+    path('events/<uuid:club_event_id>/partials/suggestions/', 
+         views.team_suggestions_partial, 
+         name='team_suggestions_partial'),
+    
+    # Real-time Updates (WebSocket helpers)
+    path('events/<uuid:event_id>/notify-signup/', 
+         views.notify_signup_update, 
+         name='notify_signup_update'),
 ]

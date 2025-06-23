@@ -15,4 +15,29 @@ module.exports = merge(commonConfig, {
   output: {
     publicPath: `${staticUrl}webpack_bundles/`,
   },
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        // Alpine.js goes into vendor bundle (shared across all pages)
+        vendor: {
+          test: /[\\/]node_modules[\\/](alpinejs)[\\/]/,
+          name: 'vendor',
+          priority: 10,
+        },
+        // FullCalendar modules stay in their own chunk
+        fullcalendar: {
+          test: /[\\/]node_modules[\\/]@fullcalendar[\\/]/,
+          name: 'fullcalendar',
+          priority: 8,
+        },
+        // D3.js modules stay in their own chunk
+        d3: {
+          test: /[\\/]node_modules[\\/]d3[\\/]/,
+          name: 'd3',
+          priority: 8,
+        },
+      },
+    },
+  },
 });

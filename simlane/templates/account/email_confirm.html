@@ -13,7 +13,7 @@
     {% user_display confirmation.email_address.user as user_display %}
     {% if can_confirm %}
       <div class="mb-6">
-        <p class="text-sm text-gray-600 text-center">
+        <p class="text-sm text-gray-600 dark:text-gray-300 text-center">
           {% blocktrans with confirmation.email_address.email as email %}Please confirm that <strong>{{ email }}</strong> is an email address for user {{ user_display }}.{% endblocktrans %}
         </p>
       </div>
@@ -26,20 +26,20 @@
         {% for field in form %}
           <div>
             <label for="{{ field.id_for_label }}"
-                   class="block text-sm font-medium text-gray-700">{{ field.label }}</label>
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ field.label }}</label>
             <div class="mt-1">
-              {% render_field field class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" %}
+              {% render_field field class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-400 focus:outline-none focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 sm:text-sm" %}
             </div>
             {% if field.errors %}
               <div class="mt-1">
-                {% for error in field.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+                {% for error in field.errors %}<p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
               </div>
             {% endif %}
           </div>
         {% endfor %}
         <div>
           <button type="submit"
-                  class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                  class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-primary-400 dark:focus:ring-offset-gray-800">
             {% trans "Confirm" %}
           </button>
         </div>
@@ -52,8 +52,8 @@
              viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
         </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">{% trans "Unable to confirm" %}</h3>
-        <p class="mt-1 text-sm text-gray-500">
+        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">{% trans "Unable to confirm" %}</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {% blocktrans with confirmation.email_address.email as email %}Unable to confirm {{ email }} because it is already confirmed by a different account.{% endblocktrans %}
         </p>
       </div>
@@ -66,14 +66,15 @@
            viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">{% trans "Link expired" %}</h3>
-      <p class="mt-1 text-sm text-gray-500">
-        {% blocktrans %}This email confirmation link expired or is invalid. Please <a href="{% url 'account_email' %}" class="text-primary-600 hover:text-primary-500">issue a new email confirmation request</a>.{% endblocktrans %}
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">{% trans "Link expired" %}</h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {% url 'account_email' as email_url %}
+        {% blocktrans %}This email confirmation link expired or is invalid. Please <a href="{{ email_url }}" class="text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">issue a new email confirmation request</a>.{% endblocktrans %}
       </p>
     </div>
   {% endif %}
   <div class="mt-6 text-center">
     <a href="{% url 'core:home' %}"
-       class="text-sm text-gray-500 hover:text-gray-700">← {% trans "Back to SimLane" %}</a>
+       class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">← {% trans "Back to SimLane" %}</a>
   </div>
 {% endblock inner_content %}
