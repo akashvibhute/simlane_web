@@ -16,6 +16,7 @@ Requirements:
 
 import os
 import sys
+
 import django
 
 # Add the project root to Python path
@@ -26,23 +27,29 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.local")
 django.setup()
 
 # Now import Django models and management
-from django.core.management import call_command
 import argparse
 
+from django.core.management import call_command
+
+
 def main():
-    parser = argparse.ArgumentParser(description='Seed development data')
-    parser.add_argument('--clear', action='store_true', help='Clear existing data before seeding')
+    parser = argparse.ArgumentParser(description="Seed development data")
+    parser.add_argument(
+        "--clear",
+        action="store_true",
+        help="Clear existing data before seeding",
+    )
     args = parser.parse_args()
-    
+
     print("🌱 Starting development data seeding...")
     print("=" * 50)
-    
+
     if args.clear:
         print("⚠️  Clearing existing data...")
-        call_command('seed_dev_data', '--clear')
+        call_command("seed_dev_data", "--clear")
     else:
-        call_command('seed_dev_data')
-    
+        call_command("seed_dev_data")
+
     print("=" * 50)
     print("✅ Development data seeding complete!")
     print("\nYou can now:")
@@ -50,5 +57,6 @@ def main():
     print("- Admin user: admin_user / password123")
     print("- Test the clubs, teams, and event functionality")
 
-if __name__ == '__main__':
-    main() 
+
+if __name__ == "__main__":
+    main()

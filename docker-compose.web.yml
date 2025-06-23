@@ -1,6 +1,3 @@
-# Default docker-compose.yml - Web-only configuration for everyday development
-# For full services including Celery, use: docker-compose -f docker-compose.full.yml
-
 volumes:
   simlane_local_postgres_data: {}
   simlane_local_postgres_data_backups: {}
@@ -69,4 +66,4 @@ services:
     ports:
       - '3000:3000'
     environment:
-      - DOCKER_BUILDKIT=1
+      - DOCKER_BUILDKIT=1 

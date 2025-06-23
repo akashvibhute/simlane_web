@@ -1,578 +1,581 @@
 {% load i18n %}
+
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{% blocktrans with event_name=allocation.event_signup.event.name %}Team Allocation: {{ event_name }}{% endblocktrans %}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f8fafc;
-        }
-        
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background-color: #f8fafc;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+      }
+
+      .header img {
+        max-width: 120px;
+        height: auto;
+        margin-bottom: 20px;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        font-size: 16px;
+        opacity: 0.9;
+      }
+
+      .content {
+        padding: 40px 30px;
+      }
+
+      .greeting {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: #2d3748;
+      }
+
+      .team-card {
+        background: linear-gradient(135deg, #4c51bf 0%, #667eea 100%);
+        border-radius: 12px;
+        padding: 30px;
+        color: white;
+        text-align: center;
+        margin: 25px 0;
+      }
+
+      .team-name {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 15px;
+      }
+
+      .team-subtitle {
+        font-size: 16px;
+        opacity: 0.9;
+        margin-bottom: 20px;
+      }
+
+      .team-car {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+      }
+
+      .team-car img {
+        width: 60px;
+        height: 36px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-right: 15px;
+      }
+
+      .team-car-info h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      .team-car-info p {
+        font-size: 14px;
+        opacity: 0.8;
+      }
+
+      .event-details {
+        background-color: #f7fafc;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+      }
+
+      .event-details h3 {
+        color: #2d3748;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 20px;
+      }
+
+      .detail-item {
+        text-align: center;
+      }
+
+      .detail-label {
+        font-size: 12px;
+        color: #718096;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .detail-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2d3748;
+      }
+
+      .teammates-section {
+        background-color: #edf2f7;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+      }
+
+      .teammates-section h3 {
+        color: #2d3748;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+      }
+
+      .teammates-section h3::before {
+        content: '👥';
+        margin-right: 10px;
+      }
+
+      .teammate {
+        display: flex;
+        align-items: center;
+        padding: 12px 0;
+        border-bottom: 1px solid #cbd5e0;
+      }
+
+      .teammate:last-child {
+        border-bottom: none;
+      }
+
+      .teammate-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 15px;
+        object-fit: cover;
+      }
+
+      .teammate-avatar-placeholder {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 15px;
+        background-color: #cbd5e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4a5568;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .teammate-info {
+        flex: 1;
+      }
+
+      .teammate-name {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 2px;
+      }
+
+      .teammate-role {
+        font-size: 12px;
+        color: #718096;
+      }
+
+      .role-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-left: 10px;
+      }
+
+      .role-driver {
+        background-color: #bee3f8;
+        color: #2b6cb0;
+      }
+
+      .role-spectator {
+        background-color: #e9d8fd;
+        color: #6b46c1;
+      }
+
+      .action-buttons {
+        text-align: center;
+        margin: 35px 0;
+      }
+
+      .btn {
+        display: inline-block;
+        padding: 15px 30px;
+        margin: 0 10px;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 16px;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary {
+        background-color: #667eea;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #5a67d8;
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        background-color: #e2e8f0;
+        color: #4a5568;
+      }
+
+      .btn-secondary:hover {
+        background-color: #cbd5e0;
+      }
+
+      .next-steps {
+        background-color: #f0fff4;
+        border: 1px solid #9ae6b4;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+      }
+
+      .next-steps h3 {
+        color: #38a169;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+      }
+
+      .next-steps h3::before {
+        content: '✅';
+        margin-right: 10px;
+      }
+
+      .steps-list {
+        list-style: none;
+        counter-reset: step-counter;
+      }
+
+      .steps-list li {
+        counter-increment: step-counter;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: flex-start;
+      }
+
+      .steps-list li::before {
+        content: counter(step-counter);
+        background-color: #48bb78;
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        margin-right: 10px;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
+
+      .race-day-info {
+        background-color: #fffaf0;
+        border: 1px solid #f6e05e;
+        border-radius: 8px;
+        padding: 25px;
+        margin: 25px 0;
+      }
+
+      .race-day-info h3 {
+        color: #d69e2e;
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+      }
+
+      .race-day-info h3::before {
+        content: '🏁';
+        margin-right: 10px;
+      }
+
+      .footer {
+        background-color: #edf2f7;
+        padding: 30px;
+        text-align: center;
+        color: #718096;
+        font-size: 14px;
+      }
+
+      .footer a {
+        color: #667eea;
+        text-decoration: none;
+      }
+
+      .footer a:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 480px) {
         .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          margin: 0;
+          box-shadow: none;
         }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-        }
-        
-        .header img {
-            max-width: 120px;
-            height: auto;
-            margin-bottom: 20px;
-        }
-        
-        .header h1 {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 16px;
-            opacity: 0.9;
-        }
-        
-        .content {
-            padding: 40px 30px;
-        }
-        
-        .greeting {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #2d3748;
-        }
-        
-        .team-card {
-            background: linear-gradient(135deg, #4c51bf 0%, #667eea 100%);
-            border-radius: 12px;
-            padding: 30px;
-            color: white;
-            text-align: center;
-            margin: 25px 0;
-        }
-        
-        .team-name {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 15px;
-        }
-        
-        .team-subtitle {
-            font-size: 16px;
-            opacity: 0.9;
-            margin-bottom: 20px;
-        }
-        
-        .team-car {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-        
-        .team-car img {
-            width: 60px;
-            height: 36px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 15px;
-        }
-        
-        .team-car-info h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-        
-        .team-car-info p {
-            font-size: 14px;
-            opacity: 0.8;
-        }
-        
-        .event-details {
-            background-color: #f7fafc;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-        }
-        
-        .event-details h3 {
-            color: #2d3748;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-        
-        .detail-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 20px;
-        }
-        
-        .detail-item {
-            text-align: center;
-        }
-        
-        .detail-label {
-            font-size: 12px;
-            color: #718096;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .detail-value {
-            font-size: 16px;
-            font-weight: 600;
-            color: #2d3748;
-        }
-        
-        .teammates-section {
-            background-color: #edf2f7;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-        }
-        
-        .teammates-section h3 {
-            color: #2d3748;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .teammates-section h3::before {
-            content: '👥';
-            margin-right: 10px;
-        }
-        
-        .teammate {
-            display: flex;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid #cbd5e0;
-        }
-        
-        .teammate:last-child {
-            border-bottom: none;
-        }
-        
-        .teammate-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 15px;
-            object-fit: cover;
-        }
-        
-        .teammate-avatar-placeholder {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: 15px;
-            background-color: #cbd5e0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #4a5568;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .teammate-info {
-            flex: 1;
-        }
-        
-        .teammate-name {
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 2px;
-        }
-        
-        .teammate-role {
-            font-size: 12px;
-            color: #718096;
-        }
-        
-        .role-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-left: 10px;
-        }
-        
-        .role-driver {
-            background-color: #bee3f8;
-            color: #2b6cb0;
-        }
-        
-        .role-spectator {
-            background-color: #e9d8fd;
-            color: #6b46c1;
-        }
-        
-        .action-buttons {
-            text-align: center;
-            margin: 35px 0;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 15px 30px;
-            margin: 0 10px;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary {
-            background-color: #667eea;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background-color: #5a67d8;
-            transform: translateY(-1px);
-        }
-        
-        .btn-secondary {
-            background-color: #e2e8f0;
-            color: #4a5568;
-        }
-        
-        .btn-secondary:hover {
-            background-color: #cbd5e0;
-        }
-        
-        .next-steps {
-            background-color: #f0fff4;
-            border: 1px solid #9ae6b4;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-        }
-        
-        .next-steps h3 {
-            color: #38a169;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .next-steps h3::before {
-            content: '✅';
-            margin-right: 10px;
-        }
-        
-        .steps-list {
-            list-style: none;
-            counter-reset: step-counter;
-        }
-        
-        .steps-list li {
-            counter-increment: step-counter;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: flex-start;
-        }
-        
-        .steps-list li::before {
-            content: counter(step-counter);
-            background-color: #48bb78;
-            color: white;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 700;
-            margin-right: 10px;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        
-        .race-day-info {
-            background-color: #fffaf0;
-            border: 1px solid #f6e05e;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-        }
-        
-        .race-day-info h3 {
-            color: #d69e2e;
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .race-day-info h3::before {
-            content: '🏁';
-            margin-right: 10px;
-        }
-        
+
+        .header,
+        .content,
         .footer {
-            background-color: #edf2f7;
-            padding: 30px;
-            text-align: center;
-            color: #718096;
-            font-size: 14px;
+          padding: 20px;
         }
-        
-        .footer a {
-            color: #667eea;
-            text-decoration: none;
+
+        .header h1 {
+          font-size: 24px;
         }
-        
-        .footer a:hover {
-            text-decoration: underline;
+
+        .detail-grid {
+          grid-template-columns: 1fr;
+          gap: 15px;
         }
-        
-        @media (max-width: 480px) {
-            .email-container {
-                margin: 0;
-                box-shadow: none;
-            }
-            
-            .header,
-            .content,
-            .footer {
-                padding: 20px;
-            }
-            
-            .header h1 {
-                font-size: 24px;
-            }
-            
-            .detail-grid {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-            
-            .btn {
-                display: block;
-                margin: 10px 0;
-            }
-            
-            .teammate {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 10px;
-            }
+
+        .btn {
+          display: block;
+          margin: 10px 0;
         }
+
+        .teammate {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 10px;
+        }
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="email-container">
-        <!-- Header -->
-        <div class="header">
-            <img src="https://simlane.com/static/images/logo_inverted.png" alt="SimLane" />
-            <h1>{% trans "Team Assignment" %}</h1>
-            <p>{% trans "You've been assigned to a racing team!" %}</p>
-        </div>
-        
-        <!-- Content -->
-        <div class="content">
-            <div class="greeting">
-                {% blocktrans with user_name=user.get_full_name|default:user.username %}
+      <!-- Header -->
+      <div class="header">
+        <img src="https://simlane.com/static/images/logo_inverted.png"
+             alt="SimLane" />
+        <h1>{% trans "Team Assignment" %}</h1>
+        <p>{% trans "You've been assigned to a racing team!" %}</p>
+      </div>
+      <!-- Content -->
+      <div class="content">
+        <div class="greeting">
+          {% blocktrans with user_name=user.get_full_name|default:user.username %}
                     Hi {{ user_name }}!
                 {% endblocktrans %}
-            </div>
-            
-            <p>
-                {% blocktrans with event_name=allocation.event_signup.event.name club_name=allocation.event_signup.club.name %}
+        </div>
+        <p>
+          {% blocktrans with event_name=allocation.event_signup.event.name club_name=allocation.event_signup.club.name %}
                     Exciting news! Teams have been allocated for <strong>{{ event_name }}</strong> with <strong>{{ club_name }}</strong>. You've been assigned to a team and it's time to start planning your race strategy!
                 {% endblocktrans %}
-            </p>
-            
-            <!-- Team Card -->
-            <div class="team-card">
-                <div class="team-name">{{ allocation.team.name }}</div>
-                <div class="team-subtitle">
-                    {% blocktrans with member_count=allocation.members.count %}{{ member_count }} member team{% endblocktrans %}
-                </div>
-                
-                <div class="team-car">
-                    {% if allocation.assigned_sim_car.image %}
-                        <img src="{{ allocation.assigned_sim_car.image.url }}" alt="{{ allocation.assigned_sim_car.name }}">
-                    {% endif %}
-                    <div class="team-car-info">
-                        <h3>{{ allocation.assigned_sim_car.name }}</h3>
-                        <p>{% trans "Your assigned racing car" %}</p>
-                    </div>
-                </div>
+        </p>
+        <!-- Team Card -->
+        <div class="team-card">
+          <div class="team-name">{{ allocation.team.name }}</div>
+          <div class="team-subtitle">
+            {% blocktrans with member_count=allocation.members.count %}{{ member_count }} member team{% endblocktrans %}
+          </div>
+          <div class="team-car">
+            {% if allocation.assigned_sim_car.image %}
+              <img src="{{ allocation.assigned_sim_car.image.url }}"
+                   alt="{{ allocation.assigned_sim_car.name }}" />
+            {% endif %}
+            <div class="team-car-info">
+              <h3>{{ allocation.assigned_sim_car.name }}</h3>
+              <p>{% trans "Your assigned racing car" %}</p>
             </div>
-            
-            <!-- Event Details -->
-            <div class="event-details">
-                <h3>{% trans "Event Details" %}</h3>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <div class="detail-label">{% trans "Date" %}</div>
-                        <div class="detail-value">{{ allocation.event_signup.event.start_time|date:"M j, Y" }}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">{% trans "Start Time" %}</div>
-                        <div class="detail-value">{{ allocation.event_signup.event.start_time|date:"g:i A T" }}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">{% trans "Duration" %}</div>
-                        <div class="detail-value">{{ allocation.event_signup.event.duration_minutes }} min</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">{% trans "Track" %}</div>
-                        <div class="detail-value">{{ allocation.event_signup.event.track.name }}</div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Teammates -->
-            <div class="teammates-section">
-                <h3>{% trans "Your Teammates" %}</h3>
-                {% for member in allocation.members.all %}
-                <div class="teammate">
-                    {% if member.user.avatar %}
-                        <img src="{{ member.user.avatar.url }}" alt="{{ member.user.get_full_name }}" class="teammate-avatar">
-                    {% else %}
-                        <div class="teammate-avatar-placeholder">
-                            {{ member.user.first_name|first|default:member.user.username|first }}{{ member.user.last_name|first }}
-                        </div>
-                    {% endif %}
-                    <div class="teammate-info">
-                        <div class="teammate-name">{{ member.user.get_full_name|default:member.user.username }}</div>
-                        <div class="teammate-role">@{{ member.user.username }}</div>
-                    </div>
-                    <span class="role-badge role-{{ member.role|lower }}">{{ member.get_role_display }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-                <a href="{{ team_dashboard_url }}" class="btn btn-primary">
-                    🏁 {% trans "Team Dashboard" %}
-                </a>
-                <a href="{{ event_details_url }}" class="btn btn-secondary">
-                    📋 {% trans "Event Details" %}
-                </a>
-            </div>
-            
-            <!-- Next Steps -->
-            <div class="next-steps">
-                <h3>{% trans "Next Steps" %}</h3>
-                <ol class="steps-list">
-                    <li>
-                        <div>
-                            <strong>{% trans "Access Your Team Dashboard" %}</strong><br>
-                            {% trans "Use the team dashboard to coordinate with your teammates and plan your race strategy." %}
-                        </div>
-                    </li>
-                    <li>
-                        <div>
-                            <strong>{% trans "Plan Your Stints" %}</strong><br>
-                            {% trans "Work together to assign driving stints, plan pit stops, and optimize your race strategy." %}
-                        </div>
-                    </li>
-                    <li>
-                        <div>
-                            <strong>{% trans "Communicate with Your Team" %}</strong><br>
-                            {% trans "Exchange contact information and coordinate practice sessions before race day." %}
-                        </div>
-                    </li>
-                    <li>
-                        <div>
-                            <strong>{% trans "Prepare for Race Day" %}</strong><br>
-                            {% trans "Review your stint assignments and ensure everyone knows their role and timing." %}
-                        </div>
-                    </li>
-                </ol>
-            </div>
-            
-            <!-- Race Day Info -->
-            <div class="race-day-info">
-                <h3>{% trans "Race Day Checklist" %}</h3>
-                <ul style="margin-left: 20px; color: #744210;">
-                    <li>{% trans "Join the race server 15 minutes before start time" %}</li>
-                    <li>{% trans "Have your team's stint plan readily available" %}</li>
-                    <li>{% trans "Ensure reliable internet connection and hardware setup" %}</li>
-                    <li>{% trans "Keep team communication channels open during the race" %}</li>
-                    <li>{% trans "Have fun and race clean with your teammates!" %}</li>
-                </ul>
-            </div>
-            
-            <!-- Team Communication -->
-            <div style="background-color: #f7fafc; border-radius: 8px; padding: 20px; margin: 25px 0; text-align: center;">
-                <h4 style="color: #2d3748; font-size: 16px; font-weight: 600; margin-bottom: 15px;">
-                    {% trans "Team Communication" %}
-                </h4>
-                <p style="color: #4a5568; margin-bottom: 15px;">
-                    {% trans "Exchange contact information with your teammates for better coordination:" %}
-                </p>
-                <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
-                    {% if allocation.team.discord_channel %}
-                    <a href="{{ allocation.team.discord_channel }}" style="color: #7289da; text-decoration: none; font-weight: 600;">
-                        💬 {% trans "Discord Channel" %}
-                    </a>
-                    {% endif %}
-                    <a href="{{ team_dashboard_url }}" style="color: #667eea; text-decoration: none; font-weight: 600;">
-                        📊 {% trans "Team Planning" %}
-                    </a>
-                </div>
-            </div>
+          </div>
         </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <p>
-                {% trans "This team allocation was sent from" %} <a href="https://simlane.com">SimLane</a><br>
-                {% blocktrans with club_name=allocation.event_signup.club.name %}You received this email because you signed up for an event with {{ club_name }}.{% endblocktrans %}
-            </p>
-            
-            <p style="margin-top: 15px;">
-                <a href="{{ unsubscribe_url }}">{% trans "Unsubscribe from team notifications" %}</a> |
-                <a href="mailto:support@simlane.com">{% trans "Contact Support" %}</a>
-            </p>
-            
-            <p style="margin-top: 15px; font-size: 12px; color: #a0aec0;">
-                {% trans "SimLane - The ultimate platform for sim racing clubs and communities" %}
-            </p>
+        <!-- Event Details -->
+        <div class="event-details">
+          <h3>{% trans "Event Details" %}</h3>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <div class="detail-label">{% trans "Date" %}</div>
+              <div class="detail-value">{{ allocation.event_signup.event.start_time|date:"M j, Y" }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">{% trans "Start Time" %}</div>
+              <div class="detail-value">{{ allocation.event_signup.event.start_time|date:"g:i A T" }}</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">{% trans "Duration" %}</div>
+              <div class="detail-value">{{ allocation.event_signup.event.duration_minutes }} min</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">{% trans "Track" %}</div>
+              <div class="detail-value">{{ allocation.event_signup.event.track.name }}</div>
+            </div>
+          </div>
         </div>
+        <!-- Teammates -->
+        <div class="teammates-section">
+          <h3>{% trans "Your Teammates" %}</h3>
+          {% for member in allocation.members.all %}
+            <div class="teammate">
+              {% if member.user.avatar %}
+                <img src="{{ member.user.avatar.url }}"
+                     alt="{{ member.user.get_full_name }}"
+                     class="teammate-avatar" />
+              {% else %}
+                <div class="teammate-avatar-placeholder">
+                  {{ member.user.first_name|first|default:member.user.username|first }}{{ member.user.last_name|first }}
+                </div>
+              {% endif %}
+              <div class="teammate-info">
+                <div class="teammate-name">{{ member.user.get_full_name|default:member.user.username }}</div>
+                <div class="teammate-role">@{{ member.user.username }}</div>
+              </div>
+              <span class="role-badge role-{{ member.role|lower }}">{{ member.get_role_display }}</span>
+            </div>
+          {% endfor %}
+        </div>
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <a href="{{ team_dashboard_url }}" class="btn btn-primary">🏁 {% trans "Team Dashboard" %}</a>
+          <a href="{{ event_details_url }}" class="btn btn-secondary">📋 {% trans "Event Details" %}</a>
+        </div>
+        <!-- Next Steps -->
+        <div class="next-steps">
+          <h3>{% trans "Next Steps" %}</h3>
+          <ol class="steps-list">
+            <li>
+              <div>
+                <strong>{% trans "Access Your Team Dashboard" %}</strong>
+                <br />
+                {% trans "Use the team dashboard to coordinate with your teammates and plan your race strategy." %}
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>{% trans "Plan Your Stints" %}</strong>
+                <br />
+                {% trans "Work together to assign driving stints, plan pit stops, and optimize your race strategy." %}
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>{% trans "Communicate with Your Team" %}</strong>
+                <br />
+                {% trans "Exchange contact information and coordinate practice sessions before race day." %}
+              </div>
+            </li>
+            <li>
+              <div>
+                <strong>{% trans "Prepare for Race Day" %}</strong>
+                <br />
+                {% trans "Review your stint assignments and ensure everyone knows their role and timing." %}
+              </div>
+            </li>
+          </ol>
+        </div>
+        <!-- Race Day Info -->
+        <div class="race-day-info">
+          <h3>{% trans "Race Day Checklist" %}</h3>
+          <ul style="margin-left: 20px; color: #744210;">
+            <li>{% trans "Join the race server 15 minutes before start time" %}</li>
+            <li>{% trans "Have your team's stint plan readily available" %}</li>
+            <li>{% trans "Ensure reliable internet connection and hardware setup" %}</li>
+            <li>{% trans "Keep team communication channels open during the race" %}</li>
+            <li>{% trans "Have fun and race clean with your teammates!" %}</li>
+          </ul>
+        </div>
+        <!-- Team Communication -->
+        <div style="background-color: #f7fafc;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin: 25px 0;
+                    text-align: center">
+          <h4 style="color: #2d3748;
+                     font-size: 16px;
+                     font-weight: 600;
+                     margin-bottom: 15px">{% trans "Team Communication" %}</h4>
+          <p style="color: #4a5568; margin-bottom: 15px;">
+            {% trans "Exchange contact information with your teammates for better coordination:" %}
+          </p>
+          <div style="display: flex;
+                      justify-content: center;
+                      gap: 15px;
+                      flex-wrap: wrap">
+            {% if allocation.team.discord_channel %}
+              <a href="{{ allocation.team.discord_channel }}"
+                 style="color: #7289da;
+                        text-decoration: none;
+                        font-weight: 600">💬 {% trans "Discord Channel" %}</a>
+            {% endif %}
+            <a href="{{ team_dashboard_url }}"
+               style="color: #667eea;
+                      text-decoration: none;
+                      font-weight: 600">📊 {% trans "Team Planning" %}</a>
+          </div>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div class="footer">
+        <p>
+          {% trans "This team allocation was sent from" %} <a href="https://simlane.com">SimLane</a>
+          <br />
+          {% blocktrans with club_name=allocation.event_signup.club.name %}You received this email because you signed up for an event with {{ club_name }}.{% endblocktrans %}
+        </p>
+        <p style="margin-top: 15px;">
+          <a href="{{ unsubscribe_url }}">{% trans "Unsubscribe from team notifications" %}</a> |
+          <a href="mailto:support@simlane.com">{% trans "Contact Support" %}</a>
+        </p>
+        <p style="margin-top: 15px; font-size: 12px; color: #a0aec0;">
+          {% trans "SimLane - The ultimate platform for sim racing clubs and communities" %}
+        </p>
+      </div>
     </div>
-</body>
-</html> 
+  </body>
+</html>

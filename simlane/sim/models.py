@@ -1,7 +1,7 @@
 import uuid
-from django.utils.text import slugify
 
 from django.db import models
+from django.utils.text import slugify
 
 from simlane.users.models import User
 
@@ -148,7 +148,7 @@ class CarClass(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
@@ -184,7 +184,7 @@ class CarModel(models.Model):
 
     def __str__(self):
         return f"{self.manufacturer} {self.name}"
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(f"{self.manufacturer} {self.name}")
@@ -252,7 +252,7 @@ class TrackModel(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             base_name = f"{self.name}"
@@ -290,7 +290,11 @@ class SimTrack(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = [["simulator", "sim_api_id"], ["simulator", "track_model"], ["simulator", "slug"]]
+        unique_together = [
+            ["simulator", "sim_api_id"],
+            ["simulator", "track_model"],
+            ["simulator", "slug"],
+        ]
         indexes = [
             models.Index(fields=["simulator"]),
             models.Index(fields=["track_model"]),
@@ -299,14 +303,17 @@ class SimTrack(models.Model):
 
     def __str__(self):
         return f"{self.simulator.name} - {self.track_model.name}"
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(f"{self.track_model.name}")
             # Ensure uniqueness within simulator
             counter = 1
             original_slug = self.slug
-            while SimTrack.objects.filter(simulator=self.simulator, slug=self.slug).exists():
+            while SimTrack.objects.filter(
+                simulator=self.simulator,
+                slug=self.slug,
+            ).exists():
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
@@ -344,14 +351,17 @@ class SimLayout(models.Model):
 
     def __str__(self):
         return f"{self.sim_track.track_model.name} - {self.name}"
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
             # Ensure uniqueness within sim_track
             counter = 1
             original_slug = self.slug
-            while SimLayout.objects.filter(sim_track=self.sim_track, slug=self.slug).exists():
+            while SimLayout.objects.filter(
+                sim_track=self.sim_track,
+                slug=self.slug,
+            ).exists():
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
@@ -380,7 +390,7 @@ class Series(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
@@ -445,7 +455,7 @@ class Event(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
@@ -502,7 +512,7 @@ class EventClass(models.Model):
 
     def __str__(self):
         return f"{self.event.name} - {self.name}"
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
@@ -538,16 +548,21 @@ class EventInstance(models.Model):
 
     def __str__(self):
         return f"{self.event.name} - {self.start_time.strftime('%Y-%m-%d %H:%M')}"
-    
+
     def save(self, *args, **kwargs):
         if not self.slug:
             # Create slug from event name and date
-            date_str = self.start_time.strftime('%Y-%m-%d-%H%M') if self.start_time else 'tbd'
+            date_str = (
+                self.start_time.strftime("%Y-%m-%d-%H%M") if self.start_time else "tbd"
+            )
             self.slug = slugify(f"{self.event.name} {date_str}")
             # Ensure uniqueness within event
             counter = 1
             original_slug = self.slug
-            while EventInstance.objects.filter(event=self.event, slug=self.slug).exists():
+            while EventInstance.objects.filter(
+                event=self.event,
+                slug=self.slug,
+            ).exists():
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)

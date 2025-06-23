@@ -1,1 +1,1 @@
-# Django management commands for teams app 
+# Django management commands for teams app

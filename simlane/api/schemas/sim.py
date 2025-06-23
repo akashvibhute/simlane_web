@@ -1,7 +1,9 @@
-from pydantic import BaseModel, validator
-from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel
+from pydantic import validator
 
 from .auth import UserProfile
 
@@ -30,9 +32,9 @@ class SimulatorBase(BaseModel):
 
 
 class Simulator(SimulatorBase):
-    icon_url: Optional[str] = None
+    icon_url: str | None = None
     api_integration: bool = False
-    website: Optional[str] = None
+    website: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -40,31 +42,31 @@ class Simulator(SimulatorBase):
 class SimulatorCreate(BaseModel):
     name: str
     short_name: str
-    icon_url: Optional[str] = None
+    icon_url: str | None = None
     api_integration: bool = False
-    website: Optional[str] = None
+    website: str | None = None
     is_active: bool = True
 
-    @validator('name')
+    @validator("name")
     def name_validation(cls, v):
         if len(v) < 2:
-            raise ValueError('Simulator name must be at least 2 characters long')
+            raise ValueError("Simulator name must be at least 2 characters long")
         return v
 
-    @validator('short_name')
+    @validator("short_name")
     def short_name_validation(cls, v):
         if len(v) < 2 or len(v) > 10:
-            raise ValueError('Short name must be between 2 and 10 characters')
+            raise ValueError("Short name must be between 2 and 10 characters")
         return v
 
 
 class SimulatorUpdate(BaseModel):
-    name: Optional[str] = None
-    short_name: Optional[str] = None
-    icon_url: Optional[str] = None
-    api_integration: Optional[bool] = None
-    website: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    short_name: str | None = None
+    icon_url: str | None = None
+    api_integration: bool | None = None
+    website: str | None = None
+    is_active: bool | None = None
 
 
 class SimProfileBase(BaseModel):
@@ -81,10 +83,10 @@ class SimProfileBase(BaseModel):
 class SimProfile(SimProfileBase):
     user: UserProfile
     simulator: SimulatorBase
-    rating: Optional[int] = None
-    license_class: Optional[str] = None
-    safety_rating: Optional[float] = None
-    profile_data: Optional[Dict[str, Any]] = None
+    rating: int | None = None
+    license_class: str | None = None
+    safety_rating: float | None = None
+    profile_data: dict[str, Any] | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -93,30 +95,30 @@ class SimProfileCreate(BaseModel):
     simulator_id: int
     profile_id: str
     display_name: str
-    rating: Optional[int] = None
-    license_class: Optional[str] = None
-    safety_rating: Optional[float] = None
+    rating: int | None = None
+    license_class: str | None = None
+    safety_rating: float | None = None
 
-    @validator('profile_id')
+    @validator("profile_id")
     def profile_id_validation(cls, v):
         if len(v) < 1:
-            raise ValueError('Profile ID cannot be empty')
+            raise ValueError("Profile ID cannot be empty")
         return v
 
-    @validator('display_name')
+    @validator("display_name")
     def display_name_validation(cls, v):
         if len(v) < 2:
-            raise ValueError('Display name must be at least 2 characters long')
+            raise ValueError("Display name must be at least 2 characters long")
         return v
 
 
 class SimProfileUpdate(BaseModel):
-    display_name: Optional[str] = None
-    rating: Optional[int] = None
-    license_class: Optional[str] = None
-    safety_rating: Optional[float] = None
-    profile_data: Optional[Dict[str, Any]] = None
-    is_verified: Optional[bool] = None
+    display_name: str | None = None
+    rating: int | None = None
+    license_class: str | None = None
+    safety_rating: float | None = None
+    profile_data: dict[str, Any] | None = None
+    is_verified: bool | None = None
 
 
 class SimCarBase(BaseModel):
@@ -131,12 +133,12 @@ class SimCarBase(BaseModel):
 
 class SimCar(SimCarBase):
     simulator: SimulatorBase
-    class_name: Optional[str] = None
-    power_hp: Optional[int] = None
-    weight_kg: Optional[int] = None
-    year: Optional[int] = None
-    manufacturer: Optional[str] = None
-    image_url: Optional[str] = None
+    class_name: str | None = None
+    power_hp: int | None = None
+    weight_kg: int | None = None
+    year: int | None = None
+    manufacturer: str | None = None
+    image_url: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -145,49 +147,49 @@ class SimCarCreate(BaseModel):
     simulator_id: int
     name: str
     category: str
-    class_name: Optional[str] = None
-    power_hp: Optional[int] = None
-    weight_kg: Optional[int] = None
-    year: Optional[int] = None
-    manufacturer: Optional[str] = None
-    image_url: Optional[str] = None
+    class_name: str | None = None
+    power_hp: int | None = None
+    weight_kg: int | None = None
+    year: int | None = None
+    manufacturer: str | None = None
+    image_url: str | None = None
     is_active: bool = True
 
-    @validator('name')
+    @validator("name")
     def name_validation(cls, v):
         if len(v) < 2:
-            raise ValueError('Car name must be at least 2 characters long')
+            raise ValueError("Car name must be at least 2 characters long")
         return v
 
-    @validator('power_hp')
+    @validator("power_hp")
     def power_validation(cls, v):
         if v is not None and (v < 0 or v > 5000):
-            raise ValueError('Power must be between 0 and 5000 HP')
+            raise ValueError("Power must be between 0 and 5000 HP")
         return v
 
-    @validator('weight_kg')
+    @validator("weight_kg")
     def weight_validation(cls, v):
         if v is not None and (v < 0 or v > 10000):
-            raise ValueError('Weight must be between 0 and 10000 kg')
+            raise ValueError("Weight must be between 0 and 10000 kg")
         return v
 
-    @validator('year')
+    @validator("year")
     def year_validation(cls, v):
         if v is not None and (v < 1900 or v > 2030):
-            raise ValueError('Year must be between 1900 and 2030')
+            raise ValueError("Year must be between 1900 and 2030")
         return v
 
 
 class SimCarUpdate(BaseModel):
-    name: Optional[str] = None
-    category: Optional[str] = None
-    class_name: Optional[str] = None
-    power_hp: Optional[int] = None
-    weight_kg: Optional[int] = None
-    year: Optional[int] = None
-    manufacturer: Optional[str] = None
-    image_url: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    category: str | None = None
+    class_name: str | None = None
+    power_hp: int | None = None
+    weight_kg: int | None = None
+    year: int | None = None
+    manufacturer: str | None = None
+    image_url: str | None = None
+    is_active: bool | None = None
 
 
 class SimTrackBase(BaseModel):
@@ -206,9 +208,9 @@ class SimTrackBase(BaseModel):
 
 class SimTrack(SimTrackBase):
     simulator: SimulatorBase
-    image_url: Optional[str] = None
-    elevation_change: Optional[int] = None
-    surface_type: Optional[str] = None
+    image_url: str | None = None
+    elevation_change: int | None = None
+    surface_type: str | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -221,41 +223,41 @@ class SimTrackCreate(BaseModel):
     length_km: float
     turns: int
     type: TrackType
-    image_url: Optional[str] = None
-    elevation_change: Optional[int] = None
-    surface_type: Optional[str] = None
+    image_url: str | None = None
+    elevation_change: int | None = None
+    surface_type: str | None = None
     is_active: bool = True
 
-    @validator('name')
+    @validator("name")
     def name_validation(cls, v):
         if len(v) < 2:
-            raise ValueError('Track name must be at least 2 characters long')
+            raise ValueError("Track name must be at least 2 characters long")
         return v
 
-    @validator('length_km')
+    @validator("length_km")
     def length_validation(cls, v):
         if v <= 0 or v > 50:
-            raise ValueError('Track length must be between 0 and 50 km')
+            raise ValueError("Track length must be between 0 and 50 km")
         return v
 
-    @validator('turns')
+    @validator("turns")
     def turns_validation(cls, v):
         if v < 0 or v > 100:
-            raise ValueError('Number of turns must be between 0 and 100')
+            raise ValueError("Number of turns must be between 0 and 100")
         return v
 
 
 class SimTrackUpdate(BaseModel):
-    name: Optional[str] = None
-    location: Optional[str] = None
-    country: Optional[str] = None
-    length_km: Optional[float] = None
-    turns: Optional[int] = None
-    type: Optional[TrackType] = None
-    image_url: Optional[str] = None
-    elevation_change: Optional[int] = None
-    surface_type: Optional[str] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    location: str | None = None
+    country: str | None = None
+    length_km: float | None = None
+    turns: int | None = None
+    type: TrackType | None = None
+    image_url: str | None = None
+    elevation_change: int | None = None
+    surface_type: str | None = None
+    is_active: bool | None = None
 
 
 class LapTimeBase(BaseModel):
@@ -274,9 +276,9 @@ class LapTime(LapTimeBase):
     simulator: SimulatorBase
     car: SimCarBase
     track: SimTrackBase
-    weather_conditions: Optional[str] = None
-    track_temperature: Optional[float] = None
-    air_temperature: Optional[float] = None
+    weather_conditions: str | None = None
+    track_temperature: float | None = None
+    air_temperature: float | None = None
     created_at: datetime
     updated_at: datetime
 
@@ -287,27 +289,28 @@ class LapTimeCreate(BaseModel):
     track_id: int
     lap_time: str
     session_type: SessionType
-    weather_conditions: Optional[str] = None
-    track_temperature: Optional[float] = None
-    air_temperature: Optional[float] = None
-    recorded_at: Optional[datetime] = None
+    weather_conditions: str | None = None
+    track_temperature: float | None = None
+    air_temperature: float | None = None
+    recorded_at: datetime | None = None
 
-    @validator('lap_time')
+    @validator("lap_time")
     def lap_time_validation(cls, v):
         # Basic validation for lap time format (mm:ss.sss)
         import re
-        if not re.match(r'^\d{1,2}:\d{2}\.\d{3}$', v):
-            raise ValueError('Lap time must be in format mm:ss.sss (e.g., 1:23.456)')
+
+        if not re.match(r"^\d{1,2}:\d{2}\.\d{3}$", v):
+            raise ValueError("Lap time must be in format mm:ss.sss (e.g., 1:23.456)")
         return v
 
 
 class LapTimeUpdate(BaseModel):
-    lap_time: Optional[str] = None
-    session_type: Optional[SessionType] = None
-    weather_conditions: Optional[str] = None
-    track_temperature: Optional[float] = None
-    air_temperature: Optional[float] = None
-    is_valid: Optional[bool] = None
+    lap_time: str | None = None
+    session_type: SessionType | None = None
+    weather_conditions: str | None = None
+    track_temperature: float | None = None
+    air_temperature: float | None = None
+    is_valid: bool | None = None
 
 
 class DashboardStats(BaseModel):
@@ -315,7 +318,7 @@ class DashboardStats(BaseModel):
     total_cars: int
     total_tracks: int
     total_lap_times: int
-    best_lap_time: Optional[str] = None
+    best_lap_time: str | None = None
     recent_sessions: int
     user_profiles: int
     verified_profiles: int
@@ -327,5 +330,5 @@ class SimDataSummary(BaseModel):
     track_count: int
     user_profiles: int
     recent_lap_times: int
-    avg_lap_time: Optional[str] = None
-    best_lap_time: Optional[str] = None 
+    avg_lap_time: str | None = None
+    best_lap_time: str | None = None

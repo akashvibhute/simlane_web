@@ -1,12 +1,10 @@
-from ninja import NinjaAPI
-from ninja.security import HttpBearer
-from django.conf import settings
-from django.http import HttpRequest
-from ninja.errors import ValidationError
-from ninja.responses import Response
 import jwt
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from typing import Optional
+from django.http import HttpRequest
+from ninja import NinjaAPI
+from ninja.errors import ValidationError
+from ninja.security import HttpBearer
 
 from simlane.api.routers.auth import router as auth_router
 from simlane.api.routers.clubs import router as clubs_router
@@ -17,15 +15,15 @@ User = get_user_model()
 
 
 class JWTAuth(HttpBearer):
-    def authenticate(self, request: HttpRequest, token: str) -> Optional[User]:
+    def authenticate(self, request: HttpRequest, token: str) -> User | None:
         try:
             # Use JWT_SECRET_KEY from settings if available, otherwise fallback to SECRET_KEY
-            secret_key = getattr(settings, 'JWT_SECRET_KEY', settings.SECRET_KEY)
-            algorithm = getattr(settings, 'JWT_ALGORITHM', 'HS256')
-            
+            secret_key = getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
+            algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
+
             payload = jwt.decode(token, secret_key, algorithms=[algorithm])
-            user_id = payload.get('user_id')
-            
+            user_id = payload.get("user_id")
+
             if user_id:
                 try:
                     user = User.objects.get(id=user_id)
@@ -67,12 +65,11 @@ def generic_exception_handler(request: HttpRequest, exc: Exception):
             {"error": "Internal Server Error", "detail": str(exc)},
             status=500,
         )
-    else:
-        return api.create_response(
-            request,
-            {"error": "Internal Server Error", "detail": "An unexpected error occurred"},
-            status=500,
-        )
+    return api.create_response(
+        request,
+        {"error": "Internal Server Error", "detail": "An unexpected error occurred"},
+        status=500,
+    )
 
 
 # Add routers
@@ -103,4 +100,4 @@ def api_info(request):
             "Stint Planning",
             "Sim Racing Data",
         ],
-    } 
+    }

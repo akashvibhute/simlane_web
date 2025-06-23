@@ -57,7 +57,7 @@ Clubs (4)
 
 ## Security Notes
 
-⚠️ **Important**: 
+⚠️ **Important**:
 - All test users have the simple password: `password123`
 - The admin user has superuser privileges
 - This is for development/testing only - never use in production
@@ -74,4 +74,4 @@ COPY --exclude=scripts/ . /app/
 Or add to `.dockerignore`:
 ```
 scripts/
-``` 
+```

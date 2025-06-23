@@ -1,6 +1,7 @@
 """
 Custom math template filters for Django templates.
 """
+
 from django import template
 
 register = template.Library()
@@ -70,4 +71,4 @@ def percentage(value, total):
             return 0
         return round((float(value) / float(total)) * 100, 1)
     except (ValueError, TypeError):
-        return 0 
+        return 0

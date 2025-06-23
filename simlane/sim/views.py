@@ -32,7 +32,7 @@ def iracing_dashboard_section(request, section="overview"):
     elif "selected_iracing_profile_id" in request.session:
         try:
             selected_profile = user_profiles.get(
-                id=request.session["selected_iracing_profile_id"]
+                id=request.session["selected_iracing_profile_id"],
             )
         except SimProfile.DoesNotExist:
             del request.session["selected_iracing_profile_id"]

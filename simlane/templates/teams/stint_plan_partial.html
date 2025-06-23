@@ -3,638 +3,620 @@
 
 <!-- Stint Plan Partial for HTMX Real-time Updates -->
 <div id="stint-plan-container" class="space-y-6">
-    <!-- Stint Plan Timeline -->
-    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    {% trans "Stint Timeline" %}
-                </h3>
-                
-                <div class="flex items-center space-x-3">
-                    <!-- Collaboration Indicators -->
-                    <div class="flex items-center space-x-2" id="collaboration-indicators">
-                        {% for collaborator in active_collaborators %}
-                        <div class="flex items-center space-x-1 text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full">
-                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                            <span>{{ collaborator.get_full_name|default:collaborator.username }}</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    
-                    <!-- Timeline Controls -->
-                    <div class="flex items-center space-x-2">
-                        <button onclick="zoomTimeline('out')" 
-                                class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
-                            </svg>
-                        </button>
-                        <button onclick="zoomTimeline('in')" 
-                                class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
-                            </svg>
-                        </button>
-                        <button onclick="resetTimelineZoom()" 
-                                class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Timeline SVG Container -->
-        <div class="p-6">
-            <div id="timeline-container" class="relative overflow-x-auto">
-                <svg id="stint-timeline" class="w-full" style="min-height: 400px; min-width: 800px;">
-                    <!-- Timeline Background -->
-                    <defs>
-                        <pattern id="timeGrid" width="60" height="20" patternUnits="userSpaceOnUse">
-                            <path d="M 60 0 L 0 0 0 20" fill="none" stroke="#f3f4f6" stroke-width="1"/>
-                        </pattern>
-                        
-                        <!-- Driver Color Gradients -->
-                        {% for driver in team_drivers %}
-                        <linearGradient id="driverGradient{{ forloop.counter }}" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="0%" style="stop-color:{{ driver.color }};stop-opacity:0.8"/>
-                            <stop offset="100%" style="stop-color:{{ driver.color }};stop-opacity:0.6"/>
-                        </linearGradient>
-                        {% endfor %}
-                    </defs>
-                    
-                    <!-- Grid Background -->
-                    <rect width="100%" height="100%" fill="url(#timeGrid)"/>
-                    
-                    <!-- Time Axis -->
-                    <g id="time-axis" class="time-axis">
-                        {% for time_marker in time_markers %}
-                        <g class="time-marker" data-time="{{ time_marker.minutes }}">
-                            <line x1="{{ time_marker.x }}" y1="0" 
-                                  x2="{{ time_marker.x }}" y2="100%" 
-                                  stroke="#d1d5db" stroke-width="1"/>
-                            <text x="{{ time_marker.x }}" y="20" 
-                                  class="text-xs fill-gray-600 text-anchor-middle">
-                                {{ time_marker.label }}
-                            </text>
-                        </g>
-                        {% endfor %}
-                    </g>
-                    
-                    <!-- Driver Lanes -->
-                    {% for driver in team_drivers %}
-                    <g class="driver-lane" data-driver-id="{{ driver.pk }}">
-                        <!-- Lane Background -->
-                        <rect x="0" y="{{ forloop.counter0|mul:60|add:40 }}" 
-                              width="100%" height="50" 
-                              fill="{% cycle '#f9fafb' '#f3f4f6' %}" 
-                              stroke="#e5e7eb" stroke-width="1"/>
-                        
-                        <!-- Driver Label -->
-                        <text x="10" y="{{ forloop.counter0|mul:60|add:65 }}" 
-                              class="text-sm font-medium fill-gray-900">
-                            {{ driver.get_full_name|default:driver.username }}
-                        </text>
-                        
-                        <!-- Availability Indicators -->
-                        {% for availability in driver.availability_periods %}
-                        <rect x="{{ availability.start_x }}" y="{{ forloop.parentloop.counter0|mul:60|add:45 }}" 
-                              width="{{ availability.width }}" height="5" 
-                              fill="{% if availability.available %}#10b981{% else %}#ef4444{% endif %}" 
-                              opacity="0.7"/>
-                        {% endfor %}
-                        
-                        <!-- Stint Assignments -->
-                        {% for stint in driver.stint_assignments %}
-                        <g class="stint-assignment" 
-                           data-stint-id="{{ stint.pk }}"
-                           data-driver-id="{{ driver.pk }}">
-                            
-                            <!-- Stint Block -->
-                            <rect x="{{ stint.start_x }}" y="{{ forloop.parentloop.counter0|mul:60|add:50 }}" 
-                                  width="{{ stint.width }}" height="35" 
-                                  fill="url(#driverGradient{{ forloop.parentloop.counter }})" 
-                                  stroke="{{ driver.color }}" stroke-width="2" 
-                                  rx="4" ry="4" 
-                                  class="stint-block cursor-move hover:opacity-80 transition-opacity"
-                                  onmousedown="startDragStint(event, '{{ stint.pk }}')"
-                                  ondblclick="editStint('{{ stint.pk }}')"/>
-                            
-                            <!-- Stint Label -->
-                            <text x="{{ stint.center_x }}" y="{{ forloop.parentloop.counter0|mul:60|add:70 }}" 
-                                  class="text-xs font-medium fill-white text-anchor-middle pointer-events-none">
-                                {{ stint.duration }}min
-                            </text>
-                            
-                            <!-- Pit Stop Indicator -->
-                            {% if stint.ends_with_pit_stop %}
-                            <circle cx="{{ stint.end_x|add:-8 }}" cy="{{ forloop.parentloop.counter0|mul:60|add:67 }}" 
-                                    r="3" fill="#f59e0b" stroke="#ffffff" stroke-width="1"
-                                    class="pit-stop-indicator"/>
-                            {% endif %}
-                            
-                            <!-- Stint Details Tooltip -->
-                            <title>
-                                {% trans "Driver:" %} {{ driver.get_full_name|default:driver.username }}
-                                {% trans "Duration:" %} {{ stint.duration }} {% trans "minutes" %}
-                                {% trans "Start:" %} {{ stint.start_time|date:"g:i A" }}
-                                {% trans "End:" %} {{ stint.end_time|date:"g:i A" }}
-                                {% if stint.fuel_consumption %}{% trans "Fuel:" %} {{ stint.fuel_consumption }}L{% endif %}
-                                {% if stint.ends_with_pit_stop %}{% trans "Ends with pit stop" %}{% endif %}
-                            </title>
-                        </g>
-                        {% endfor %}
-                    </g>
-                    {% endfor %}
-                    
-                    <!-- Pit Windows -->
-                    {% for pit_window in optimal_pit_windows %}
-                    <g class="pit-window" data-window-id="{{ pit_window.pk }}">
-                        <rect x="{{ pit_window.start_x }}" y="30" 
-                              width="{{ pit_window.width }}" height="10" 
-                              fill="#fbbf24" opacity="0.6" 
-                              stroke="#f59e0b" stroke-width="1"/>
-                        <text x="{{ pit_window.center_x }}" y="42" 
-                              class="text-xs fill-orange-700 text-anchor-middle">
-                            {% trans "Pit Window" %}
-                        </text>
-                    </g>
-                    {% endfor %}
-                    
-                    <!-- Current Time Indicator -->
-                    {% if is_race_active %}
-                    <line id="current-time-line" 
-                          x1="{{ current_time_x }}" y1="0" 
-                          x2="{{ current_time_x }}" y2="100%" 
-                          stroke="#dc2626" stroke-width="3" 
-                          stroke-dasharray="5,5"
-                          class="animate-pulse">
-                        <animate attributeName="stroke-dashoffset" 
-                                 values="0;10" dur="1s" repeatCount="indefinite"/>
-                    </line>
-                    {% endif %}
-                    
-                    <!-- Selection Overlay -->
-                    <rect id="selection-overlay" 
-                          x="0" y="0" width="0" height="0" 
-                          fill="rgba(59, 130, 246, 0.1)" 
-                          stroke="#3b82f6" stroke-width="2" 
-                          stroke-dasharray="5,5" 
-                          style="display: none"/>
-                </svg>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Stint Planning Controls -->
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h4 class="text-lg font-medium text-gray-900">{% trans "Planning Tools" %}</h4>
-            
-            <div class="flex items-center space-x-2">
-                <!-- Auto-Optimize Button -->
-                <button onclick="autoOptimizeStints()" 
-                        class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    {% trans "Auto-Optimize" %}
-                </button>
-                
-                <!-- Validate Plan Button -->
-                <button onclick="validateStintPlan()" 
-                        class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    {% trans "Validate" %}
-                </button>
-                
-                <!-- Undo/Redo -->
-                <div class="flex items-center border border-gray-300 rounded-md">
-                    <button onclick="undoLastChange()" 
-                            id="undo-button"
-                            class="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed border-r border-gray-300"
-                            disabled>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                        </svg>
-                    </button>
-                    <button onclick="redoLastChange()" 
-                            id="redo-button"
-                            class="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6"/>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Quick Actions Grid -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button onclick="addStint()" 
-                    class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors">
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                {% trans "Add Stint" %}
-            </button>
-            
-            <button onclick="balanceDriverTime()" 
-                    class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-green-500 hover:text-green-600 transition-colors">
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                </svg>
-                {% trans "Balance Time" %}
-            </button>
-            
-            <button onclick="optimizePitStops()" 
-                    class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-orange-500 hover:text-orange-600 transition-colors">
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>
-                </svg>
-                {% trans "Optimize Pits" %}
-            </button>
-            
-            <button onclick="exportStintPlan()" 
-                    class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-600 transition-colors">
-                <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                {% trans "Export Plan" %}
-            </button>
-        </div>
-    </div>
-    
-    <!-- Validation Results -->
-    <div id="validation-results" class="hidden bg-white border border-gray-200 rounded-lg p-6">
-        <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            {% trans "Validation Results" %}
-        </h4>
-        
-        <div id="validation-content">
-            <!-- Validation results will be populated here -->
-        </div>
-    </div>
-    
-    <!-- Change History -->
-    {% if recent_changes %}
-    <div class="bg-white border border-gray-200 rounded-lg p-6">
-        <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            {% trans "Recent Changes" %}
-        </h4>
-        
-        <div class="space-y-3" id="change-history">
-            {% for change in recent_changes %}
-            <div class="flex items-center text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
-                <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="font-medium text-gray-900">
-                        {{ change.user.get_full_name|default:change.user.username }}
-                    </div>
-                    <div class="text-gray-600">
-                        {{ change.description }}
-                    </div>
-                    <div class="text-xs text-gray-400 mt-1">
-                        {{ change.timestamp|timesince }} {% trans "ago" %}
-                    </div>
-                </div>
-                {% if change.can_revert %}
-                <button onclick="revertChange('{{ change.pk }}')" 
-                        class="ml-4 text-blue-600 hover:text-blue-800 text-xs">
-                    {% trans "Revert" %}
-                </button>
-                {% endif %}
-            </div>
+  <!-- Stint Plan Timeline -->
+  <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-medium text-gray-900 flex items-center">
+          <svg class="w-5 h-5 mr-2"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {% trans "Stint Timeline" %}
+        </h3>
+        <div class="flex items-center space-x-3">
+          <!-- Collaboration Indicators -->
+          <div class="flex items-center space-x-2" id="collaboration-indicators">
+            {% for collaborator in active_collaborators %}
+              <div class="flex items-center space-x-1 text-xs text-gray-600 bg-blue-50 px-2 py-1 rounded-full">
+                <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span>{{ collaborator.get_full_name|default:collaborator.username }}</span>
+              </div>
             {% endfor %}
+          </div>
+          <!-- Timeline Controls -->
+          <div class="flex items-center space-x-2">
+            <button onclick="zoomTimeline('out')"
+                    class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+              </svg>
+            </button>
+            <button onclick="zoomTimeline('in')"
+                    class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+              </svg>
+            </button>
+            <button onclick="resetTimelineZoom()"
+                    class="p-1 text-gray-400 hover:text-gray-600 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
         </div>
+      </div>
     </div>
-    {% endif %}
+    <!-- Timeline SVG Container -->
+    <div class="p-6">
+      <div id="timeline-container" class="relative overflow-x-auto">
+        <svg id="stint-timeline"
+             class="w-full"
+             style="min-height: 400px;
+                    min-width: 800px">
+          <!-- Timeline Background -->
+          <defs>
+          <pattern id="timeGrid" width="60" height="20" patternUnits="userSpaceOnUse">
+          <path d="M 60 0 L 0 0 0 20" fill="none" stroke="#f3f4f6" stroke-width="1" />
+          </pattern>
+          <!-- Driver Color Gradients -->
+          {% for driver in team_drivers %}
+            <linearGradient id="driverGradient{{ forloop.counter }}" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:{{ driver.color }};stop-opacity:0.8" />
+            <stop offset="100%" style="stop-color:{{ driver.color }};stop-opacity:0.6" />
+            </linearGradient>
+          {% endfor %}
+          </defs>
+          <!-- Grid Background -->
+          <rect width="100%" height="100%" fill="url(#timeGrid)" />
+          <!-- Time Axis -->
+          <g id="time-axis" class="time-axis">
+          {% for time_marker in time_markers %}
+            <g class="time-marker" data-time="{{ time_marker.minutes }}">
+            <line x1="{{ time_marker.x }}" y1="0" x2="{{ time_marker.x }}" y2="100%" stroke="#d1d5db" stroke-width="1" />
+            <text x="{{ time_marker.x }}" y="20" class="text-xs fill-gray-600 text-anchor-middle">
+            {{ time_marker.label }}
+            </text>
+            </g>
+          {% endfor %}
+          </g>
+          <!-- Driver Lanes -->
+          {% for driver in team_drivers %}
+            <g class="driver-lane" data-driver-id="{{ driver.pk }}">
+            <!-- Lane Background -->
+            <rect x="0" y="{{ forloop.counter0|mul:60|add:40 }}" width="100%" height="50" fill="{% cycle '#f9fafb' '#f3f4f6' %}" stroke="#e5e7eb" stroke-width="1" />
+            <!-- Driver Label -->
+            <text x="10" y="{{ forloop.counter0|mul:60|add:65 }}" class="text-sm font-medium fill-gray-900">
+            {{ driver.get_full_name|default:driver.username }}
+            </text>
+            <!-- Availability Indicators -->
+            {% for availability in driver.availability_periods %}
+              <rect x="{{ availability.start_x }}" y="{{ forloop.parentloop.counter0|mul:60|add:45 }}" width="{{ availability.width }}" height="5" fill="
+              {% if availability.available %}
+                #10b981
+              {% else %}
+                #ef4444
+              {% endif %}
+              " opacity="0.7" />
+            {% endfor %}
+            <!-- Stint Assignments -->
+            {% for stint in driver.stint_assignments %}
+              <g class="stint-assignment" data-stint-id="{{ stint.pk }}" data-driver-id="{{ driver.pk }}">
+              <!-- Stint Block -->
+              <rect x="{{ stint.start_x }}" y="{{ forloop.parentloop.counter0|mul:60|add:50 }}" width="{{ stint.width }}" height="35" fill="url(#driverGradient{{ forloop.parentloop.counter }})" stroke="{{ driver.color }}" stroke-width="2" rx="4" ry="4" class="stint-block cursor-move hover:opacity-80 transition-opacity" onmousedown="startDragStint(event, '{{ stint.pk }}')" ondblclick="editStint('{{ stint.pk }}')" />
+              <!-- Stint Label -->
+              <text x="{{ stint.center_x }}" y="{{ forloop.parentloop.counter0|mul:60|add:70 }}" class="text-xs font-medium fill-white text-anchor-middle pointer-events-none">
+              {{ stint.duration }}min
+              </text>
+              <!-- Pit Stop Indicator -->
+              {% if stint.ends_with_pit_stop %}
+                <circle cx="{{ stint.end_x|add:-8 }}" cy="{{ forloop.parentloop.counter0|mul:60|add:67 }}" r="3" fill="#f59e0b" stroke="#ffffff" stroke-width="1" class="pit-stop-indicator" />
+              {% endif %}
+              <!-- Stint Details Tooltip -->
+              <title>
+                {% trans "Driver:" %} {{ driver.get_full_name|default:driver.username }}
+                {% trans "Duration:" %} {{ stint.duration }} {% trans "minutes" %}
+                {% trans "Start:" %} {{ stint.start_time|date:"g:i A" }}
+                {% trans "End:" %} {{ stint.end_time|date:"g:i A" }}
+                {% if stint.fuel_consumption %}
+                  {% trans "Fuel:" %} {{ stint.fuel_consumption }}L
+                {% endif %}
+                {% if stint.ends_with_pit_stop %}
+                  {% trans "Ends with pit stop" %}
+                {% endif %}
+              </title>
+              </g>
+            {% endfor %}
+            </g>
+          {% endfor %}
+          <!-- Pit Windows -->
+          {% for pit_window in optimal_pit_windows %}
+            <g class="pit-window" data-window-id="{{ pit_window.pk }}">
+            <rect x="{{ pit_window.start_x }}" y="30" width="{{ pit_window.width }}" height="10" fill="#fbbf24" opacity="0.6" stroke="#f59e0b" stroke-width="1" />
+            <text x="{{ pit_window.center_x }}" y="42" class="text-xs fill-orange-700 text-anchor-middle">
+            {% trans "Pit Window" %}
+            </text>
+            </g>
+          {% endfor %}
+          <!-- Current Time Indicator -->
+          {% if is_race_active %}
+            <line id="current-time-line" x1="{{ current_time_x }}" y1="0" x2="{{ current_time_x }}" y2="100%" stroke="#dc2626" stroke-width="3" stroke-dasharray="5,5" class="animate-pulse">
+            <animate attributeName="stroke-dashoffset" values="0;10" dur="1s" repeatCount="indefinite" />
+            </line>
+          {% endif %}
+          <!-- Selection Overlay -->
+          <rect id="selection-overlay" x="0" y="0" width="0" height="0" fill="rgba(59, 130, 246, 0.1)" stroke="#3b82f6" stroke-width="2" stroke-dasharray="5,5" style="display: none" />
+        </svg>
+      </div>
+    </div>
+  </div>
+  <!-- Stint Planning Controls -->
+  <div class="bg-white border border-gray-200 rounded-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h4 class="text-lg font-medium text-gray-900">{% trans "Planning Tools" %}</h4>
+      <div class="flex items-center space-x-2">
+        <!-- Auto-Optimize Button -->
+        <button onclick="autoOptimizeStints()"
+                class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg class="w-4 h-4 mr-2"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+          {% trans "Auto-Optimize" %}
+        </button>
+        <!-- Validate Plan Button -->
+        <button onclick="validateStintPlan()"
+                class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          <svg class="w-4 h-4 mr-2"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {% trans "Validate" %}
+        </button>
+        <!-- Undo/Redo -->
+        <div class="flex items-center border border-gray-300 rounded-md">
+          <button onclick="undoLastChange()"
+                  id="undo-button"
+                  class="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed border-r border-gray-300"
+                  disabled>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+            </svg>
+          </button>
+          <button onclick="redoLastChange()"
+                  id="redo-button"
+                  class="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6-6m6 6l-6 6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- Quick Actions Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <button onclick="addStint()"
+              class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors">
+        <svg class="w-6 h-6 mr-2"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        </svg>
+        {% trans "Add Stint" %}
+      </button>
+      <button onclick="balanceDriverTime()"
+              class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-green-500 hover:text-green-600 transition-colors">
+        <svg class="w-6 h-6 mr-2"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+        </svg>
+        {% trans "Balance Time" %}
+      </button>
+      <button onclick="optimizePitStops()"
+              class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-orange-500 hover:text-orange-600 transition-colors">
+        <svg class="w-6 h-6 mr-2"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+        </svg>
+        {% trans "Optimize Pits" %}
+      </button>
+      <button onclick="exportStintPlan()"
+              class="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-purple-500 hover:text-purple-600 transition-colors">
+        <svg class="w-6 h-6 mr-2"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        {% trans "Export Plan" %}
+      </button>
+    </div>
+  </div>
+  <!-- Validation Results -->
+  <div id="validation-results"
+       class="hidden bg-white border border-gray-200 rounded-lg p-6">
+    <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+      <svg class="w-5 h-5 mr-2"
+           fill="none"
+           stroke="currentColor"
+           viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      {% trans "Validation Results" %}
+    </h4>
+    <div id="validation-content">
+      <!-- Validation results will be populated here -->
+    </div>
+  </div>
+  <!-- Change History -->
+  {% if recent_changes %}
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <h4 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2"
+             fill="none"
+             stroke="currentColor"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        {% trans "Recent Changes" %}
+      </h4>
+      <div class="space-y-3" id="change-history">
+        {% for change in recent_changes %}
+          <div class="flex items-center text-sm text-gray-600 p-3 bg-gray-50 rounded-lg">
+            <div class="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+              <svg class="w-4 h-4 text-blue-600"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <div class="font-medium text-gray-900">{{ change.user.get_full_name|default:change.user.username }}</div>
+              <div class="text-gray-600">{{ change.description }}</div>
+              <div class="text-xs text-gray-400 mt-1">{{ change.timestamp|timesince }} {% trans "ago" %}</div>
+            </div>
+            {% if change.can_revert %}
+              <button onclick="revertChange('{{ change.pk }}')"
+                      class="ml-4 text-blue-600 hover:text-blue-800 text-xs">{% trans "Revert" %}</button>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
 </div>
-
 <!-- Stint Edit Modal -->
-<div id="stint-edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Edit Stint" %}</h3>
-            
-            <form id="stint-edit-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">{% trans "Driver" %}</label>
-                    <select id="stint-driver" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        {% for driver in team_drivers %}
-                        <option value="{{ driver.pk }}">{{ driver.get_full_name|default:driver.username }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">{% trans "Duration (minutes)" %}</label>
-                    <input type="number" id="stint-duration" min="5" max="180" 
-                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">{% trans "Start Time" %}</label>
-                    <input type="time" id="stint-start-time" 
-                           class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                
-                <div class="flex items-center">
-                    <input type="checkbox" id="stint-pit-stop" 
-                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                    <label for="stint-pit-stop" class="ml-2 block text-sm text-gray-900">
-                        {% trans "End with pit stop" %}
-                    </label>
-                </div>
-                
-                <div class="flex justify-end space-x-3 pt-4">
-                    <button type="button" onclick="closeStintEditModal()" 
-                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        {% trans "Cancel" %}
-                    </button>
-                    <button type="button" onclick="saveStintChanges()" 
-                            class="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700">
-                        {% trans "Save Changes" %}
-                    </button>
-                </div>
-            </form>
+<div id="stint-edit-modal"
+     class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 hidden">
+  <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+    <div class="mt-3">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Edit Stint" %}</h3>
+      <form id="stint-edit-form" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">{% trans "Driver" %}</label>
+          <select id="stint-driver"
+                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            {% for driver in team_drivers %}
+              <option value="{{ driver.pk }}">{{ driver.get_full_name|default:driver.username }}</option>
+            {% endfor %}
+          </select>
         </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">{% trans "Duration (minutes)" %}</label>
+          <input type="number"
+                 id="stint-duration"
+                 min="5"
+                 max="180"
+                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">{% trans "Start Time" %}</label>
+          <input type="time"
+                 id="stint-start-time"
+                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" />
+        </div>
+        <div class="flex items-center">
+          <input type="checkbox"
+                 id="stint-pit-stop"
+                 class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+          <label for="stint-pit-stop" class="ml-2 block text-sm text-gray-900">{% trans "End with pit stop" %}</label>
+        </div>
+        <div class="flex justify-end space-x-3 pt-4">
+          <button type="button"
+                  onclick="closeStintEditModal()"
+                  class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+            {% trans "Cancel" %}
+          </button>
+          <button type="button"
+                  onclick="saveStintChanges()"
+                  class="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700">
+            {% trans "Save Changes" %}
+          </button>
+        </div>
+      </form>
     </div>
+  </div>
 </div>
-
 <script>
-// Global variables for stint planning
-let currentStintId = null;
-let draggedStint = null;
-let undoStack = [];
-let redoStack = [];
-let timelineZoom = 1;
-let isCollaborating = false;
+  // Global variables for stint planning
+  let currentStintId = null;
+  let draggedStint = null;
+  let undoStack = [];
+  let redoStack = [];
+  let timelineZoom = 1;
+  let isCollaborating = false;
 
-// Initialize stint planning interface
-document.addEventListener('DOMContentLoaded', function() {
+  // Initialize stint planning interface
+  document.addEventListener('DOMContentLoaded', function() {
     initializeStintPlanning();
     startRealTimeUpdates();
-});
+  });
 
-function initializeStintPlanning() {
+  function initializeStintPlanning() {
     const timeline = document.getElementById('stint-timeline');
-    
+
     // Add event listeners for timeline interactions
     timeline.addEventListener('click', handleTimelineClick);
     timeline.addEventListener('mousemove', handleTimelineMouseMove);
     timeline.addEventListener('mousedown', handleTimelineMouseDown);
     timeline.addEventListener('mouseup', handleTimelineMouseUp);
-    
+
     // Initialize drag and drop
     initializeDragAndDrop();
-    
+
     // Update undo/redo button states
     updateUndoRedoButtons();
-}
+  }
 
-function startRealTimeUpdates() {
+  function startRealTimeUpdates() {
     // WebSocket connection for real-time collaboration
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.host}/ws/teams/stint-planning/{{ team_allocation.pk }}/`;
-    
+
     const socket = new WebSocket(wsUrl);
-    
+
     socket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        handleRealTimeUpdate(data);
+      const data = JSON.parse(event.data);
+      handleRealTimeUpdate(data);
     };
-    
+
     socket.onopen = function() {
-        console.log('WebSocket connected for real-time stint planning');
-        isCollaborating = true;
+      console.log('WebSocket connected for real-time stint planning');
+      isCollaborating = true;
     };
-    
+
     socket.onclose = function() {
-        console.log('WebSocket disconnected');
-        isCollaborating = false;
-        // Attempt to reconnect after 5 seconds
-        setTimeout(startRealTimeUpdates, 5000);
+      console.log('WebSocket disconnected');
+      isCollaborating = false;
+      // Attempt to reconnect after 5 seconds
+      setTimeout(startRealTimeUpdates, 5000);
     };
-    
+
     // Store socket reference for sending updates
     window.stintPlanningSocket = socket;
-}
+  }
 
-function handleRealTimeUpdate(data) {
+  function handleRealTimeUpdate(data) {
     switch (data.type) {
-        case 'stint_updated':
-            updateStintVisual(data.stint);
-            showCollaborationNotification(data.user, '{% trans "updated a stint" %}');
-            break;
-        case 'stint_added':
-            addStintVisual(data.stint);
-            showCollaborationNotification(data.user, '{% trans "added a new stint" %}');
-            break;
-        case 'stint_deleted':
-            removeStintVisual(data.stint_id);
-            showCollaborationNotification(data.user, '{% trans "deleted a stint" %}');
-            break;
-        case 'user_joined':
-            addCollaboratorIndicator(data.user);
-            break;
-        case 'user_left':
-            removeCollaboratorIndicator(data.user);
-            break;
+      case 'stint_updated':
+        updateStintVisual(data.stint);
+        showCollaborationNotification(data.user, '{% trans "updated a stint" %}');
+        break;
+      case 'stint_added':
+        addStintVisual(data.stint);
+        showCollaborationNotification(data.user, '{% trans "added a new stint" %}');
+        break;
+      case 'stint_deleted':
+        removeStintVisual(data.stint_id);
+        showCollaborationNotification(data.user, '{% trans "deleted a stint" %}');
+        break;
+      case 'user_joined':
+        addCollaboratorIndicator(data.user);
+        break;
+      case 'user_left':
+        removeCollaboratorIndicator(data.user);
+        break;
     }
-}
+  }
 
-function startDragStint(event, stintId) {
+  function startDragStint(event, stintId) {
     event.preventDefault();
     draggedStint = stintId;
-    
+
     // Add visual feedback
     const stintElement = document.querySelector(`[data-stint-id="${stintId}"]`);
     stintElement.style.opacity = '0.7';
-    
+
     // Change cursor
     document.body.style.cursor = 'move';
-}
+  }
 
-function editStint(stintId) {
+  function editStint(stintId) {
     currentStintId = stintId;
-    
+
     // Populate modal with current stint data
     htmx.ajax('GET', `{% url 'teams:stint_details' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', stintId), {
-        target: '#stint-edit-form',
-        swap: 'innerHTML'
+      target: '#stint-edit-form',
+      swap: 'innerHTML'
     }).then(() => {
-        document.getElementById('stint-edit-modal').classList.remove('hidden');
+      document.getElementById('stint-edit-modal').classList.remove('hidden');
     });
-}
+  }
 
-function closeStintEditModal() {
+  function closeStintEditModal() {
     document.getElementById('stint-edit-modal').classList.add('hidden');
     currentStintId = null;
-}
+  }
 
-function saveStintChanges() {
+  function saveStintChanges() {
     const formData = new FormData(document.getElementById('stint-edit-form'));
-    
+
     htmx.ajax('POST', `{% url 'teams:stint_update' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', currentStintId), {
-        values: Object.fromEntries(formData),
-        target: '#stint-plan-container',
-        swap: 'outerHTML'
+      values: Object.fromEntries(formData),
+      target: '#stint-plan-container',
+      swap: 'outerHTML'
     }).then(() => {
-        closeStintEditModal();
-        addToUndoStack('stint_updated', currentStintId);
-        
-        // Send real-time update
-        if (isCollaborating && window.stintPlanningSocket) {
-            window.stintPlanningSocket.send(JSON.stringify({
-                type: 'stint_updated',
-                stint_id: currentStintId,
-                user: '{{ request.user.get_full_name|default:request.user.username|escapejs }}'
-            }));
-        }
-    });
-}
+      closeStintEditModal();
+      addToUndoStack('stint_updated', currentStintId);
 
-function autoOptimizeStints() {
+      // Send real-time update
+      if (isCollaborating && window.stintPlanningSocket) {
+        window.stintPlanningSocket.send(JSON.stringify({
+          type: 'stint_updated',
+          stint_id: currentStintId,
+          user: '{{ request.user.get_full_name|default:request.user.username|escapejs }}'
+        }));
+      }
+    });
+  }
+
+  function autoOptimizeStints() {
     if (confirm('{% trans "This will automatically optimize your stint plan based on driver availability and pit strategy. Continue?" %}')) {
-        htmx.ajax('POST', `{% url 'teams:stint_auto_optimize' team_allocation.pk %}`, {
-            values: {'csrfmiddlewaretoken': '{{ csrf_token }}'},
-            target: '#stint-plan-container',
-            swap: 'outerHTML'
-        }).then(() => {
-            addToUndoStack('auto_optimize', null);
-            showNotification('{% trans "Stint plan optimized successfully!" %}', 'success');
-        });
+      htmx.ajax('POST', `{% url 'teams:stint_auto_optimize' team_allocation.pk %}`, {
+        values: {
+          'csrfmiddlewaretoken': '{{ csrf_token }}'
+        },
+        target: '#stint-plan-container',
+        swap: 'outerHTML'
+      }).then(() => {
+        addToUndoStack('auto_optimize', null);
+        showNotification('{% trans "Stint plan optimized successfully!" %}', 'success');
+      });
     }
-}
+  }
 
-function validateStintPlan() {
+  function validateStintPlan() {
     htmx.ajax('POST', `{% url 'teams:stint_validate' team_allocation.pk %}`, {
-        values: {'csrfmiddlewaretoken': '{{ csrf_token }}'},
-        target: '#validation-content',
-        swap: 'innerHTML'
+      values: {
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
+      target: '#validation-content',
+      swap: 'innerHTML'
     }).then(() => {
-        document.getElementById('validation-results').classList.remove('hidden');
+      document.getElementById('validation-results').classList.remove('hidden');
     });
-}
+  }
 
-function balanceDriverTime() {
+  function balanceDriverTime() {
     htmx.ajax('POST', `{% url 'teams:stint_balance_time' team_allocation.pk %}`, {
-        values: {'csrfmiddlewaretoken': '{{ csrf_token }}'},
-        target: '#stint-plan-container',
-        swap: 'outerHTML'
+      values: {
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
+      target: '#stint-plan-container',
+      swap: 'outerHTML'
     }).then(() => {
-        addToUndoStack('balance_time', null);
-        showNotification('{% trans "Driver time balanced successfully!" %}', 'success');
+      addToUndoStack('balance_time', null);
+      showNotification('{% trans "Driver time balanced successfully!" %}', 'success');
     });
-}
+  }
 
-function optimizePitStops() {
+  function optimizePitStops() {
     htmx.ajax('POST', `{% url 'teams:stint_optimize_pits' team_allocation.pk %}`, {
-        values: {'csrfmiddlewaretoken': '{{ csrf_token }}'},
-        target: '#stint-plan-container',
-        swap: 'outerHTML'
+      values: {
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
+      target: '#stint-plan-container',
+      swap: 'outerHTML'
     }).then(() => {
-        addToUndoStack('optimize_pits', null);
-        showNotification('{% trans "Pit stops optimized successfully!" %}', 'success');
+      addToUndoStack('optimize_pits', null);
+      showNotification('{% trans "Pit stops optimized successfully!" %}', 'success');
     });
-}
+  }
 
-function exportStintPlan() {
+  function exportStintPlan() {
     window.open(`{% url 'teams:stint_plan_export' team_allocation.pk %}`, '_blank');
-}
+  }
 
-function addToUndoStack(action, stintId) {
-    undoStack.push({ action, stintId, timestamp: Date.now() });
+  function addToUndoStack(action, stintId) {
+    undoStack.push({
+      action,
+      stintId,
+      timestamp: Date.now()
+    });
     redoStack = []; // Clear redo stack
     updateUndoRedoButtons();
-}
+  }
 
-function undoLastChange() {
+  function undoLastChange() {
     if (undoStack.length === 0) return;
-    
+
     const lastAction = undoStack.pop();
     redoStack.push(lastAction);
-    
+
     // Implement undo logic based on action type
     htmx.ajax('POST', `{% url 'teams:stint_undo' team_allocation.pk %}`, {
-        values: {
-            'action': lastAction.action,
-            'stint_id': lastAction.stintId,
-            'csrfmiddlewaretoken': '{{ csrf_token }}'
-        },
-        target: '#stint-plan-container',
-        swap: 'outerHTML'
+      values: {
+        'action': lastAction.action,
+        'stint_id': lastAction.stintId,
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
+      target: '#stint-plan-container',
+      swap: 'outerHTML'
     });
-    
-    updateUndoRedoButtons();
-}
 
-function redoLastChange() {
+    updateUndoRedoButtons();
+  }
+
+  function redoLastChange() {
     if (redoStack.length === 0) return;
-    
+
     const lastAction = redoStack.pop();
     undoStack.push(lastAction);
-    
+
     // Implement redo logic
     htmx.ajax('POST', `{% url 'teams:stint_redo' team_allocation.pk %}`, {
-        values: {
-            'action': lastAction.action,
-            'stint_id': lastAction.stintId,
-            'csrfmiddlewaretoken': '{{ csrf_token }}'
-        },
-        target: '#stint-plan-container',
-        swap: 'outerHTML'
+      values: {
+        'action': lastAction.action,
+        'stint_id': lastAction.stintId,
+        'csrfmiddlewaretoken': '{{ csrf_token }}'
+      },
+      target: '#stint-plan-container',
+      swap: 'outerHTML'
     });
-    
-    updateUndoRedoButtons();
-}
 
-function updateUndoRedoButtons() {
+    updateUndoRedoButtons();
+  }
+
+  function updateUndoRedoButtons() {
     document.getElementById('undo-button').disabled = undoStack.length === 0;
     document.getElementById('redo-button').disabled = redoStack.length === 0;
-}
+  }
 
-function zoomTimeline(direction) {
+  function zoomTimeline(direction) {
     const timeline = document.getElementById('stint-timeline');
     const container = document.getElementById('timeline-container');
-    
+
     if (direction === 'in') {
-        timelineZoom = Math.min(timelineZoom * 1.2, 3);
+      timelineZoom = Math.min(timelineZoom * 1.2, 3);
     } else {
-        timelineZoom = Math.max(timelineZoom / 1.2, 0.5);
+      timelineZoom = Math.max(timelineZoom / 1.2, 0.5);
     }
-    
+
     timeline.style.transform = `scaleX(${timelineZoom})`;
     timeline.style.transformOrigin = 'left center';
-}
+  }
 
-function resetTimelineZoom() {
+  function resetTimelineZoom() {
     timelineZoom = 1;
     const timeline = document.getElementById('stint-timeline');
     timeline.style.transform = 'scaleX(1)';
-}
+  }
 
-function showCollaborationNotification(user, action) {
+  function showCollaborationNotification(user, action) {
     const notification = document.createElement('div');
     notification.className = 'fixed top-4 left-4 bg-blue-500 text-white p-3 rounded-lg shadow-lg z-50 transition-all transform -translate-x-full';
     notification.innerHTML = `
@@ -643,184 +625,195 @@ function showCollaborationNotification(user, action) {
             <span class="text-sm"><strong>${user}</strong> ${action}</span>
         </div>
     `;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.classList.remove('-translate-x-full');
-    }, 100);
-    
-    setTimeout(() => {
-        notification.classList.add('-translate-x-full');
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
 
-function showNotification(message, type = 'info') {
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.classList.remove('-translate-x-full');
+    }, 100);
+
+    setTimeout(() => {
+      notification.classList.add('-translate-x-full');
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
+  }
+
+  function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all transform translate-x-full`;
-    
+
     if (type === 'success') {
-        notification.classList.add('bg-green-500', 'text-white');
+      notification.classList.add('bg-green-500', 'text-white');
     } else if (type === 'error') {
-        notification.classList.add('bg-red-500', 'text-white');
+      notification.classList.add('bg-red-500', 'text-white');
     } else {
-        notification.classList.add('bg-blue-500', 'text-white');
+      notification.classList.add('bg-blue-500', 'text-white');
     }
-    
+
     notification.innerHTML = `
         <div class="flex items-center">
             <span>${message}</span>
             <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
-        notification.classList.remove('translate-x-full');
+      notification.classList.remove('translate-x-full');
     }, 100);
-    
+
     setTimeout(() => {
-        notification.classList.add('translate-x-full');
-        setTimeout(() => notification.remove(), 300);
+      notification.classList.add('translate-x-full');
+      setTimeout(() => notification.remove(), 300);
     }, 5000);
-}
+  }
 
-// Additional helper functions for timeline interaction
-function handleTimelineClick(event) {
+  // Additional helper functions for timeline interaction
+  function handleTimelineClick(event) {
     // Handle timeline click events
-}
+  }
 
-function handleTimelineMouseMove(event) {
+  function handleTimelineMouseMove(event) {
     // Handle mouse move for dragging
-}
+  }
 
-function handleTimelineMouseDown(event) {
+  function handleTimelineMouseDown(event) {
     // Handle mouse down for selection
-}
+  }
 
-function handleTimelineMouseUp(event) {
+  function handleTimelineMouseUp(event) {
     // Handle mouse up for drag completion
     if (draggedStint) {
-        // Reset visual feedback
-        const stintElement = document.querySelector(`[data-stint-id="${draggedStint}"]`);
-        stintElement.style.opacity = '1';
-        document.body.style.cursor = 'default';
-        
-        draggedStint = null;
-    }
-}
+      // Reset visual feedback
+      const stintElement = document.querySelector(`[data-stint-id="${draggedStint}"]`);
+      stintElement.style.opacity = '1';
+      document.body.style.cursor = 'default';
 
-function initializeDragAndDrop() {
+      draggedStint = null;
+    }
+  }
+
+  function initializeDragAndDrop() {
     // Initialize drag and drop functionality for stint blocks
     const stintBlocks = document.querySelectorAll('.stint-block');
     stintBlocks.forEach(block => {
-        block.addEventListener('dragstart', handleDragStart);
-        block.addEventListener('dragend', handleDragEnd);
+      block.addEventListener('dragstart', handleDragStart);
+      block.addEventListener('dragend', handleDragEnd);
     });
-}
+  }
 
-function handleDragStart(event) {
+  function handleDragStart(event) {
     // Handle drag start
-}
+  }
 
-function handleDragEnd(event) {
+  function handleDragEnd(event) {
     // Handle drag end
-}
+  }
 
-// Update current time indicator if race is active
-{% if is_race_active %}
-setInterval(() => {
+  // Update current time indicator if race is active
+  {
+    %
+    if is_race_active %
+  }
+  setInterval(() => {
     const currentTimeLine = document.getElementById('current-time-line');
     if (currentTimeLine) {
-        // Update current time line position
-        const now = new Date();
-        const raceStart = new Date('{{ event.start_time|date:"c" }}');
-        const elapsedMinutes = (now - raceStart) / (1000 * 60);
-        const timelineWidth = document.getElementById('stint-timeline').getBoundingClientRect().width;
-        const raceDurationMinutes = {{ event.duration_minutes }};
-        const currentX = (elapsedMinutes / raceDurationMinutes) * timelineWidth;
-        
-        currentTimeLine.setAttribute('x1', currentX);
-        currentTimeLine.setAttribute('x2', currentX);
-    }
-}, 1000);
-{% endif %}
-</script>
+      // Update current time line position
+      const now = new Date();
+      const raceStart = new Date('{{ event.start_time|date:"c" }}');
+      const elapsedMinutes = (now - raceStart) / (1000 * 60);
+      const timelineWidth = document.getElementById('stint-timeline').getBoundingClientRect().width;
+      const raceDurationMinutes = {
+        {
+          event.duration_minutes
+        }
+      };
+      const currentX = (elapsedMinutes / raceDurationMinutes) * timelineWidth;
 
+      currentTimeLine.setAttribute('x1', currentX);
+      currentTimeLine.setAttribute('x2', currentX);
+    }
+  }, 1000);
+  {
+    % endif %
+  }
+</script>
 <style>
-.stint-block {
+  .stint-block {
     cursor: move;
     transition: all 0.2s ease;
-}
+  }
 
-.stint-block:hover {
+  .stint-block:hover {
     filter: brightness(1.1);
     transform: translateY(-1px);
-}
+  }
 
-.pit-stop-indicator {
+  .pit-stop-indicator {
     animation: pulse 2s infinite;
-}
+  }
 
-@keyframes pulse {
+  @keyframes pulse {
     0% {
-        opacity: 1;
+      opacity: 1;
     }
-    50% {
-        opacity: 0.5;
-    }
-    100% {
-        opacity: 1;
-    }
-}
 
-.time-axis text {
+    50% {
+      opacity: 0.5;
+    }
+
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .time-axis text {
     font-family: 'Inter', sans-serif;
     font-size: 11px;
-}
+  }
 
-.driver-lane:hover {
+  .driver-lane:hover {
     background-color: rgba(59, 130, 246, 0.05);
-}
+  }
 
-#stint-timeline {
+  #stint-timeline {
     transition: transform 0.3s ease;
-}
+  }
 
-.collaboration-indicator {
+  .collaboration-indicator {
     animation: slideInFromLeft 0.3s ease-out;
-}
+  }
 
-@keyframes slideInFromLeft {
+  @keyframes slideInFromLeft {
     from {
-        opacity: 0;
-        transform: translateX(-20px);
+      opacity: 0;
+      transform: translateX(-20px);
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
 
-/* Mobile optimizations */
-@media (max-width: 768px) {
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
     #stint-timeline {
-        min-width: 600px;
+      min-width: 600px;
     }
-    
+
     .grid-cols-4 {
-        grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, 1fr);
     }
-    
+
     .stint-edit-modal .w-96 {
-        width: 90vw;
-        max-width: 400px;
+      width: 90vw;
+      max-width: 400px;
     }
-}
-</style> 
+  }
+</style>

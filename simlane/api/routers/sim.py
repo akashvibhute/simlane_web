@@ -1,35 +1,30 @@
-from ninja import Router
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
+from ninja import Router
 from ninja.errors import HttpError
-from typing import List
 
-from simlane.sim.models import Simulator, SimProfile, SimCar, SimTrack, LapTime
-from simlane.api.schemas.sim import (
-    Simulator as SimulatorSchema,
-    SimulatorCreate,
-    SimulatorUpdate,
-    SimProfile as SimProfileSchema,
-    SimProfileCreate,
-    SimProfileUpdate,
-    SimCar as SimCarSchema,
-    SimCarCreate,
-    SimCarUpdate,
-    SimTrack as SimTrackSchema,
-    SimTrackCreate,
-    SimTrackUpdate,
-    LapTime as LapTimeSchema,
-    LapTimeCreate,
-    LapTimeUpdate,
-    DashboardStats,
-    SimDataSummary,
-)
+from simlane.api.schemas.sim import DashboardStats
+from simlane.api.schemas.sim import LapTime as LapTimeSchema
+from simlane.api.schemas.sim import LapTimeCreate
+from simlane.api.schemas.sim import LapTimeUpdate
+from simlane.api.schemas.sim import SimCar as SimCarSchema
+from simlane.api.schemas.sim import SimDataSummary
+from simlane.api.schemas.sim import SimProfile as SimProfileSchema
+from simlane.api.schemas.sim import SimProfileCreate
+from simlane.api.schemas.sim import SimProfileUpdate
+from simlane.api.schemas.sim import SimTrack as SimTrackSchema
+from simlane.api.schemas.sim import Simulator as SimulatorSchema
+from simlane.sim.models import LapTime
+from simlane.sim.models import SimCar
+from simlane.sim.models import SimProfile
+from simlane.sim.models import SimTrack
+from simlane.sim.models import Simulator
 
 router = Router()
 
 
 # Simulator endpoints
-@router.get("/simulators", response=List[SimulatorSchema])
+@router.get("/simulators", response=list[SimulatorSchema])
 def list_simulators(request: HttpRequest):
     """List all active simulators."""
     simulators = Simulator.objects.filter(is_active=True)
@@ -44,7 +39,7 @@ def get_simulator(request: HttpRequest, simulator_id: int):
 
 
 # Sim profile endpoints
-@router.get("/profiles", response=List[SimProfileSchema])
+@router.get("/profiles", response=list[SimProfileSchema])
 def list_user_profiles(request: HttpRequest):
     """List current user's sim profiles."""
     profiles = SimProfile.objects.filter(user=request.auth)
@@ -57,10 +52,10 @@ def create_sim_profile(request: HttpRequest, profile_data: SimProfileCreate):
     # Check if profile already exists for this simulator
     if SimProfile.objects.filter(
         user=request.auth,
-        simulator_id=profile_data.simulator_id
+        simulator_id=profile_data.simulator_id,
     ).exists():
         raise HttpError(400, "Profile already exists for this simulator")
-    
+
     profile = SimProfile.objects.create(
         user=request.auth,
         simulator_id=profile_data.simulator_id,
@@ -70,7 +65,7 @@ def create_sim_profile(request: HttpRequest, profile_data: SimProfileCreate):
         license_class=profile_data.license_class,
         safety_rating=profile_data.safety_rating,
     )
-    
+
     return SimProfileSchema.from_orm(profile)
 
 
@@ -82,15 +77,19 @@ def get_sim_profile(request: HttpRequest, profile_id: int):
 
 
 @router.patch("/profiles/{profile_id}", response=SimProfileSchema)
-def update_sim_profile(request: HttpRequest, profile_id: int, updates: SimProfileUpdate):
+def update_sim_profile(
+    request: HttpRequest,
+    profile_id: int,
+    updates: SimProfileUpdate,
+):
     """Update sim profile."""
     profile = get_object_or_404(SimProfile, id=profile_id, user=request.auth)
-    
+
     # Update profile fields
     for field, value in updates.dict(exclude_unset=True).items():
         if hasattr(profile, field):
             setattr(profile, field, value)
-    
+
     profile.save()
     return SimProfileSchema.from_orm(profile)
 
@@ -104,7 +103,7 @@ def delete_sim_profile(request: HttpRequest, profile_id: int):
 
 
 # Car endpoints
-@router.get("/simulators/{simulator_id}/cars", response=List[SimCarSchema])
+@router.get("/simulators/{simulator_id}/cars", response=list[SimCarSchema])
 def list_simulator_cars(request: HttpRequest, simulator_id: int):
     """List cars for a simulator."""
     cars = SimCar.objects.filter(simulator_id=simulator_id, is_active=True)
@@ -119,7 +118,7 @@ def get_car(request: HttpRequest, car_id: int):
 
 
 # Track endpoints
-@router.get("/simulators/{simulator_id}/tracks", response=List[SimTrackSchema])
+@router.get("/simulators/{simulator_id}/tracks", response=list[SimTrackSchema])
 def list_simulator_tracks(request: HttpRequest, simulator_id: int):
     """List tracks for a simulator."""
     tracks = SimTrack.objects.filter(simulator_id=simulator_id, is_active=True)
@@ -134,15 +133,19 @@ def get_track(request: HttpRequest, track_id: int):
 
 
 # Lap time endpoints
-@router.get("/laptimes", response=List[LapTimeSchema])
-def list_user_lap_times(request: HttpRequest, simulator_id: int = None, limit: int = 50):
+@router.get("/laptimes", response=list[LapTimeSchema])
+def list_user_lap_times(
+    request: HttpRequest,
+    simulator_id: int = None,
+    limit: int = 50,
+):
     """List current user's lap times."""
     laptimes = LapTime.objects.filter(user=request.auth)
-    
+
     if simulator_id:
         laptimes = laptimes.filter(simulator_id=simulator_id)
-    
-    laptimes = laptimes.order_by('-recorded_at')[:limit]
+
+    laptimes = laptimes.order_by("-recorded_at")[:limit]
     return [LapTimeSchema.from_orm(laptime) for laptime in laptimes]
 
 
@@ -162,7 +165,7 @@ def create_lap_time(request: HttpRequest, laptime_data: LapTimeCreate):
         recorded_at=laptime_data.recorded_at,
         is_valid=True,  # Auto-validate for now
     )
-    
+
     return LapTimeSchema.from_orm(laptime)
 
 
@@ -177,12 +180,12 @@ def get_lap_time(request: HttpRequest, laptime_id: int):
 def update_lap_time(request: HttpRequest, laptime_id: int, updates: LapTimeUpdate):
     """Update lap time record."""
     laptime = get_object_or_404(LapTime, id=laptime_id, user=request.auth)
-    
+
     # Update laptime fields
     for field, value in updates.dict(exclude_unset=True).items():
         if hasattr(laptime, field):
             setattr(laptime, field, value)
-    
+
     laptime.save()
     return LapTimeSchema.from_orm(laptime)
 
@@ -204,26 +207,35 @@ def get_dashboard_stats(request: HttpRequest):
     total_cars = SimCar.objects.filter(is_active=True).count()
     total_tracks = SimTrack.objects.filter(is_active=True).count()
     total_lap_times = LapTime.objects.filter(user=request.auth).count()
-    
+
     # Get best lap time
-    best_laptime_obj = LapTime.objects.filter(
-        user=request.auth,
-        is_valid=True
-    ).order_by('lap_time').first()
-    
+    best_laptime_obj = (
+        LapTime.objects.filter(
+            user=request.auth,
+            is_valid=True,
+        )
+        .order_by("lap_time")
+        .first()
+    )
+
     best_lap_time = best_laptime_obj.lap_time if best_laptime_obj else None
-    
+
     user_profiles = SimProfile.objects.filter(user=request.auth).count()
-    verified_profiles = SimProfile.objects.filter(user=request.auth, is_verified=True).count()
-    
+    verified_profiles = SimProfile.objects.filter(
+        user=request.auth,
+        is_verified=True,
+    ).count()
+
     # Recent sessions (lap times in last 30 days)
-    from datetime import datetime, timedelta
+    from datetime import datetime
+    from datetime import timedelta
+
     recent_cutoff = datetime.now() - timedelta(days=30)
     recent_sessions = LapTime.objects.filter(
         user=request.auth,
-        recorded_at__gte=recent_cutoff
+        recorded_at__gte=recent_cutoff,
     ).count()
-    
+
     return DashboardStats(
         total_simulators=total_simulators,
         total_cars=total_cars,
@@ -236,47 +248,52 @@ def get_dashboard_stats(request: HttpRequest):
     )
 
 
-@router.get("/dashboard/simulators", response=List[SimDataSummary])
+@router.get("/dashboard/simulators", response=list[SimDataSummary])
 def get_simulator_summaries(request: HttpRequest):
     """Get summary data for each simulator."""
     simulators = Simulator.objects.filter(is_active=True)
     summaries = []
-    
+
     for simulator in simulators:
         car_count = SimCar.objects.filter(simulator=simulator, is_active=True).count()
-        track_count = SimTrack.objects.filter(simulator=simulator, is_active=True).count()
+        track_count = SimTrack.objects.filter(
+            simulator=simulator,
+            is_active=True,
+        ).count()
         user_profiles = SimProfile.objects.filter(simulator=simulator).count()
         recent_lap_times = LapTime.objects.filter(
             simulator=simulator,
-            user=request.auth
+            user=request.auth,
         ).count()
-        
+
         # Get average and best lap times for user
         user_laptimes = LapTime.objects.filter(
             simulator=simulator,
             user=request.auth,
-            is_valid=True
+            is_valid=True,
         )
-        
+
         avg_lap_time = None
         best_lap_time = None
-        
+
         if user_laptimes.exists():
-            best_laptime_obj = user_laptimes.order_by('lap_time').first()
+            best_laptime_obj = user_laptimes.order_by("lap_time").first()
             best_lap_time = best_laptime_obj.lap_time if best_laptime_obj else None
-            
+
             # Calculate average (this is simplified - would need proper time averaging)
             # For now, just use the best time as a placeholder
             avg_lap_time = best_lap_time
-        
-        summaries.append(SimDataSummary(
-            simulator=simulator,
-            car_count=car_count,
-            track_count=track_count,
-            user_profiles=user_profiles,
-            recent_lap_times=recent_lap_times,
-            avg_lap_time=avg_lap_time,
-            best_lap_time=best_lap_time,
-        ))
-    
-    return summaries 
+
+        summaries.append(
+            SimDataSummary(
+                simulator=simulator,
+                car_count=car_count,
+                track_count=track_count,
+                user_profiles=user_profiles,
+                recent_lap_times=recent_lap_times,
+                avg_lap_time=avg_lap_time,
+                best_lap_time=best_lap_time,
+            ),
+        )
+
+    return summaries

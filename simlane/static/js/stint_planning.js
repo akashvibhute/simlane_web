@@ -11,7 +11,7 @@ class StintPlanningInterface {
         this.pitStops = [];
         this.timeline = null;
         this.collaborationWs = null;
-        
+
         this.init();
     }
 
@@ -64,10 +64,10 @@ class StintPlanningInterface {
 
         // Add time markers
         this.addTimeMarkers(svg, raceLength, pixelsPerMinute);
-        
+
         // Add driver lanes
         this.addDriverLanes(svg, pixelsPerMinute);
-        
+
         // Add pit window indicators
         this.addPitWindows(svg, pixelsPerMinute);
 
@@ -82,7 +82,7 @@ class StintPlanningInterface {
         // Major markers every 30 minutes
         for (let minute = 0; minute <= raceLength; minute += 30) {
             const x = minute * pixelsPerMinute;
-            
+
             // Vertical line
             const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
             line.setAttribute('x1', x);
@@ -91,7 +91,7 @@ class StintPlanningInterface {
             line.setAttribute('y2', 300);
             line.setAttribute('class', 'time-marker-line');
             g.appendChild(line);
-            
+
             // Time label
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', x);
@@ -127,7 +127,7 @@ class StintPlanningInterface {
 
         this.teamData.members.forEach((driver, index) => {
             const y = startY + (index * laneSpacing);
-            
+
             // Driver lane background
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             rect.setAttribute('x', 0);
@@ -137,7 +137,7 @@ class StintPlanningInterface {
             rect.setAttribute('class', 'driver-lane');
             rect.setAttribute('data-driver-id', driver.id);
             svg.appendChild(rect);
-            
+
             // Driver name label
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', 10);
@@ -157,7 +157,7 @@ class StintPlanningInterface {
         driver.availability.forEach(period => {
             const startX = period.start_minute * pixelsPerMinute;
             const width = (period.end_minute - period.start_minute) * pixelsPerMinute;
-            
+
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             rect.setAttribute('x', startX);
             rect.setAttribute('y', y + 2);
@@ -178,7 +178,7 @@ class StintPlanningInterface {
             const startX = window.start_minute * pixelsPerMinute;
             const endX = window.end_minute * pixelsPerMinute;
             const width = endX - startX;
-            
+
             // Pit window background
             const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
             rect.setAttribute('x', startX);
@@ -188,7 +188,7 @@ class StintPlanningInterface {
             rect.setAttribute('class', 'pit-window');
             rect.setAttribute('data-window-index', index);
             g.appendChild(rect);
-            
+
             // Pit window label
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', startX + 5);
@@ -257,19 +257,19 @@ class StintPlanningInterface {
         // Version conflict detection
         this.lastSaveTimestamp = Date.now();
         this.conflictResolution = 'merge'; // 'merge', 'overwrite', 'ask'
-        
+
         // Set up collaboration indicators
         this.setupCollaborationIndicators();
-        
+
         // Set up real-time cursor tracking
         this.setupCursorTracking();
-        
+
         // Set up collaborative undo/redo
         this.setupCollaborativeHistory();
-        
+
         // Set up presence indicators
         this.setupPresenceIndicators();
-        
+
         // Set up conflict resolution UI
         this.setupConflictResolution();
     }
@@ -298,7 +298,7 @@ class StintPlanningInterface {
             </div>
         `;
         document.body.appendChild(collaborationPanel);
-        
+
         // Initially hide if no collaborators
         collaborationPanel.style.display = 'none';
         this.collaborationPanel = collaborationPanel;
@@ -307,17 +307,17 @@ class StintPlanningInterface {
     setupCursorTracking() {
         this.collaboratorCursors = new Map();
         let cursorTimeout;
-        
+
         // Track mouse movement on timeline
         const timeline = document.getElementById('stint-timeline');
         if (timeline) {
             timeline.addEventListener('mousemove', (event) => {
                 clearTimeout(cursorTimeout);
-                
+
                 const rect = timeline.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
-                
+
                 // Broadcast cursor position
                 if (this.collaborationWs && this.collaborationWs.readyState === WebSocket.OPEN) {
                     this.collaborationWs.send(JSON.stringify({
@@ -328,7 +328,7 @@ class StintPlanningInterface {
                         timestamp: Date.now()
                     }));
                 }
-                
+
                 // Hide cursor after 2 seconds of inactivity
                 cursorTimeout = setTimeout(() => {
                     if (this.collaborationWs && this.collaborationWs.readyState === WebSocket.OPEN) {
@@ -346,19 +346,19 @@ class StintPlanningInterface {
         this.undoStack = [];
         this.redoStack = [];
         this.maxHistorySize = 50;
-        
+
         // Set up undo/redo buttons
         const undoBtn = document.getElementById('undo-button');
         const redoBtn = document.getElementById('redo-button');
-        
+
         if (undoBtn) {
             undoBtn.addEventListener('click', () => this.performUndo());
         }
-        
+
         if (redoBtn) {
             redoBtn.addEventListener('click', () => this.performRedo());
         }
-        
+
         // Set up keyboard shortcuts
         document.addEventListener('keydown', (event) => {
             if ((event.ctrlKey || event.metaKey) && event.key === 'z' && !event.shiftKey) {
@@ -369,7 +369,7 @@ class StintPlanningInterface {
                 this.performRedo();
             }
         });
-        
+
         this.updateHistoryButtons();
     }
 
@@ -384,7 +384,7 @@ class StintPlanningInterface {
                 }));
             }
         }, 30000);
-        
+
         // Send presence updates
         window.addEventListener('focus', () => {
             if (this.collaborationWs && this.collaborationWs.readyState === WebSocket.OPEN) {
@@ -394,7 +394,7 @@ class StintPlanningInterface {
                 }));
             }
         });
-        
+
         window.addEventListener('blur', () => {
             if (this.collaborationWs && this.collaborationWs.readyState === WebSocket.OPEN) {
                 this.collaborationWs.send(JSON.stringify({
@@ -403,7 +403,7 @@ class StintPlanningInterface {
                 }));
             }
         });
-        
+
         // Cleanup on page unload
         window.addEventListener('beforeunload', () => {
             if (this.collaborationWs && this.collaborationWs.readyState === WebSocket.OPEN) {
@@ -421,7 +421,7 @@ class StintPlanningInterface {
     setupConflictResolution() {
         this.conflictQueue = [];
         this.isResolvingConflict = false;
-        
+
         // Create conflict resolution modal
         const conflictModal = document.createElement('div');
         conflictModal.id = 'conflict-resolution-modal';
@@ -477,11 +477,11 @@ class StintPlanningInterface {
         const rect = this.timeline.svg.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const minute = Math.round(x / this.timeline.pixelsPerMinute);
-        
+
         // Determine which driver lane was clicked
         const y = event.clientY - rect.top;
         const driverIndex = this.getDriverIndexFromY(y);
-        
+
         if (driverIndex >= 0) {
             this.handleStintAssignment(driverIndex, minute);
         }
@@ -511,7 +511,7 @@ class StintPlanningInterface {
         if (!this.stintAssignments.has(stint.driverId)) {
             this.stintAssignments.set(stint.driverId, []);
         }
-        
+
         this.stintAssignments.get(stint.driverId).push(stint);
         this.sortStintsByTime(stint.driverId);
     }
@@ -529,7 +529,7 @@ class StintPlanningInterface {
             if (driverIndex < 0) continue;
 
             const y = 40 + (driverIndex * 50);
-            
+
             stints.forEach(stint => {
                 this.addStintToTimeline(stint, y);
             });
@@ -549,7 +549,7 @@ class StintPlanningInterface {
         rect.setAttribute('class', 'stint-assignment');
         rect.setAttribute('data-stint-id', stint.id);
         rect.setAttribute('data-driver-id', stint.driverId);
-        
+
         // Add drag handles
         rect.setAttribute('cursor', 'move');
         rect.addEventListener('mousedown', this.handleStintDragStart.bind(this));
@@ -571,7 +571,7 @@ class StintPlanningInterface {
         const baseConsumption = this.eventData.track.fuel_consumption_per_lap || 2.5;
         const carMultiplier = this.teamData.car.fuel_efficiency || 1.0;
         const lapsInStint = stint.durationMinutes / (this.eventData.average_lap_time / 60);
-        
+
         return Math.ceil(lapsInStint * baseConsumption * carMultiplier);
     }
 
@@ -579,14 +579,14 @@ class StintPlanningInterface {
         const remainingRaceTime = this.eventData.duration_minutes - startMinute;
         const stintFuel = this.calculateFuelConsumption({ durationMinutes });
         const safetyMargin = 2; // Extra liters for safety
-        
+
         return Math.min(stintFuel + safetyMargin, remainingRaceTime * 0.5); // Max fuel capacity consideration
     }
 
     calculateTireWear(stint) {
         const baseDegradation = this.eventData.track.tire_degradation || 0.05;
         const compoundMultiplier = this.getTireCompoundMultiplier(stint.tireCompound);
-        
+
         return stint.durationMinutes * baseDegradation * compoundMultiplier;
     }
 
@@ -630,22 +630,22 @@ class StintPlanningInterface {
 
     handleAutoCalculate() {
         this.showLoadingOverlay('Calculating optimal stint plan...');
-        
+
         // Clear existing assignments
         this.stintAssignments.clear();
-        
+
         // Calculate optimal stint distribution
         const optimalPlan = this.generateOptimalStintPlan();
-        
+
         // Apply the calculated plan
         optimalPlan.forEach(stint => {
             this.addStintAssignment(stint);
         });
-        
+
         this.updateTimelineDisplay();
         this.updateCalculations();
         this.hideLoadingOverlay();
-        
+
         this.broadcastChange('auto-calculate', { plan: optimalPlan });
     }
 
@@ -653,7 +653,7 @@ class StintPlanningInterface {
         const raceLength = this.eventData.duration_minutes;
         const drivers = this.teamData.members;
         const optimalStintLength = this.calculateOptimalStintLength();
-        
+
         const plan = [];
         let currentTime = 0;
         let driverIndex = 0;
@@ -662,7 +662,7 @@ class StintPlanningInterface {
             const driver = drivers[driverIndex % drivers.length];
             const remainingTime = raceLength - currentTime;
             const stintDuration = Math.min(optimalStintLength, remainingTime);
-            
+
             // Check driver availability
             if (this.isDriverAvailable(driver.id, currentTime, stintDuration)) {
                 const stint = {
@@ -673,13 +673,13 @@ class StintPlanningInterface {
                     fuelLoad: this.calculateOptimalFuelLoad(currentTime, stintDuration),
                     tireCompound: this.selectOptimalTireCompound(currentTime, stintDuration)
                 };
-                
+
                 plan.push(stint);
                 currentTime += stintDuration;
             }
-            
+
             driverIndex++;
-            
+
             // Prevent infinite loop
             if (driverIndex > drivers.length * 10) break;
         }
@@ -692,20 +692,20 @@ class StintPlanningInterface {
         const averageLapTime = this.eventData.average_lap_time || 90; // seconds
         const fuelConsumptionRate = this.eventData.track?.fuel_consumption_per_lap || 2.5;
         const maxFuelCapacity = this.teamData.car?.max_fuel || 100;
-        
+
         // Calculate stint length based on fuel capacity and consumption
         const maxLapsOnFuel = maxFuelCapacity / fuelConsumptionRate;
         const maxStintTime = (maxLapsOnFuel * averageLapTime) / 60; // Convert to minutes
-        
+
         // Factor in tire degradation and driver fatigue
         const optimalStintTime = Math.min(maxStintTime * 0.9, 90); // 90 minutes max for driver comfort
-        
+
         return Math.round(optimalStintTime);
     }
 
     handleSavePlan() {
         const planData = this.exportPlanData();
-        
+
         // Send to server via HTMX
         htmx.ajax('POST', window.location.href, {
             values: {
@@ -748,18 +748,18 @@ class StintPlanningInterface {
 
     initializeWebSocket() {
         const wsUrl = `wss://${window.location.host}/ws/stint-planning/${this.teamData.allocation_id}/`;
-        
+
         this.collaborationWs = new WebSocket(wsUrl);
-        
+
         this.collaborationWs.onopen = () => {
             console.log('Collaboration WebSocket connected');
         };
-        
+
         this.collaborationWs.onmessage = (event) => {
             const data = JSON.parse(event.data);
             this.handleCollaborationMessage(data);
         };
-        
+
         this.collaborationWs.onclose = () => {
             console.log('Collaboration WebSocket disconnected');
             // Attempt to reconnect after 5 seconds
@@ -834,22 +834,22 @@ class StintPlanningInterface {
 
     handleCursorMove(data) {
         if (data.user_id === this.getCurrentUserId()) return;
-        
+
         const timeline = document.getElementById('stint-timeline');
         if (!timeline) return;
-        
+
         // Create or update cursor indicator
         let cursor = this.collaboratorCursors.get(data.user_id);
         if (!cursor) {
             cursor = this.createCollaboratorCursor(data.user_id, data.user_name);
             this.collaboratorCursors.set(data.user_id, cursor);
         }
-        
+
         // Update cursor position
         cursor.style.left = `${data.x}px`;
         cursor.style.top = `${data.y}px`;
         cursor.style.display = 'block';
-        
+
         // Auto-hide after 5 seconds
         clearTimeout(cursor.hideTimeout);
         cursor.hideTimeout = setTimeout(() => {
@@ -879,7 +879,7 @@ class StintPlanningInterface {
             transition: all 0.1s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         `;
-        
+
         // Add user label
         const label = document.createElement('div');
         label.className = 'collaborator-label';
@@ -897,17 +897,17 @@ class StintPlanningInterface {
             white-space: nowrap;
             box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         `;
-        
+
         cursor.appendChild(label);
         document.body.appendChild(cursor);
-        
+
         return cursor;
     }
 
     handleUserJoined(data) {
         this.addCollaboratorToPanel(data);
         this.showCollaborationNotification(`${data.user_name} joined the planning session`, 'info');
-        
+
         // Show collaboration panel if hidden
         if (this.collaborationPanel) {
             this.collaborationPanel.style.display = 'block';
@@ -918,10 +918,10 @@ class StintPlanningInterface {
         this.removeCollaboratorFromPanel(userId);
         const userName = this.getUserName(userId);
         this.showCollaborationNotification(`${userName} left the planning session`, 'info');
-        
+
         // Hide cursor
         this.handleCursorHide(userId);
-        
+
         // Hide panel if no collaborators
         const collaboratorList = document.getElementById('collaborator-list');
         if (collaboratorList && collaboratorList.children.length === 0) {
@@ -951,7 +951,7 @@ class StintPlanningInterface {
 
     handleUserDisconnect(userId) {
         this.handleUserLeft(userId);
-        
+
         // Remove cursor
         const cursor = this.collaboratorCursors.get(userId);
         if (cursor) {
@@ -965,7 +965,7 @@ class StintPlanningInterface {
             this.conflictQueue.push(data);
             return;
         }
-        
+
         this.isResolvingConflict = true;
         this.showConflictResolutionModal(data);
     }
@@ -973,7 +973,7 @@ class StintPlanningInterface {
     addCollaboratorToPanel(user) {
         const collaboratorList = document.getElementById('collaborator-list');
         if (!collaboratorList) return;
-        
+
         const collaboratorEl = document.createElement('div');
         collaboratorEl.className = 'flex items-center space-x-2 p-2 bg-gray-50 rounded-lg user-active';
         collaboratorEl.setAttribute('data-user-id', user.user_id);
@@ -987,7 +987,7 @@ class StintPlanningInterface {
             </div>
             <div class="w-2 h-2 bg-green-400 rounded-full"></div>
         `;
-        
+
         collaboratorList.appendChild(collaboratorEl);
     }
 
@@ -1001,20 +1001,20 @@ class StintPlanningInterface {
     showConflictResolutionModal(conflictData) {
         const modal = this.conflictModal;
         const description = document.getElementById('conflict-description');
-        
+
         description.textContent = `${conflictData.user_name} modified the same stint you're working on. How would you like to resolve this conflict?`;
-        
+
         modal.classList.remove('hidden');
-        
+
         // Set up event listeners for resolution buttons
         document.getElementById('conflict-keep-mine').onclick = () => {
             this.resolveConflict('keep_mine', conflictData);
         };
-        
+
         document.getElementById('conflict-keep-theirs').onclick = () => {
             this.resolveConflict('keep_theirs', conflictData);
         };
-        
+
         document.getElementById('conflict-merge').onclick = () => {
             this.resolveConflict('merge', conflictData);
         };
@@ -1024,7 +1024,7 @@ class StintPlanningInterface {
         // Hide modal
         this.conflictModal.classList.add('hidden');
         this.isResolvingConflict = false;
-        
+
         // Apply resolution
         switch (resolution) {
             case 'keep_mine':
@@ -1042,7 +1042,7 @@ class StintPlanningInterface {
                 this.showCollaborationNotification('Attempted to merge changes', 'info');
                 break;
         }
-        
+
         // Process next conflict in queue
         if (this.conflictQueue.length > 0) {
             const nextConflict = this.conflictQueue.shift();
@@ -1055,10 +1055,10 @@ class StintPlanningInterface {
     showCollaborationNotification(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `fixed bottom-4 right-4 p-3 rounded-lg shadow-lg z-50 transition-all transform translate-x-full max-w-sm`;
-        
+
         const bgColor = type === 'info' ? 'bg-blue-500' : type === 'success' ? 'bg-green-500' : 'bg-orange-500';
         notification.classList.add(bgColor, 'text-white');
-        
+
         notification.innerHTML = `
             <div class="flex items-center">
                 <div class="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
@@ -1070,14 +1070,14 @@ class StintPlanningInterface {
                 </button>
             </div>
         `;
-        
+
         document.body.appendChild(notification);
-        
+
         // Animate in
         setTimeout(() => {
             notification.classList.remove('translate-x-full');
         }, 100);
-        
+
         // Auto remove after 4 seconds
         setTimeout(() => {
             notification.classList.add('translate-x-full');
@@ -1097,13 +1097,13 @@ class StintPlanningInterface {
     // Mobile optimization methods
     enableMobileMode() {
         document.body.classList.add('mobile-stint-planning');
-        
+
         // Switch to simplified timeline view
         this.setupMobileTimeline();
-        
+
         // Enable touch gestures
         this.setupTouchGestures();
-        
+
         // Simplify interface
         this.hideMobileUnsupportedFeatures();
     }
@@ -1119,7 +1119,7 @@ class StintPlanningInterface {
             </div>
             <div class="mobile-stint-list"></div>
         `;
-        
+
         const timelineContainer = document.getElementById('stint-timeline');
         if (timelineContainer) {
             timelineContainer.style.display = 'none';
@@ -1154,9 +1154,9 @@ class StintPlanningInterface {
         const messageEl = document.createElement('div');
         messageEl.className = `message message-${type}`;
         messageEl.textContent = message;
-        
+
         document.body.appendChild(messageEl);
-        
+
         setTimeout(() => {
             messageEl.remove();
         }, 5000);
@@ -1178,7 +1178,7 @@ class StintPlanningInterface {
         // Clear existing data
         this.stintAssignments.clear();
         this.pitStops = [];
-        
+
         // Import stint assignments
         if (planData.stints) {
             planData.stints.forEach(stint => {
@@ -1193,12 +1193,12 @@ class StintPlanningInterface {
                 this.addStintAssignment(stintObj);
             });
         }
-        
+
         // Import pit stops
         if (planData.pit_stops) {
             this.pitStops = [...planData.pit_stops];
         }
-        
+
         // Update displays
         this.updateTimelineDisplay();
         this.updateCalculations();
@@ -1215,4 +1215,4 @@ document.addEventListener('DOMContentLoaded', function() {
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = StintPlanningInterface;
-} 
+}

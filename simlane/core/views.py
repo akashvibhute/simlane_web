@@ -277,7 +277,7 @@ def dashboard_view(request):
 
         # Get teams through TeamMember relationships
         team_memberships = TeamMember.objects.filter(user=request.user).select_related(
-            "team"
+            "team",
         )
         user_teams = [tm.team for tm in team_memberships]
 

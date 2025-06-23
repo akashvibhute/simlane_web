@@ -5,7 +5,7 @@
     {% for profile in user_profiles %}
       {% url 'users:sim_profile_edit' profile.id as edit_url %}
       {% url 'users:sim_profile_disconnect' profile.id as disconnect_url %}
-      {% include 'users/_sim_profile_card_partial.html' with profile=profile edit_url=edit_url disconnect_url=disconnect_url %}
+      {% include 'users/_sim_profile_card_partial.html' with sim_profile=profile edit_url=edit_url disconnect_url=disconnect_url %}
     {% endfor %}
   </div>
 {% else %}

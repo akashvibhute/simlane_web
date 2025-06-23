@@ -1,26 +1,24 @@
-from ninja import Router
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
+from ninja import Router
 from ninja.errors import HttpError
-from typing import List
 
-from simlane.teams.models import Club, ClubMember, Team, ClubEvent, EventSignup
-from simlane.api.schemas.clubs import (
-    Club as ClubSchema,
-    ClubCreate,
-    ClubUpdate,
-    ClubMember as ClubMemberSchema,
-    ClubMemberUpdate,
-    Team as TeamSchema,
-    TeamCreate,
-    TeamUpdate,
-    ClubEvent as ClubEventSchema,
-    ClubEventCreate,
-    ClubEventUpdate,
-    EventSignup as EventSignupSchema,
-    EventSignupCreate,
-    EventSignupUpdate,
-)
+from simlane.api.schemas.clubs import Club as ClubSchema
+from simlane.api.schemas.clubs import ClubCreate
+from simlane.api.schemas.clubs import ClubEvent as ClubEventSchema
+from simlane.api.schemas.clubs import ClubEventCreate
+from simlane.api.schemas.clubs import ClubMember as ClubMemberSchema
+from simlane.api.schemas.clubs import ClubMemberUpdate
+from simlane.api.schemas.clubs import ClubUpdate
+from simlane.api.schemas.clubs import EventSignup as EventSignupSchema
+from simlane.api.schemas.clubs import EventSignupCreate
+from simlane.api.schemas.clubs import Team as TeamSchema
+from simlane.api.schemas.clubs import TeamCreate
+from simlane.teams.models import Club
+from simlane.teams.models import ClubEvent
+from simlane.teams.models import ClubMember
+from simlane.teams.models import EventSignup
+from simlane.teams.models import Team
 
 router = Router()
 
@@ -29,8 +27,8 @@ router = Router()
 def check_club_access(user, club, required_roles=None):
     """Check if user has access to club with required roles."""
     if required_roles is None:
-        required_roles = ['OWNER', 'ADMIN', 'MANAGER', 'MEMBER']
-    
+        required_roles = ["OWNER", "ADMIN", "MANAGER", "MEMBER"]
+
     try:
         membership = ClubMember.objects.get(user=user, club=club, is_active=True)
         if membership.role not in required_roles:
@@ -42,23 +40,23 @@ def check_club_access(user, club, required_roles=None):
 
 def check_club_admin(user, club):
     """Check if user is admin or owner of club."""
-    return check_club_access(user, club, ['OWNER', 'ADMIN'])
+    return check_club_access(user, club, ["OWNER", "ADMIN"])
 
 
 def check_club_manager(user, club):
     """Check if user has manager+ permissions."""
-    return check_club_access(user, club, ['OWNER', 'ADMIN', 'MANAGER'])
+    return check_club_access(user, club, ["OWNER", "ADMIN", "MANAGER"])
 
 
 # Club endpoints
-@router.get("/", response=List[ClubSchema])
+@router.get("/", response=list[ClubSchema])
 def list_clubs(request: HttpRequest):
     """List user's clubs."""
     user_clubs = Club.objects.filter(
         clubmember__user=request.auth,
-        clubmember__is_active=True
+        clubmember__is_active=True,
     ).distinct()
-    
+
     return [ClubSchema.from_orm(club) for club in user_clubs]
 
 
@@ -75,15 +73,15 @@ def create_club(request: HttpRequest, club_data: ClubCreate):
         timezone=club_data.timezone,
         owner=request.auth,
     )
-    
+
     # Create owner membership
     ClubMember.objects.create(
         user=request.auth,
         club=club,
-        role='OWNER',
+        role="OWNER",
         is_active=True,
     )
-    
+
     return ClubSchema.from_orm(club)
 
 
@@ -92,7 +90,7 @@ def get_club(request: HttpRequest, club_id: int):
     """Get club details."""
     club = get_object_or_404(Club, id=club_id)
     check_club_access(request.auth, club)
-    
+
     return ClubSchema.from_orm(club)
 
 
@@ -101,12 +99,12 @@ def update_club(request: HttpRequest, club_id: int, updates: ClubUpdate):
     """Update club details."""
     club = get_object_or_404(Club, id=club_id)
     check_club_admin(request.auth, club)
-    
+
     # Update club fields
     for field, value in updates.dict(exclude_unset=True).items():
         if hasattr(club, field):
             setattr(club, field, value)
-    
+
     club.save()
     return ClubSchema.from_orm(club)
 
@@ -115,39 +113,44 @@ def update_club(request: HttpRequest, club_id: int, updates: ClubUpdate):
 def delete_club(request: HttpRequest, club_id: int):
     """Delete club (owner only)."""
     club = get_object_or_404(Club, id=club_id)
-    
+
     # Only owner can delete club
     if club.owner != request.auth:
         raise HttpError(403, "Only club owner can delete the club")
-    
+
     club.delete()
     return {"message": "Club deleted successfully"}
 
 
 # Club member endpoints
-@router.get("/{club_id}/members", response=List[ClubMemberSchema])
+@router.get("/{club_id}/members", response=list[ClubMemberSchema])
 def list_club_members(request: HttpRequest, club_id: int):
     """List club members."""
     club = get_object_or_404(Club, id=club_id)
     check_club_access(request.auth, club)
-    
+
     members = ClubMember.objects.filter(club=club, is_active=True)
     return [ClubMemberSchema.from_orm(member) for member in members]
 
 
 @router.patch("/{club_id}/members/{member_id}", response=ClubMemberSchema)
-def update_club_member(request: HttpRequest, club_id: int, member_id: int, updates: ClubMemberUpdate):
+def update_club_member(
+    request: HttpRequest,
+    club_id: int,
+    member_id: int,
+    updates: ClubMemberUpdate,
+):
     """Update club member."""
     club = get_object_or_404(Club, id=club_id)
     check_club_manager(request.auth, club)
-    
+
     member = get_object_or_404(ClubMember, id=member_id, club=club)
-    
+
     # Update member fields
     for field, value in updates.dict(exclude_unset=True).items():
         if hasattr(member, field):
             setattr(member, field, value)
-    
+
     member.save()
     return ClubMemberSchema.from_orm(member)
 
@@ -157,24 +160,24 @@ def remove_club_member(request: HttpRequest, club_id: int, member_id: int):
     """Remove club member."""
     club = get_object_or_404(Club, id=club_id)
     check_club_manager(request.auth, club)
-    
+
     member = get_object_or_404(ClubMember, id=member_id, club=club)
-    
+
     # Can't remove club owner
-    if member.role == 'OWNER':
+    if member.role == "OWNER":
         raise HttpError(400, "Cannot remove club owner")
-    
+
     member.delete()
     return {"message": "Member removed successfully"}
 
 
 # Team endpoints
-@router.get("/{club_id}/teams", response=List[TeamSchema])
+@router.get("/{club_id}/teams", response=list[TeamSchema])
 def list_club_teams(request: HttpRequest, club_id: int):
     """List club teams."""
     club = get_object_or_404(Club, id=club_id)
     check_club_access(request.auth, club)
-    
+
     teams = Team.objects.filter(club=club, is_active=True)
     return [TeamSchema.from_orm(team) for team in teams]
 
@@ -184,7 +187,7 @@ def create_club_team(request: HttpRequest, club_id: int, team_data: TeamCreate):
     """Create a new team."""
     club = get_object_or_404(Club, id=club_id)
     check_club_manager(request.auth, club)
-    
+
     team = Team.objects.create(
         name=team_data.name,
         description=team_data.description,
@@ -192,31 +195,31 @@ def create_club_team(request: HttpRequest, club_id: int, team_data: TeamCreate):
         max_members=team_data.max_members,
         color=team_data.color,
     )
-    
+
     # Set captain if provided
     if team_data.captain_id:
         try:
             captain = ClubMember.objects.get(
                 id=team_data.captain_id,
                 club=club,
-                is_active=True
+                is_active=True,
             )
             team.captain = captain.user
             team.save()
         except ClubMember.DoesNotExist:
             pass
-    
+
     return TeamSchema.from_orm(team)
 
 
 # Event endpoints
-@router.get("/{club_id}/events", response=List[ClubEventSchema])
+@router.get("/{club_id}/events", response=list[ClubEventSchema])
 def list_club_events(request: HttpRequest, club_id: int):
     """List club events."""
     club = get_object_or_404(Club, id=club_id)
     check_club_access(request.auth, club)
-    
-    events = ClubEvent.objects.filter(club=club).order_by('-start_date')
+
+    events = ClubEvent.objects.filter(club=club).order_by("-start_date")
     return [ClubEventSchema.from_orm(event) for event in events]
 
 
@@ -225,15 +228,17 @@ def create_club_event(request: HttpRequest, club_id: int, event_data: ClubEventC
     """Create a new event."""
     club = get_object_or_404(Club, id=club_id)
     check_club_manager(request.auth, club)
-    
+
     # TODO: Get simulator, car, track objects
     # For now, we'll need to import and get these from the sim app
-    from simlane.sim.models import Simulator, SimCar, SimTrack
-    
+    from simlane.sim.models import SimCar
+    from simlane.sim.models import SimTrack
+    from simlane.sim.models import Simulator
+
     simulator = get_object_or_404(Simulator, id=event_data.simulator_id)
     car = get_object_or_404(SimCar, id=event_data.car_id)
     track = get_object_or_404(SimTrack, id=event_data.track_id)
-    
+
     event = ClubEvent.objects.create(
         name=event_data.name,
         description=event_data.description,
@@ -252,44 +257,49 @@ def create_club_event(request: HttpRequest, club_id: int, event_data: ClubEventC
         weather_conditions=event_data.weather_conditions,
         track_conditions=event_data.track_conditions,
     )
-    
+
     return ClubEventSchema.from_orm(event)
 
 
 # Event signup endpoints
-@router.get("/{club_id}/events/{event_id}/signups", response=List[EventSignupSchema])
+@router.get("/{club_id}/events/{event_id}/signups", response=list[EventSignupSchema])
 def list_event_signups(request: HttpRequest, club_id: int, event_id: int):
     """List event signups."""
     club = get_object_or_404(Club, id=club_id)
     check_club_access(request.auth, club)
-    
+
     event = get_object_or_404(ClubEvent, id=event_id, club=club)
     signups = EventSignup.objects.filter(event=event)
-    
+
     return [EventSignupSchema.from_orm(signup) for signup in signups]
 
 
 @router.post("/{club_id}/events/{event_id}/signup", response=EventSignupSchema)
-def signup_for_event(request: HttpRequest, club_id: int, event_id: int, signup_data: EventSignupCreate):
+def signup_for_event(
+    request: HttpRequest,
+    club_id: int,
+    event_id: int,
+    signup_data: EventSignupCreate,
+):
     """Sign up for an event."""
     club = get_object_or_404(Club, id=club_id)
     check_club_access(request.auth, club)
-    
+
     event = get_object_or_404(ClubEvent, id=event_id, club=club)
-    
+
     # Check if already signed up
     if EventSignup.objects.filter(event=event, user=request.auth).exists():
         raise HttpError(400, "Already signed up for this event")
-    
+
     # Check if signups are open
     if not event.is_signup_open:
         raise HttpError(400, "Signups are closed for this event")
-    
+
     # Get team if provided
     team = None
     if signup_data.team_id:
         team = get_object_or_404(Team, id=signup_data.team_id, club=club)
-    
+
     signup = EventSignup.objects.create(
         event=event,
         user=request.auth,
@@ -301,5 +311,5 @@ def signup_for_event(request: HttpRequest, club_id: int, event_id: int, signup_d
         is_confirmed=True,  # Auto-confirm for now
         is_reserve=False,
     )
-    
-    return EventSignupSchema.from_orm(signup) 
+
+    return EventSignupSchema.from_orm(signup)

@@ -1,6 +1,3 @@
-# Default docker-compose.yml - Web-only configuration for everyday development
-# For full services including Celery, use: docker-compose -f docker-compose.full.yml
-
 volumes:
   simlane_local_postgres_data: {}
   simlane_local_postgres_data_backups: {}
@@ -52,6 +49,36 @@ services:
     container_name: simlane_local_redis
     volumes:
       - simlane_local_redis_data:/data
+
+  celeryworker:
+    <<: *django
+    image: simlane_local_celeryworker
+    container_name: simlane_local_celeryworker
+    depends_on:
+      - redis
+      - postgres
+      - mailpit
+    ports: []
+    command: /start-celeryworker
+
+  celerybeat:
+    <<: *django
+    image: simlane_local_celerybeat
+    container_name: simlane_local_celerybeat
+    depends_on:
+      - redis
+      - postgres
+      - mailpit
+    ports: []
+    command: /start-celerybeat
+
+  flower:
+    <<: *django
+    image: simlane_local_flower
+    container_name: simlane_local_flower
+    ports:
+      - '5555:5555'
+    command: /start-flower
 
   node:
     build:

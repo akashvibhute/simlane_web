@@ -54,7 +54,7 @@ class TeamAllocationWizard {
         const memberCard = event.target.closest('.member-card');
         event.dataTransfer.setData('text/plain', memberCard.dataset.memberId);
         event.dataTransfer.effectAllowed = 'move';
-        
+
         memberCard.classList.add('dragging');
         this.showDropZones();
     }
@@ -112,20 +112,20 @@ class TeamAllocationWizard {
         const teamId = teamContainer.dataset.teamId;
         const currentMembers = this.teamAllocations.get(teamId) || [];
         const maxMembers = parseInt(teamContainer.dataset.maxMembers) || this.validationRules.maxDriversPerTeam;
-        
+
         return currentMembers.length < maxMembers;
     }
 
     assignMemberToTeam(memberId, teamId) {
         // Remove member from previous team
         this.unassignMember(memberId);
-        
+
         // Add to new team
         if (!this.teamAllocations.has(teamId)) {
             this.teamAllocations.set(teamId, []);
         }
         this.teamAllocations.get(teamId).push(memberId);
-        
+
         // Track change for undo functionality
         this.trackChange('assign', { memberId, teamId });
     }
@@ -203,7 +203,7 @@ class TeamAllocationWizard {
         this.changeHistory = [];
         this.changeIndex = -1;
         this.maxHistorySize = 50;
-        
+
         // Load existing allocations if any
         this.loadExistingAllocations();
         this.updateUI();
@@ -227,9 +227,9 @@ class TeamAllocationWizard {
     handleAutoSuggest() {
         const algorithm = document.getElementById('suggestion-algorithm')?.value || 'skill-balanced';
         const numTeams = parseInt(document.getElementById('num-teams')?.value) || 2;
-        
+
         this.showLoadingState('Generating suggestions...');
-        
+
         // Simulate API call for now - replace with actual HTMX call
         setTimeout(() => {
             const suggestions = this.suggestionAlgorithms[algorithm](numTeams);
@@ -252,7 +252,7 @@ class TeamAllocationWizard {
         // Distribute members in snake draft pattern
         for (let i = 0; i < sortedMembers.length; i++) {
             teams[teamIndex].push(sortedMembers[i].id);
-            
+
             if (i % numTeams === numTeams - 1) {
                 // Reverse direction for snake draft
                 teamIndex = numTeams - 1 - (i % (numTeams * 2));
@@ -267,7 +267,7 @@ class TeamAllocationWizard {
     generateAvailabilityOptimizedSuggestion(numTeams) {
         const members = this.getAllMembers();
         const availabilityMatrix = this.getAvailabilityMatrix();
-        
+
         // Use Hungarian algorithm or greedy approach to optimize availability overlap
         const teams = Array.from({ length: numTeams }, () => []);
         let teamIndex = 0;
@@ -283,7 +283,7 @@ class TeamAllocationWizard {
     generateCarPreferenceSuggestion(numTeams) {
         const members = this.getAllMembers();
         const carPreferences = this.getCarPreferences();
-        
+
         // Group members by car preference and distribute evenly
         const carGroups = {};
         for (const member of members) {
@@ -308,7 +308,7 @@ class TeamAllocationWizard {
     generateRandomSuggestion(numTeams) {
         const members = this.getAllMembers();
         const shuffled = [...members].sort(() => Math.random() - 0.5);
-        
+
         const teams = Array.from({ length: numTeams }, () => []);
         let teamIndex = 0;
 
@@ -325,7 +325,7 @@ class TeamAllocationWizard {
         if (!suggestionsContainer) return;
 
         suggestionsContainer.innerHTML = '';
-        
+
         suggestions.forEach((team, index) => {
             const teamDiv = document.createElement('div');
             teamDiv.className = 'suggestion-team bg-gray-50 rounded-lg p-4 mb-4';
@@ -357,7 +357,7 @@ class TeamAllocationWizard {
 
         // Clear current allocations
         this.teamAllocations.clear();
-        
+
         // Apply suggestions
         suggestions.forEach((team, index) => {
             const teamId = `team-${index + 1}`;
@@ -367,7 +367,7 @@ class TeamAllocationWizard {
         this.trackChange('apply-suggestions', { suggestions });
         this.updateUI();
         this.validateAllocation();
-        
+
         // Hide suggestions panel
         const suggestionsPanel = document.getElementById('suggestions-panel');
         if (suggestionsPanel) {
@@ -408,10 +408,10 @@ class TeamAllocationWizard {
 
     handleBalanceTeams() {
         const balancedAllocation = this.balanceTeamsBySkill();
-        
+
         // Clear current allocations
         this.teamAllocations.clear();
-        
+
         // Apply balanced allocation
         balancedAllocation.forEach((team, index) => {
             const teamId = `team-${index + 1}`;
@@ -426,11 +426,11 @@ class TeamAllocationWizard {
     handleMemberSearch(event) {
         const searchTerm = event.target.value.toLowerCase();
         const memberCards = document.querySelectorAll('.member-card');
-        
+
         memberCards.forEach(card => {
             const memberName = card.dataset.memberName?.toLowerCase() || '';
             const memberUsername = card.dataset.memberUsername?.toLowerCase() || '';
-            
+
             if (memberName.includes(searchTerm) || memberUsername.includes(searchTerm)) {
                 card.style.display = 'block';
                 card.classList.add('search-highlight');
@@ -444,7 +444,7 @@ class TeamAllocationWizard {
     handleTeamSizeChange(event) {
         const teamId = event.target.dataset.teamId;
         const newSize = parseInt(event.target.value);
-        
+
         // Validate team size doesn't exceed current members
         const currentMembers = this.teamAllocations.get(teamId) || [];
         if (newSize < currentMembers.length) {
@@ -458,7 +458,7 @@ class TeamAllocationWizard {
                 return;
             }
         }
-        
+
         this.updateUI();
         this.validateAllocation();
     }
@@ -466,17 +466,17 @@ class TeamAllocationWizard {
     trackChange(type, data) {
         // Remove any changes after current index (for branching history)
         this.changeHistory = this.changeHistory.slice(0, this.changeIndex + 1);
-        
+
         // Add new change
         this.changeHistory.push({ type, data, timestamp: Date.now() });
         this.changeIndex++;
-        
+
         // Limit history size
         if (this.changeHistory.length > this.maxHistorySize) {
             this.changeHistory.shift();
             this.changeIndex--;
         }
-        
+
         this.updateUndoRedoButtons();
     }
 
@@ -489,18 +489,18 @@ class TeamAllocationWizard {
 
     updateTeamContainers() {
         const teamContainers = document.querySelectorAll('.team-container');
-        
+
         teamContainers.forEach(container => {
             const teamId = container.dataset.teamId;
             const members = this.teamAllocations.get(teamId) || [];
             const memberArea = container.querySelector('.team-members');
-            
+
             if (memberArea) {
-                memberArea.innerHTML = members.map(memberId => 
+                memberArea.innerHTML = members.map(memberId =>
                     this.renderMemberCard(memberId, true)
                 ).join('');
             }
-            
+
             // Update team stats
             this.updateTeamStats(container, members);
         });
@@ -509,17 +509,17 @@ class TeamAllocationWizard {
     updateUnassignedMembers() {
         const unassignedArea = document.querySelector('.unassigned-members');
         if (!unassignedArea) return;
-        
+
         const allMembers = this.getAllMembers();
         const assignedMembers = new Set();
-        
+
         for (const members of this.teamAllocations.values()) {
             members.forEach(id => assignedMembers.add(id));
         }
-        
+
         const unassignedMembers = allMembers.filter(member => !assignedMembers.has(member.id));
-        
-        unassignedArea.innerHTML = unassignedMembers.map(member => 
+
+        unassignedArea.innerHTML = unassignedMembers.map(member =>
             this.renderMemberCard(member.id, false)
         ).join('');
     }
@@ -527,13 +527,13 @@ class TeamAllocationWizard {
     validateAllocation() {
         this.validationErrors = [];
         this.validationWarnings = [];
-        
+
         // Check minimum teams
         const activeTeams = Array.from(this.teamAllocations.values()).filter(team => team.length > 0);
         if (activeTeams.length < this.validationRules.minTeams) {
             this.validationErrors.push(`At least ${this.validationRules.minTeams} team(s) required`);
         }
-        
+
         // Check team sizes
         for (const [teamId, members] of this.teamAllocations.entries()) {
             if (members.length > 0 && members.length < this.validationRules.minDriversPerTeam) {
@@ -543,22 +543,22 @@ class TeamAllocationWizard {
                 this.validationErrors.push(`Team ${teamId} exceeds maximum of ${this.validationRules.maxDriversPerTeam} members`);
             }
         }
-        
+
         // Check unassigned members
         const unassignedCount = this.getUnassignedMembersCount();
         if (unassignedCount > 0) {
             this.validationWarnings.push(`${unassignedCount} member(s) not assigned to any team`);
         }
-        
+
         this.displayValidation();
     }
 
     displayValidation() {
         const validationContainer = document.getElementById('validation-messages');
         if (!validationContainer) return;
-        
+
         validationContainer.innerHTML = '';
-        
+
         // Display errors
         this.validationErrors.forEach(error => {
             const errorDiv = document.createElement('div');
@@ -571,7 +571,7 @@ class TeamAllocationWizard {
             `;
             validationContainer.appendChild(errorDiv);
         });
-        
+
         // Display warnings
         this.validationWarnings.forEach(warning => {
             const warningDiv = document.createElement('div');
@@ -584,7 +584,7 @@ class TeamAllocationWizard {
             `;
             validationContainer.appendChild(warningDiv);
         });
-        
+
         // Update finalize button state
         const finalizeBtn = document.getElementById('finalize-allocation-btn');
         if (finalizeBtn) {
@@ -639,23 +639,23 @@ class TeamAllocationWizard {
     getUnassignedMembersCount() {
         const allMembers = this.getAllMembers();
         const assignedMembers = new Set();
-        
+
         for (const members of this.teamAllocations.values()) {
             members.forEach(id => assignedMembers.add(id));
         }
-        
+
         return allMembers.length - assignedMembers.size;
     }
 
     updateUndoRedoButtons() {
         const undoBtn = document.getElementById('undo-btn');
         const redoBtn = document.getElementById('redo-btn');
-        
+
         if (undoBtn) {
             undoBtn.disabled = this.changeIndex < 0;
             undoBtn.classList.toggle('opacity-50', this.changeIndex < 0);
         }
-        
+
         if (redoBtn) {
             redoBtn.disabled = this.changeIndex >= this.changeHistory.length - 1;
             redoBtn.classList.toggle('opacity-50', this.changeIndex >= this.changeHistory.length - 1);
@@ -673,4 +673,4 @@ document.addEventListener('DOMContentLoaded', function() {
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = TeamAllocationWizard;
-} 
+}

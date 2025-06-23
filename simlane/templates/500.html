@@ -1,140 +1,145 @@
 {% extends "base.html" %}
+
 {% load static %}
 
 {% block title %}Server Error - SimLane{% endblock %}
-
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 flex items-center justify-center px-4 sm:px-6 lg:px-8">
     <div class="max-w-lg w-full space-y-8 text-center">
-        <!-- SimLane Logo -->
-        <div class="flex justify-center">
-            <img src="{% static 'images/logo.svg' %}" alt="SimLane" class="h-16 w-auto">
+      <!-- SimLane Logo -->
+      <div class="flex justify-center">
+        <img src="{% static 'images/logo.svg' %}"
+             alt="SimLane"
+             class="h-16 w-auto" />
+      </div>
+      <!-- 500 Illustration -->
+      <div class="relative">
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="w-64 h-64 bg-gradient-to-br from-red-100 to-orange-200 dark:from-red-900/20 dark:to-orange-800/20 rounded-full opacity-20">
+          </div>
         </div>
-        
-        <!-- 500 Illustration -->
-        <div class="relative">
-            <div class="absolute inset-0 flex items-center justify-center">
-                <div class="w-64 h-64 bg-gradient-to-br from-red-100 to-orange-200 dark:from-red-900/20 dark:to-orange-800/20 rounded-full opacity-20"></div>
-            </div>
-            
-            <!-- Broken Car SVG Illustration -->
-            <div class="relative z-10 flex justify-center">
-                <svg class="w-48 h-48 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 200 200">
-                    <!-- Broken car body -->
-                    <g transform="translate(100,100)">
-                        <rect x="-30" y="-15" width="60" height="30" rx="5" fill="currentColor" opacity="0.3" stroke-width="2"/>
-                        
-                        <!-- Broken parts -->
-                        <path d="M-25,-10 L-20,-5 M-15,-12 L-10,-7 M5,-8 L10,-3" stroke="currentColor" stroke-width="2" opacity="0.5"/>
-                        
-                        <!-- Smoke/steam -->
-                        <g opacity="0.4">
-                            <circle cx="-20" cy="-25" r="3" fill="currentColor"/>
-                            <circle cx="-15" cy="-30" r="2" fill="currentColor"/>
-                            <circle cx="-10" cy="-35" r="1.5" fill="currentColor"/>
-                            <circle cx="15" cy="-25" r="2.5" fill="currentColor"/>
-                            <circle cx="20" cy="-30" r="2" fill="currentColor"/>
-                            <circle cx="25" cy="-35" r="1" fill="currentColor"/>
-                        </g>
-                        
-                        <!-- Wheels (flat) -->
-                        <ellipse cx="-20" cy="20" rx="8" ry="4" fill="currentColor" opacity="0.4"/>
-                        <ellipse cx="20" cy="20" rx="8" ry="4" fill="currentColor" opacity="0.4"/>
-                        
-                        <!-- Warning triangle -->
-                        <g transform="translate(50,0)">
-                            <path d="M0,-10 L8,5 L-8,5 Z" fill="currentColor" opacity="0.6"/>
-                            <text x="0" y="2" text-anchor="middle" font-size="8" fill="white">!</text>
-                        </g>
-                    </g>
-                </svg>
-            </div>
+        <!-- Broken Car SVG Illustration -->
+        <div class="relative z-10 flex justify-center">
+          <svg class="w-48 h-48 text-gray-400 dark:text-gray-600"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 200 200">
+            <!-- Broken car body -->
+            <g transform="translate(100,100)">
+            <rect x="-30" y="-15" width="60" height="30" rx="5" fill="currentColor" opacity="0.3" stroke-width="2" />
+            <!-- Broken parts -->
+            <path d="M-25,-10 L-20,-5 M-15,-12 L-10,-7 M5,-8 L10,-3" stroke="currentColor" stroke-width="2" opacity="0.5" />
+            <!-- Smoke/steam -->
+            <g opacity="0.4">
+            <circle cx="-20" cy="-25" r="3" fill="currentColor" />
+            <circle cx="-15" cy="-30" r="2" fill="currentColor" />
+            <circle cx="-10" cy="-35" r="1.5" fill="currentColor" />
+            <circle cx="15" cy="-25" r="2.5" fill="currentColor" />
+            <circle cx="20" cy="-30" r="2" fill="currentColor" />
+            <circle cx="25" cy="-35" r="1" fill="currentColor" />
+            </g>
+            <!-- Wheels (flat) -->
+            <ellipse cx="-20" cy="20" rx="8" ry="4" fill="currentColor" opacity="0.4" />
+            <ellipse cx="20" cy="20" rx="8" ry="4" fill="currentColor" opacity="0.4" />
+            <!-- Warning triangle -->
+            <g transform="translate(50,0)">
+            <path d="M0,-10 L8,5 L-8,5 Z" fill="currentColor" opacity="0.6" />
+            <text x="0" y="2" text-anchor="middle" font-size="8" fill="white">!</text>
+            </g>
+            </g>
+          </svg>
         </div>
-
-        <!-- Error Message -->
-        <div class="space-y-4">
-            <div class="space-y-2">
-                <h1 class="text-6xl font-bold text-gray-900 dark:text-white">500</h1>
-                <h2 class="text-2xl font-semibold text-red-600 dark:text-red-400">Engine Failure!</h2>
-            </div>
-            
-            <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
-                Our servers have encountered a technical issue and need some pit stop maintenance. Our team is working to get everything back on track as quickly as possible.
-            </p>
+      </div>
+      <!-- Error Message -->
+      <div class="space-y-4">
+        <div class="space-y-2">
+          <h1 class="text-6xl font-bold text-gray-900 dark:text-white">500</h1>
+          <h2 class="text-2xl font-semibold text-red-600 dark:text-red-400">Engine Failure!</h2>
         </div>
-
-        <!-- Action Buttons -->
-        <div class="space-y-4">
-            <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                <button onclick="window.location.reload()" 
-                        class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Try Again
-                </button>
-                
-                <a href="{% url 'core:contact' %}" 
-                   class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                    </svg>
-                    Report Issue
-                </a>
-            </div>
+        <p class="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+          Our servers have encountered a technical issue and need some pit stop maintenance. Our team is working to get everything back on track as quickly as possible.
+        </p>
+      </div>
+      <!-- Action Buttons -->
+      <div class="space-y-4">
+        <div class="flex flex-col sm:flex-row gap-3 justify-center">
+          <button onclick="window.location.reload()"
+                  class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+            <svg class="w-5 h-5 mr-2"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Try Again
+          </button>
+          <a href="{% url 'core:contact' %}"
+             class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+            <svg class="w-5 h-5 mr-2"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            Report Issue
+          </a>
         </div>
-
-        <!-- Status Information -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">What happened?</h3>
-            <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0 w-2 h-2 bg-red-400 rounded-full mt-2"></div>
-                    <p>A server error occurred while processing your request</p>
-                </div>
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0 w-2 h-2 bg-yellow-400 rounded-full mt-2"></div>
-                    <p>Our technical team has been automatically notified</p>
-                </div>
-                <div class="flex items-start space-x-3">
-                    <div class="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
-                    <p>You can try refreshing the page in a few minutes</p>
-                </div>
-            </div>
+      </div>
+      <!-- Status Information -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">What happened?</h3>
+        <div class="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex items-start space-x-3">
+            <div class="flex-shrink-0 w-2 h-2 bg-red-400 rounded-full mt-2"></div>
+            <p>A server error occurred while processing your request</p>
+          </div>
+          <div class="flex items-start space-x-3">
+            <div class="flex-shrink-0 w-2 h-2 bg-yellow-400 rounded-full mt-2"></div>
+            <p>Our technical team has been automatically notified</p>
+          </div>
+          <div class="flex items-start space-x-3">
+            <div class="flex-shrink-0 w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+            <p>You can try refreshing the page in a few minutes</p>
+          </div>
         </div>
-
-        <!-- Help Links -->
-        <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Need immediate assistance?</p>
-            <div class="flex flex-wrap justify-center gap-6 text-sm">
-                <a href="{% url 'core:contact' %}" class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
-                    Emergency Contact
-                </a>
-                <a href="{% url 'core:about' %}" class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
-                    System Status
-                </a>
-                <a href="{% url 'core:home' %}" class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
-                    Service Updates
-                </a>
-            </div>
+      </div>
+      <!-- Help Links -->
+      <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Need immediate assistance?</p>
+        <div class="flex flex-wrap justify-center gap-6 text-sm">
+          <a href="{% url 'core:contact' %}"
+             class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
+            Emergency Contact
+          </a>
+          <a href="{% url 'core:about' %}"
+             class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
+            System Status
+          </a>
+          <a href="{% url 'core:home' %}"
+             class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium">
+            Service Updates
+          </a>
         </div>
+      </div>
     </div>
-</div>
-
-<!-- Animated Background Elements -->
-<div class="fixed inset-0 overflow-hidden pointer-events-none" style="z-index: -1;">
-    <div class="absolute -top-40 -right-40 w-80 h-80 bg-red-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-1000"></div>
-    <div class="absolute top-40 left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000"></div>
-</div>
-
-<style>
+  </div>
+  <!-- Animated Background Elements -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none"
+       style="z-index: -1">
+    <div class="absolute -top-40 -right-40 w-80 h-80 bg-red-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse">
+    </div>
+    <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-orange-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-1000">
+    </div>
+    <div class="absolute top-40 left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse animation-delay-2000">
+    </div>
+  </div>
+  <style>
     .animation-delay-1000 {
-        animation-delay: 1s;
+      animation-delay: 1s;
     }
-    
+
     .animation-delay-2000 {
-        animation-delay: 2s;
+      animation-delay: 2s;
     }
-</style>
+  </style>
 {% endblock %}

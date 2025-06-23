@@ -1,6 +1,8 @@
-from pydantic import BaseModel, EmailStr, validator
-from typing import Optional
 from datetime import datetime
+
+from pydantic import BaseModel
+from pydantic import EmailStr
+from pydantic import validator
 
 
 class LoginRequest(BaseModel):
@@ -13,19 +15,19 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password1: str
     password2: str
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
+    first_name: str | None = None
+    last_name: str | None = None
 
-    @validator('password2')
+    @validator("password2")
     def passwords_match(cls, v, values):
-        if 'password1' in values and v != values['password1']:
-            raise ValueError('Passwords do not match')
+        if "password1" in values and v != values["password1"]:
+            raise ValueError("Passwords do not match")
         return v
 
-    @validator('username')
+    @validator("username")
     def username_validation(cls, v):
         if len(v) < 3:
-            raise ValueError('Username must be at least 3 characters long')
+            raise ValueError("Username must be at least 3 characters long")
         return v
 
 
@@ -41,12 +43,12 @@ class UserProfile(BaseModel):
     last_name: str
     is_active: bool
     date_joined: datetime
-    avatar_url: Optional[str] = None
-    bio: Optional[str] = None
+    avatar_url: str | None = None
+    bio: str | None = None
     timezone: str = "UTC"
-    phone_number: Optional[str] = None
-    emergency_contact: Optional[str] = None
-    emergency_phone: Optional[str] = None
+    phone_number: str | None = None
+    emergency_contact: str | None = None
+    emergency_phone: str | None = None
     preferred_language: str = "en"
 
     class Config:
@@ -75,35 +77,35 @@ class PasswordChangeRequest(BaseModel):
     new_password1: str
     new_password2: str
 
-    @validator('new_password2')
+    @validator("new_password2")
     def passwords_match(cls, v, values):
-        if 'new_password1' in values and v != values['new_password1']:
-            raise ValueError('New passwords do not match')
+        if "new_password1" in values and v != values["new_password1"]:
+            raise ValueError("New passwords do not match")
         return v
 
 
 class UserProfileUpdate(BaseModel):
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    bio: Optional[str] = None
-    timezone: Optional[str] = None
-    phone_number: Optional[str] = None
-    emergency_contact: Optional[str] = None
-    emergency_phone: Optional[str] = None
-    preferred_language: Optional[str] = None
+    first_name: str | None = None
+    last_name: str | None = None
+    bio: str | None = None
+    timezone: str | None = None
+    phone_number: str | None = None
+    emergency_contact: str | None = None
+    emergency_phone: str | None = None
+    preferred_language: str | None = None
 
 
 class DeviceRegistration(BaseModel):
     token: str
     platform: str
-    device_id: Optional[str] = None
+    device_id: str | None = None
 
 
 class SocialAuthURL(BaseModel):
     auth_url: str
-    state: Optional[str] = None
+    state: str | None = None
 
 
 class SocialAuthCallback(BaseModel):
     code: str
-    state: Optional[str] = None 
+    state: str | None = None

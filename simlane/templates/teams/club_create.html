@@ -1,172 +1,155 @@
 {% extends "base.html" %}
+
 {% load i18n %}
 
 {% block title %}{{ title }}{% endblock %}
-
 {% block content %}
-<div class="container mx-auto px-4 py-8">
+  <div class="container mx-auto px-4 py-8">
     <!-- Breadcrumb -->
     <nav class="flex mb-8" aria-label="Breadcrumb">
-        <ol class="inline-flex items-center space-x-1 md:space-x-3">
-            <li class="inline-flex items-center">
-                <a href="{% url 'teams:clubs_dashboard' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-                    <svg class="w-3 h-3 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L9 3.414V19a1 1 0 0 0 2 0V3.414l6.293 6.293a1 1 0 0 0 1.414-1.414Z"/>
-                    </svg>
-                    {% trans "Clubs" %}
-                </a>
-            </li>
-            <li aria-current="page">
-                <div class="flex items-center">
-                    <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
-                    </svg>
-                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{% trans "Create Club" %}</span>
-                </div>
-            </li>
-        </ol>
+      <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+          <a href="{% url 'teams:clubs_dashboard' %}"
+             class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+            <svg class="w-3 h-3 mr-2.5"
+                 aria-hidden="true"
+                 xmlns="http://www.w3.org/2000/svg"
+                 fill="currentColor"
+                 viewBox="0 0 20 20">
+              <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L9 3.414V19a1 1 0 0 0 2 0V3.414l6.293 6.293a1 1 0 0 0 1.414-1.414Z" />
+            </svg>
+            {% trans "Clubs" %}
+          </a>
+        </li>
+        <li aria-current="page">
+          <div class="flex items-center">
+            <svg class="w-3 h-3 text-gray-400 mx-1"
+                 aria-hidden="true"
+                 xmlns="http://www.w3.org/2000/svg"
+                 fill="none"
+                 viewBox="0 0 6 10">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4" />
+            </svg>
+            <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{% trans "Create Club" %}</span>
+          </div>
+        </li>
+      </ol>
     </nav>
-
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">{{ title }}</h1>
-        <p class="mt-2 text-lg text-gray-600">
-            {% trans "Create your own racing club and invite members to join you in organized events." %}
-        </p>
+      <h1 class="text-3xl font-bold text-gray-900">{{ title }}</h1>
+      <p class="mt-2 text-lg text-gray-600">
+        {% trans "Create your own racing club and invite members to join you in organized events." %}
+      </p>
     </div>
-
     <!-- Form Card -->
     <div class="bg-white shadow-lg rounded-lg p-6 max-w-2xl">
-        <form method="post" class="space-y-6">
-            {% csrf_token %}
-            
-            <!-- Club Name -->
-            <div>
-                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                    {{ form.name.label }}
-                    <span class="text-red-500">*</span>
-                </label>
-                {{ form.name }}
-                {% if form.name.errors %}
-                    <div class="mt-1 text-sm text-red-600">
-                        {{ form.name.errors|first }}
-                    </div>
-                {% endif %}
-                {% if form.name.help_text %}
-                    <p class="mt-1 text-xs text-gray-500">{{ form.name.help_text }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Description -->
-            <div>
-                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                    {{ form.description.label }}
-                </label>
-                {{ form.description }}
-                {% if form.description.errors %}
-                    <div class="mt-1 text-sm text-red-600">
-                        {{ form.description.errors|first }}
-                    </div>
-                {% endif %}
-                {% if form.description.help_text %}
-                    <p class="mt-1 text-xs text-gray-500">{{ form.description.help_text }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Logo URL -->
-            <div>
-                <label for="{{ form.logo_url.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                    {{ form.logo_url.label }}
-                </label>
-                {{ form.logo_url }}
-                {% if form.logo_url.errors %}
-                    <div class="mt-1 text-sm text-red-600">
-                        {{ form.logo_url.errors|first }}
-                    </div>
-                {% endif %}
-                {% if form.logo_url.help_text %}
-                    <p class="mt-1 text-xs text-gray-500">{{ form.logo_url.help_text }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Website -->
-            <div>
-                <label for="{{ form.website.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                    {{ form.website.label }}
-                </label>
-                {{ form.website }}
-                {% if form.website.errors %}
-                    <div class="mt-1 text-sm text-red-600">
-                        {{ form.website.errors|first }}
-                    </div>
-                {% endif %}
-                {% if form.website.help_text %}
-                    <p class="mt-1 text-xs text-gray-500">{{ form.website.help_text }}</p>
-                {% endif %}
-            </div>
-
-            <!-- Social Links -->
-            <div>
-                <label for="{{ form.social_links.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                    {{ form.social_links.label }}
-                </label>
-                {{ form.social_links }}
-                {% if form.social_links.errors %}
-                    <div class="mt-1 text-sm text-red-600">
-                        {{ form.social_links.errors|first }}
-                    </div>
-                {% endif %}
-                {% if form.social_links.help_text %}
-                    <p class="mt-1 text-xs text-gray-500">{{ form.social_links.help_text }}</p>
-                {% endif %}
-                <div class="mt-2 p-3 bg-blue-50 rounded-md">
-                    <p class="text-xs text-blue-700">
-                        <strong>{% trans "Example:" %}</strong> {"discord": "https://discord.gg/yourserver", "twitter": "https://twitter.com/yourclub"}
-                    </p>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex items-center justify-between pt-6 border-t border-gray-200">
-                <a href="{% url 'teams:clubs_dashboard' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    {% trans "Cancel" %}
-                </a>
-                
-                <button type="submit" 
-                        class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    {% trans "Create Club" %}
-                </button>
-            </div>
-        </form>
+      <form method="post" class="space-y-6">
+        {% csrf_token %}
+        <!-- Club Name -->
+        <div>
+          <label for="{{ form.name.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700 mb-2">
+            {{ form.name.label }}
+            <span class="text-red-500">*</span>
+          </label>
+          {{ form.name }}
+          {% if form.name.errors %}<div class="mt-1 text-sm text-red-600">{{ form.name.errors|first }}</div>{% endif %}
+          {% if form.name.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.name.help_text }}</p>{% endif %}
+        </div>
+        <!-- Description -->
+        <div>
+          <label for="{{ form.description.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700 mb-2">{{ form.description.label }}</label>
+          {{ form.description }}
+          {% if form.description.errors %}
+            <div class="mt-1 text-sm text-red-600">{{ form.description.errors|first }}</div>
+          {% endif %}
+          {% if form.description.help_text %}
+            <p class="mt-1 text-xs text-gray-500">{{ form.description.help_text }}</p>
+          {% endif %}
+        </div>
+        <!-- Logo URL -->
+        <div>
+          <label for="{{ form.logo_url.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700 mb-2">{{ form.logo_url.label }}</label>
+          {{ form.logo_url }}
+          {% if form.logo_url.errors %}<div class="mt-1 text-sm text-red-600">{{ form.logo_url.errors|first }}</div>{% endif %}
+          {% if form.logo_url.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.logo_url.help_text }}</p>{% endif %}
+        </div>
+        <!-- Website -->
+        <div>
+          <label for="{{ form.website.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700 mb-2">{{ form.website.label }}</label>
+          {{ form.website }}
+          {% if form.website.errors %}<div class="mt-1 text-sm text-red-600">{{ form.website.errors|first }}</div>{% endif %}
+          {% if form.website.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.website.help_text }}</p>{% endif %}
+        </div>
+        <!-- Social Links -->
+        <div>
+          <label for="{{ form.social_links.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700 mb-2">{{ form.social_links.label }}</label>
+          {{ form.social_links }}
+          {% if form.social_links.errors %}
+            <div class="mt-1 text-sm text-red-600">{{ form.social_links.errors|first }}</div>
+          {% endif %}
+          {% if form.social_links.help_text %}
+            <p class="mt-1 text-xs text-gray-500">{{ form.social_links.help_text }}</p>
+          {% endif %}
+          <div class="mt-2 p-3 bg-blue-50 rounded-md">
+            <p class="text-xs text-blue-700">
+              <strong>{% trans "Example:" %}</strong> {"discord": "https://discord.gg/yourserver", "twitter": "https://twitter.com/yourclub"}
+            </p>
+          </div>
+        </div>
+        <!-- Action Buttons -->
+        <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+          <a href="{% url 'teams:clubs_dashboard' %}"
+             class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            {% trans "Cancel" %}
+          </a>
+          <button type="submit"
+                  class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+            <svg class="w-4 h-4 mr-2"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            {% trans "Create Club" %}
+          </button>
+        </div>
+      </form>
     </div>
-
     <!-- Info Box -->
     <div class="mt-8 bg-gray-50 rounded-lg p-6 max-w-2xl">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "What happens next?" %}</h3>
-        <ul class="space-y-2 text-sm text-gray-600">
-            <li class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                {% trans "You'll automatically become the club admin with full management permissions" %}
-            </li>
-            <li class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                {% trans "You can invite members and assign them roles (Admin, Teams Manager, Member)" %}
-            </li>
-            <li class="flex items-start">
-                <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                {% trans "Start creating event signups and organizing team races" %}
-            </li>
-        </ul>
+      <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "What happens next?" %}</h3>
+      <ul class="space-y-2 text-sm text-gray-600">
+        <li class="flex items-start">
+          <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
+               fill="currentColor"
+               viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          {% trans "You'll automatically become the club admin with full management permissions" %}
+        </li>
+        <li class="flex items-start">
+          <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
+               fill="currentColor"
+               viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          {% trans "You can invite members and assign them roles (Admin, Teams Manager, Member)" %}
+        </li>
+        <li class="flex items-start">
+          <svg class="w-5 h-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
+               fill="currentColor"
+               viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          {% trans "Start creating event signups and organizing team races" %}
+        </li>
+      </ul>
     </div>
-</div>
-{% endblock %} 
+  </div>
+{% endblock %}

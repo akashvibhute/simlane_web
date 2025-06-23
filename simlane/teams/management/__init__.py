@@ -1,1 +1,1 @@
-# Management commands for teams app 
+# Management commands for teams app
