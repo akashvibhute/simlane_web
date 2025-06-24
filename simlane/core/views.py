@@ -7,11 +7,17 @@ from django.shortcuts import render
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect
 from django.views.generic import FormView
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.core.paginator import Paginator
+from django.template.loader import render_to_string
 
 from simlane.sim.models import SimProfile
 
 from .forms import ContactForm
 from .services import ContactEmailService
+from .search import get_search_service, SearchFilters
 
 logger = logging.getLogger(__name__)
 
@@ -295,3 +301,201 @@ def dashboard_view(request):
     }
 
     return render(request, "core/dashboard.html", context)
+
+
+@require_http_methods(["GET"])
+def search_api(request):
+    """
+    Universal search API endpoint
+    
+    Query parameters:
+    - q: Search query (required)
+    - types: Comma-separated list of types to search (optional)
+    - simulator: Filter by simulator slug (optional)
+    - limit: Number of results (default: 20, max: 100)
+    - offset: Pagination offset (default: 0)
+    """
+    query = request.GET.get('q', '').strip()
+    
+    if not query:
+        return JsonResponse({
+            'error': 'Query parameter "q" is required',
+            'results': [],
+            'total_count': 0
+        }, status=400)
+    
+    # Parse filters
+    filters = SearchFilters()
+    
+    if request.GET.get('types'):
+        filters.types = [t.strip() for t in request.GET.get('types').split(',')]
+    
+    if request.GET.get('simulator'):
+        filters.simulator = request.GET.get('simulator')
+    
+    # Parse pagination
+    try:
+        limit = min(int(request.GET.get('limit', 20)), 100)
+        offset = max(int(request.GET.get('offset', 0)), 0)
+    except ValueError:
+        limit, offset = 20, 0
+    
+    # Perform search
+    search_service = get_search_service()
+    results = search_service.search(query, filters, limit, offset)
+    
+    # Convert SearchResult objects to dicts for JSON serialization
+    serialized_results = []
+    for result in results['results']:
+        serialized_results.append({
+            'id': result.id,
+            'type': result.type,
+            'title': result.title,
+            'description': result.description,
+            'url': result.url,
+            'image_url': result.image_url,
+            'metadata': result.metadata,
+            'relevance_score': result.relevance_score
+        })
+    
+    return JsonResponse({
+        'results': serialized_results,
+        'total_count': results['total_count'],
+        'facets': results['facets'],
+        'query_time_ms': results['query_time_ms'],
+        'query': query,
+        'filters': {
+            'types': filters.types,
+            'simulator': filters.simulator
+        },
+        'pagination': {
+            'limit': limit,
+            'offset': offset,
+            'has_more': results['total_count'] > offset + limit
+        }
+    })
+
+
+@require_http_methods(["GET"])
+def search_suggestions(request):
+    """
+    Search suggestions/autocomplete API
+    
+    Query parameters:
+    - q: Partial search query (required)
+    - limit: Number of suggestions (default: 5, max: 10)
+    """
+    query = request.GET.get('q', '').strip()
+    
+    if not query or len(query) < 2:
+        return JsonResponse({'suggestions': []})
+    
+    try:
+        limit = min(int(request.GET.get('limit', 5)), 10)
+    except ValueError:
+        limit = 5
+    
+    search_service = get_search_service()
+    suggestions = search_service.get_suggestions(query, limit)
+    
+    return JsonResponse({'suggestions': suggestions})
+
+
+@require_http_methods(["GET"])
+def search_page(request):
+    """
+    Full-page search results
+    """
+    query = request.GET.get('q', '').strip()
+    selected_types = request.GET.getlist('types')
+    simulator = request.GET.get('simulator', '')
+    
+    context = {
+        'query': query,
+        'selected_types': selected_types,
+        'simulator': simulator,
+        'available_types': [
+            {'key': 'user', 'label': 'Users'},
+            {'key': 'sim_profile', 'label': 'Sim Profiles'},
+            {'key': 'event', 'label': 'Events'},
+            {'key': 'team', 'label': 'Teams'},
+            {'key': 'club', 'label': 'Clubs'},
+            {'key': 'simulator', 'label': 'Simulators'},
+            {'key': 'track', 'label': 'Tracks'},
+            {'key': 'car', 'label': 'Cars'},
+        ]
+    }
+    
+    if query:
+        # Parse filters
+        filters = SearchFilters()
+        if selected_types:
+            filters.types = selected_types
+        if simulator:
+            filters.simulator = simulator
+        
+        # Get page number
+        page = request.GET.get('page', 1)
+        try:
+            page = int(page)
+        except ValueError:
+            page = 1
+        
+        # Calculate offset
+        limit = 20
+        offset = (page - 1) * limit
+        
+        # Perform search
+        search_service = get_search_service()
+        search_results = search_service.search(query, filters, limit, offset)
+        
+        # Add pagination info
+        total_pages = (search_results['total_count'] + limit - 1) // limit
+        context.update({
+            'results': search_results['results'],
+            'total_count': search_results['total_count'],
+            'facets': search_results['facets'],
+            'query_time_ms': search_results['query_time_ms'],
+            'page': page,
+            'total_pages': total_pages,
+            'has_previous': page > 1,
+            'has_next': page < total_pages,
+            'previous_page': page - 1 if page > 1 else None,
+            'next_page': page + 1 if page < total_pages else None,
+        })
+    
+    return render(request, 'core/search/search_page.html', context)
+
+
+@require_http_methods(["GET"])
+def search_htmx(request):
+    """
+    HTMX-powered search results for live search
+    """
+    query = request.GET.get('q', '').strip()
+    
+    if not query:
+        return render(request, 'core/search/search_results_partial.html', {
+            'results': [],
+            'total_count': 0,
+            'query': ''
+        })
+    
+    # Parse filters from request
+    filters = SearchFilters()
+    if request.GET.get('types'):
+        filters.types = [t.strip() for t in request.GET.get('types').split(',')]
+    
+    # Limit results for live search
+    search_service = get_search_service()
+    search_results = search_service.search(query, filters, limit=8)
+    
+    context = {
+        'results': search_results['results'],
+        'total_count': search_results['total_count'],
+        'query': query,
+        'query_time_ms': search_results['query_time_ms'],
+        'show_more_url': f"/search/?q={query}" if search_results['total_count'] > 8 else None
+    }
+    
+    return render(request, 'core/search/search_results_partial.html', context)

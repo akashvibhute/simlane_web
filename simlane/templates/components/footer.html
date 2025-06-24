@@ -4,7 +4,7 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
       <!-- Logo and Description -->
-      <div class="md:col-span-2">
+      <div class="md:col-span-1">
         <div class="flex items-center mb-4">
           <img src="{% static 'images/logo.svg' %}" alt="SimLane" class="h-8 dark:invert" />
         </div>
@@ -12,6 +12,34 @@
           Your ultimate simracing companion. Track your progress, analyze your performance, and connect with fellow racers.
         </p>
       </div>
+      
+      <!-- Browse Section -->
+      <div>
+        <h3 class="text-gray-900 dark:text-white font-semibold mb-4">Browse</h3>
+        <ul class="space-y-2">
+          <li>
+            <a href="{% url 'cars_list' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">All Cars</a>
+          </li>
+          <li>
+            <a href="{% url 'tracks_list' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">All Tracks</a>
+          </li>
+          <li>
+            <a href="{% url 'sim:profiles_list' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Sim Profiles</a>
+          </li>
+          <li>
+            <a href="{% url 'sim:profiles_by_simulator' simulator_slug='iracing' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">iRacing Profiles</a>
+          </li>
+          <li>
+            <a href="{% url 'sim:dashboard_home' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Sim Dashboard</a>
+          </li>
+        </ul>
+      </div>
+      
       <!-- Quick Links -->
       <div>
         <h3 class="text-gray-900 dark:text-white font-semibold mb-4">Quick Links</h3>
@@ -30,6 +58,16 @@
                hx-push-url="true"
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">About</a>
           </li>
+          <li>
+            <a href="{% url 'core:search' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Search</a>
+          </li>
+          {% if user.is_authenticated %}
+          <li>
+            <a href="{% url 'teams:club_list' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Clubs</a>
+          </li>
+          {% endif %}
         </ul>
       </div>
       <!-- Connect -->

@@ -50,31 +50,6 @@
         </div>
       {% endif %}
     </div>
-    <!-- Name Field -->
-    <div>
-      <label for="{{ form.name.id_for_label }}"
-             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ form.name.label }}</label>
-      <div class="mt-1">
-        {% render_field form.name class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" %}
-      </div>
-      {% if form.name.errors %}
-        <div class="mt-1">
-          {% for error in form.name.errors %}<p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
-        </div>
-      {% endif %}
-    </div>
-    <!-- Email Field -->
-    <div>
-      <label for="{{ form.email.id_for_label }}"
-             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ form.email.label }}</label>
-      <div class="mt-1">{{ form.email }}</div>
-      {% if form.email.errors %}
-        <div class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.email.errors.0 }}</div>
-      {% endif %}
-      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-        {% trans "Changes to your email address will require verification" %}
-      </p>
-    </div>
     <!-- Account Information -->
     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
       <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">{% trans "Account Information" %}</h3>
@@ -124,7 +99,7 @@
     </div>
   </form>
   <!-- Account Deletion -->
-  <div class="mt-10 pt-10 border-t border-gray-200 dark:border-gray-700">
+  {% comment %} <div class="mt-10 pt-10 border-t border-gray-200 dark:border-gray-700">
     <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-3">{% trans "Delete Account" %}</h3>
     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
       {% trans "Once you delete your account, there is no going back. Please be certain." %}
@@ -133,5 +108,5 @@
             class="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-700 shadow-sm text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-900">
       {% trans "Delete Account" %}
     </button>
-  </div>
+  </div> {% endcomment %}
 </div>

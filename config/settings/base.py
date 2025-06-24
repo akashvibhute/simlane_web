@@ -423,3 +423,8 @@ HEADLESS_TOKEN_STRATEGY = "simlane.api.auth.JWTTokenStrategy"
 JWT_ALGORITHM = "HS256"
 JWT_ACCESS_TOKEN_LIFETIME = 3600  # 1 hour in seconds
 JWT_REFRESH_TOKEN_LIFETIME = 86400 * 7  # 7 days in seconds
+
+# Search Configuration
+# ------------------------------------------------------------------------------
+# Search backend: 'postgres' (default), 'meilisearch', 'elasticsearch'
+SEARCH_BACKEND = env("SEARCH_BACKEND", default="postgres")

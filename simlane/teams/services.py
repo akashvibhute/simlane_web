@@ -609,3 +609,185 @@ class WorkflowService:
             'ready_for_team_formation': status_counts.get('team_signup_signed_up', 0),
             'ready_for_finalization': status_counts.get('team_signup_team_assigned', 0)
         }
+
+
+# ===== LEGACY SERVICE COMPATIBILITY LAYER =====
+# These services provide compatibility with existing views while transitioning to the new system
+
+class ClubInvitationService:
+    """Legacy service for club invitations - wraps existing model methods"""
+    
+    @staticmethod
+    def send_invitation(club, inviter, email, role, message=""):
+        """Send club invitation - delegates to model"""
+        from .models import ClubInvitation
+        import secrets
+        from datetime import timedelta
+        
+        invitation = ClubInvitation.objects.create(
+            club=club,
+            email=email,
+            invited_by=inviter,
+            role=role,
+            personal_message=message,
+            token=secrets.token_urlsafe(32),
+            expires_at=timezone.now() + timedelta(days=7)
+        )
+        
+        # Send email (placeholder - would integrate with email service)
+        logger.info(f"Club invitation sent to {email} for {club.name}")
+        return invitation
+    
+    @staticmethod
+    def accept_invitation(token, user):
+        """Accept club invitation"""
+        from .models import ClubInvitation
+        invitation = ClubInvitation.objects.get(token=token)
+        return invitation.accept(user)
+    
+    @staticmethod
+    def decline_invitation(token):
+        """Decline club invitation"""
+        from .models import ClubInvitation
+        invitation = ClubInvitation.objects.get(token=token)
+        return invitation.decline()
+
+
+class EventSignupService:
+    """Legacy service for event signups - bridges to new participation system"""
+    
+    @staticmethod
+    def get_signup_summary(club_event_id):
+        """Get signup summary for a club event"""
+        from .models import ClubEvent, EventSignup
+        
+        try:
+            club_event = ClubEvent.objects.get(id=club_event_id)
+            signups = EventSignup.objects.filter(club_event=club_event)
+            
+            return {
+                'total_signups': signups.count(),
+                'drivers_available': signups.filter(can_drive=True).count(),
+                'spotters_available': signups.filter(can_spectate=True).count(),
+                'assigned_to_teams': signups.filter(assigned_team__isnull=False).count(),
+                'unassigned': signups.filter(assigned_team__isnull=True).count(),
+            }
+        except ClubEvent.DoesNotExist:
+            return {
+                'total_signups': 0,
+                'drivers_available': 0,
+                'spotters_available': 0,
+                'assigned_to_teams': 0,
+                'unassigned': 0,
+            }
+    
+    @staticmethod
+    def close_signup(club_event_id):
+        """Close signup for a club event"""
+        from .models import ClubEvent
+        
+        club_event = ClubEvent.objects.get(id=club_event_id)
+        club_event.status = 'signup_closed'
+        club_event.save()
+        
+        return club_event
+
+
+class TeamAllocationService:
+    """Legacy service for team allocation - bridges to new team formation system"""
+    
+    @staticmethod
+    def suggest_team_allocations(club_event_id, team_size=3):
+        """Generate team allocation suggestions"""
+        from .models import ClubEvent
+        
+        club_event = ClubEvent.objects.get(id=club_event_id)
+        event = club_event.base_event
+        
+        # Use new team formation service
+        suggestions = TeamFormationService.suggest_optimal_teams(
+            event=event,
+            team_size=team_size,
+            max_teams=10
+        )
+        
+        # Convert to legacy format
+        legacy_suggestions = []
+        for i, suggestion in enumerate(suggestions):
+            legacy_suggestions.append({
+                'team_id': f"suggestion_{i}",
+                'members': suggestion['team_members'],
+                'compatibility_score': suggestion['compatibility_score'],
+                'recommended_car': suggestion.get('recommended_car'),
+                'balance_score': suggestion.get('team_balance_score', 0.5)
+            })
+        
+        return legacy_suggestions
+    
+    @staticmethod
+    def create_team_allocation(club_event_id, team_data, created_by):
+        """Create team allocation from suggestion"""
+        from .models import ClubEvent, Team, TeamAllocation
+        
+        club_event = ClubEvent.objects.get(id=club_event_id)
+        
+        # Create team if needed
+        team = Team.objects.create(
+            name=team_data.get('name', 'Auto Team'),
+            owner_user=created_by,
+            club=club_event.club,
+            is_temporary=True
+        )
+        
+        # Create allocation
+        allocation = TeamAllocation.objects.create(
+            club_event=club_event,
+            team=team,
+            assigned_sim_car=team_data.get('car'),
+            created_by=created_by
+        )
+        
+        return allocation
+
+
+class StintPlanningService:
+    """Legacy service for stint planning"""
+    
+    @staticmethod
+    def calculate_pit_windows(team_strategy_id):
+        """Calculate optimal pit windows"""
+        from .models import TeamEventStrategy
+        
+        try:
+            strategy = TeamEventStrategy.objects.get(id=team_strategy_id)
+            calculated_strategy = strategy.calculate_optimal_strategy()
+            
+            if calculated_strategy:
+                return calculated_strategy.get('pit_windows', {})
+            
+        except TeamEventStrategy.DoesNotExist:
+            pass
+        
+        # Return default pit windows
+        return {
+            'optimal_windows': [],
+            'fuel_strategy': {},
+            'tire_strategy': {}
+        }
+
+
+class NotificationService:
+    """Legacy service for notifications"""
+    
+    @staticmethod
+    def send_signup_confirmation(signup):
+        """Send signup confirmation email"""
+        logger.info(f"Signup confirmation sent to {signup.user.email}")
+        # Placeholder - would integrate with email service
+        return True
+    
+    @staticmethod
+    def send_team_assignment_notification(allocation):
+        """Send team assignment notification"""
+        logger.info(f"Team assignment notification sent for {allocation.team.name}")
+        return True

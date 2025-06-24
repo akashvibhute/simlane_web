@@ -78,14 +78,10 @@
                           </div>
                         </div>
                         <div class="flex-shrink-0">
-                          {% if sim_name|lower == 'iracing' %}
-                            <a href="{% url 'sim_dashboard:iracing_dashboard' %}"
-                               class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium cursor-pointer">
-                              View Dashboard
-                            </a>
-                          {% else %}
-                            <span class="text-gray-400 text-sm">Coming Soon</span>
-                          {% endif %}
+                          <a href="{% url 'sim:simulator_dashboard' profile.simulator.slug %}"
+                             class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium cursor-pointer">
+                            View Dashboard
+                          </a>
                         </div>
                       </div>
                     </div>

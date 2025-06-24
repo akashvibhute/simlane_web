@@ -12,4 +12,9 @@ urlpatterns = [
     path("contact/", views.contact_view, name="contact"),
     path("contact/success/", views.contact_success, name="contact_success"),
     path("dashboard/", views.dashboard_view, name="dashboard"),
+    # Search URLs
+    path("search/", views.search_page, name="search"),
+    path("api/search/", views.search_api, name="search_api"),
+    path("api/search/suggestions/", views.search_suggestions, name="search_suggestions"),
+    path("search/htmx/", views.search_htmx, name="search_htmx"),
 ]

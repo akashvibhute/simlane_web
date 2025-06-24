@@ -33,11 +33,15 @@ class SimulatorAdmin(ModelAdmin):
 
 @admin.register(SimProfile)
 class SimProfileAdmin(ModelAdmin):
-    list_display = ["profile_name", "user", "simulator", "is_verified", "last_active"]
-    list_filter = ["simulator", "is_verified", "created_at"]
-    search_fields = ["profile_name", "user__username", "user__email"]
-    readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["user", "simulator"]
+    list_display = ["profile_name", "linked_user", "simulator", "is_verified", "is_public", "last_active"]
+    list_filter = ["simulator", "is_verified", "is_public", "created_at"]
+    search_fields = ["profile_name", "linked_user__username", "linked_user__email", "external_data_id"]
+    readonly_fields = ["created_at", "updated_at", "linked_at"]
+    raw_id_fields = ["linked_user", "simulator"]
+    
+    def get_queryset(self, request):
+        """Optimize queryset for admin"""
+        return super().get_queryset(request).select_related('linked_user', 'simulator')
 
 
 @admin.register(PitData)
@@ -168,7 +172,7 @@ class LapTimeAdmin(ModelAdmin):
         "recorded_at",
     ]
     list_filter = ["is_valid", "sim_layout__sim_track__simulator", "recorded_at"]
-    search_fields = ["sim_profile__profile_name", "sim_profile__user__username"]
+    search_fields = ["sim_profile__profile_name", "sim_profile__linked_user__username"]
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["sim_profile", "sim_layout"]
     date_hierarchy = "recorded_at"
@@ -192,7 +196,7 @@ class ProfileRatingAdmin(ModelAdmin):
         "recorded_at",
     ]
     list_filter = ["rating_system", "discipline", "recorded_at"]
-    search_fields = ["sim_profile__profile_name", "sim_profile__user__username"]
+    search_fields = ["sim_profile__profile_name", "sim_profile__linked_user__username"]
     readonly_fields = ["recorded_at"]
     raw_id_fields = ["sim_profile", "rating_system"]
     date_hierarchy = "recorded_at"

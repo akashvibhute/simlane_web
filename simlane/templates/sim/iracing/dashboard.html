@@ -54,7 +54,7 @@
                     {% for profile in user_profiles %}
                       <button type="button"
                               class="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if selected_profile and profile.id == selected_profile.id %}bg-gray-50 dark:bg-gray-700{% endif %}"
-                              hx-post="{% url 'sim_dashboard:iracing_dashboard_section' active_section %}"
+                              hx-post="{% url 'sim:simulator_dashboard_section' 'iracing' active_section %}"
                               hx-target="#dashboard-content"
                               hx-vals='{"profile_id": "{{ profile.id }}"}'
                               onclick="document.getElementById('sim-profile-menu').classList.add('hidden')">
@@ -119,10 +119,10 @@
         <div class="p-4">
           <div class="space-y-1">
             <!-- Overview -->
-            <a href="{% url 'sim_dashboard:iracing_dashboard' %}"
-               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'overview' %}"
-               hx-target="#dashboard-content"
-               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'overview' %}"
+                                <a href="{% url 'sim:simulator_dashboard' 'iracing' %}"
+                       hx-get="{% url 'sim:simulator_dashboard_section' 'iracing' 'overview' %}"
+                       hx-target="#dashboard-content"
+                       hx-push-url="{% url 'sim:simulator_dashboard_section' 'iracing' 'overview' %}"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'overview' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
               <svg class="w-5 h-5 mr-3"
                    fill="none"
@@ -133,11 +133,11 @@
               </svg>
               Overview
             </a>
-            <!-- Performance -->
-            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'performance' %}"
-               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'performance' %}"
-               hx-target="#dashboard-content"
-               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'performance' %}"
+                          <!-- Performance -->
+              <a href="{% url 'sim:simulator_dashboard_section' 'iracing' 'performance' %}"
+                 hx-get="{% url 'sim:simulator_dashboard_section' 'iracing' 'performance' %}"
+                 hx-target="#dashboard-content"
+                 hx-push-url="{% url 'sim:simulator_dashboard_section' 'iracing' 'performance' %}"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'performance' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
               <svg class="w-5 h-5 mr-3"
                    fill="none"
@@ -148,11 +148,11 @@
               </svg>
               Performance
             </a>
-            <!-- Cars -->
-            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'cars' %}"
-               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'cars' %}"
-               hx-target="#dashboard-content"
-               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'cars' %}"
+                          <!-- Cars -->
+              <a href="{% url 'sim:simulator_dashboard_section' 'iracing' 'cars' %}"
+                 hx-get="{% url 'sim:simulator_dashboard_section' 'iracing' 'cars' %}"
+                 hx-target="#dashboard-content"
+                 hx-push-url="{% url 'sim:simulator_dashboard_section' 'iracing' 'cars' %}"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'cars' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
               <svg class="w-5 h-5 mr-3"
                    fill="none"
@@ -162,11 +162,11 @@
               </svg>
               Cars
             </a>
-            <!-- Tracks -->
-            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'tracks' %}"
-               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'tracks' %}"
-               hx-target="#dashboard-content"
-               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'tracks' %}"
+                          <!-- Tracks -->
+              <a href="{% url 'sim:simulator_dashboard_section' 'iracing' 'tracks' %}"
+                 hx-get="{% url 'sim:simulator_dashboard_section' 'iracing' 'tracks' %}"
+                 hx-target="#dashboard-content"
+                 hx-push-url="{% url 'sim:simulator_dashboard_section' 'iracing' 'tracks' %}"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'tracks' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
               <svg class="w-5 h-5 mr-3"
                    fill="none"
@@ -178,11 +178,11 @@
               </svg>
               Tracks
             </a>
-            <!-- Events -->
-            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'events' %}"
-               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'events' %}"
-               hx-target="#dashboard-content"
-               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'events' %}"
+                          <!-- Events -->
+              <a href="{% url 'sim:simulator_dashboard_section' 'iracing' 'events' %}"
+                 hx-get="{% url 'sim:simulator_dashboard_section' 'iracing' 'events' %}"
+                 hx-target="#dashboard-content"
+                 hx-push-url="{% url 'sim:simulator_dashboard_section' 'iracing' 'events' %}"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'events' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
               <svg class="w-5 h-5 mr-3"
                    fill="none"
@@ -194,10 +194,10 @@
               Events
             </a>
             <!-- Teams (if available) -->
-            <a href="{% url 'sim_dashboard:iracing_dashboard_section' 'teams' %}"
-               hx-get="{% url 'sim_dashboard:iracing_dashboard_section' 'teams' %}"
+            <a href="{% url 'sim:simulator_dashboard_section' 'iracing' 'teams' %}"
+               hx-get="{% url 'sim:simulator_dashboard_section' 'iracing' 'teams' %}"
                hx-target="#dashboard-content"
-               hx-push-url="{% url 'sim_dashboard:iracing_dashboard_section' 'teams' %}"
+               hx-push-url="{% url 'sim:simulator_dashboard_section' 'iracing' 'teams' %}"
                class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'teams' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
               <svg class="w-5 h-5 mr-3"
                    fill="none"

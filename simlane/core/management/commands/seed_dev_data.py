@@ -56,11 +56,20 @@ class Command(BaseCommand):
 
         self.stdout.write("Seeding development data...")
 
+        # First, ensure base seed data exists
+        self.stdout.write("Ensuring base seed data exists...")
+        from django.core.management import call_command
+        call_command('create_base_seed_data')
+
         # Create users first
         users = self.create_users()
 
-        # Create simulator and related data
-        simulator = self.create_simulator()
+        # Get the iRacing simulator (should exist from base seed data)
+        try:
+            simulator = Simulator.objects.get(slug='iracing')
+        except Simulator.DoesNotExist:
+            # Fallback to creating it if it doesn't exist
+            simulator = self.create_simulator()
 
         # Create car classes and models
         car_classes = self.create_car_classes()
@@ -918,7 +927,7 @@ class Command(BaseCommand):
 
             for member in selected_members:
                 # Get sim profile
-                sim_profile = member.user.sim_profiles.first()
+                sim_profile = member.user.linked_sim_profiles.first()
 
                 # Select preferred cars
                 preferred_cars = random.sample(sim_cars, random.randint(2, 4))

@@ -17,6 +17,7 @@ from simlane.users.views import (
     auth_signup_view,
     auth_socialaccount_login_error_view,
 )
+from simlane.sim.urls import cars_patterns, tracks_patterns
 
 urlpatterns = [
     # Django Admin, use {% url 'admin:index' %}
@@ -34,13 +35,17 @@ urlpatterns = [
     path("auth/provider/callback/", auth_socialaccount_login_error_view, name="auth_socialaccount_login_error"),
     # Your stuff: custom urls includes go here
     path("", include("simlane.core.urls", namespace="core")),
-    path("sim/", include("simlane.sim.urls", namespace="sim")),
     path("teams/", include("simlane.teams.urls", namespace="teams")),
+    # Public sim profile discovery
+    path("profiles/", include("simlane.sim.urls", namespace="profiles")),
+    # Sim dashboards and management
+    path("sim/", include("simlane.sim.urls", namespace="sim")),
+    # Top-level cars and tracks pages
+    path("cars/", include(cars_patterns)),
+    path("tracks/", include(tracks_patterns)),
     # API endpoints
     path("api/", api.urls),
     path("api/auth/", include("allauth.headless.urls")),
-    # Dashboard routes
-    path("dashboard/iracing/", include("simlane.sim.urls", namespace="sim_dashboard")),
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
 ]

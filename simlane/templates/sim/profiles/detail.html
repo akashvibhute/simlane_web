@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ profile.profile_name }} - {{ profile.simulator.name }} - SimLane{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Profile Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center space-x-4">
+            {% if profile.simulator.icon %}
+                <img src="{{ profile.simulator.icon.url }}" alt="{{ profile.simulator.name }}" class="w-16 h-16 rounded-lg">
+            {% else %}
+                <div class="w-16 h-16 bg-primary-500 rounded-lg flex items-center justify-center">
+                    <span class="text-lg font-bold text-white">{{ profile.simulator.name|first }}</span>
+                </div>
+            {% endif %}
+            
+            <div class="flex-1">
+                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ profile.profile_name }}</h1>
+                <p class="text-lg text-gray-600 dark:text-gray-400">{{ profile.simulator.name }}</p>
+                
+                {% if profile.linked_user %}
+                    <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                        {{ profile.linked_user.get_full_name|default:profile.linked_user.username }}
+                        {% if profile.is_verified %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100 ml-2">
+                                Verified
+                            </span>
+                        {% endif %}
+                    </p>
+                {% endif %}
+                
+                {% if profile.last_active %}
+                    <p class="text-sm text-gray-500 dark:text-gray-500">
+                        Last active: {{ profile.last_active|date:"M d, Y" }}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Ratings -->
+    {% if current_ratings %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Current Ratings</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for rating in current_ratings %}
+                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                        <h3 class="font-medium text-gray-900 dark:text-white">{{ rating.rating_system.name }}</h3>
+                        <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ rating.value|floatformat:0 }}</p>
+                        {% if rating.discipline %}
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ rating.get_discipline_display }}</p>
+                        {% endif %}
+                        <p class="text-xs text-gray-400 dark:text-gray-500">{{ rating.recorded_at|date:"M d, Y" }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Recent Lap Times -->
+    {% if recent_lap_times %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Lap Times</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full table-auto">
+                    <thead>
+                        <tr class="border-b border-gray-200 dark:border-gray-700">
+                            <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Track</th>
+                            <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Lap Time</th>
+                            <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lap_time in recent_lap_times %}
+                            <tr class="border-b border-gray-100 dark:border-gray-700">
+                                <td class="py-3 text-sm text-gray-900 dark:text-white">
+                                    {{ lap_time.sim_layout.sim_track.track_model.name }}
+                                    <br>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ lap_time.sim_layout.name }}</span>
+                                </td>
+                                <td class="py-3 text-sm font-mono text-gray-900 dark:text-white">
+                                    {% if lap_time.lap_time_ms %}
+                                        {{ lap_time.lap_time_ms|floatformat:3 }}ms
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-sm text-gray-500 dark:text-gray-400">
+                                    {{ lap_time.recorded_at|date:"M d, Y" }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Back to Profiles -->
+    <div class="text-center">
+        <a href="{% url 'profiles:profiles_list' %}" class="text-primary-600 dark:text-primary-400 hover:text-primary-500">
+            ← Back to all profiles
+        </a>
+    </div>
+</div>
+{% endblock %} 

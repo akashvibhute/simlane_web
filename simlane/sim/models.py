@@ -88,6 +88,7 @@ class EventVisibility(models.TextChoices):
 class Simulator(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=255, unique=True)
+    slug = models.SlugField(max_length=280, blank=True, unique=True)
     logo_url = models.URLField(blank=True)
     logo = models.ImageField(upload_to="simulators/logos/", blank=True, null=True)
     icon = models.ImageField(upload_to="simulators/icons/", blank=True, null=True)
@@ -100,36 +101,145 @@ class Simulator(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+            # Ensure uniqueness
+            counter = 1
+            original_slug = self.slug
+            while Simulator.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
+
 
 class SimProfile(models.Model):
+    """
+    Independent sim racing profile that can optionally be linked to a user.
+    Profiles exist regardless of user association and are publicly discoverable.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="sim_profiles",
-    )
+    
+    # Core identity (platform-specific)
     simulator = models.ForeignKey(
         Simulator,
         on_delete=models.CASCADE,
         related_name="sim_profiles",
     )
-    profile_name = models.CharField(max_length=255)
-    external_data_id = models.CharField(max_length=255, blank=True)
-    is_verified = models.BooleanField(default=False)
-    last_active = models.DateTimeField(null=True, blank=True)
-    preferences = models.JSONField(null=True, blank=True)
+    external_data_id = models.CharField(
+        max_length=255, 
+        blank=True,
+        help_text="Platform-specific unique ID (e.g., iRacing customer ID)"
+    )
+    profile_name = models.CharField(
+        max_length=255, 
+        help_text="Display name on the platform"
+    )
+    
+    # User relationship (optional one-to-one)
+    linked_user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='linked_sim_profiles',
+        help_text="User who has claimed this profile"
+    )
+    
+    # Verification and metadata
+    is_verified = models.BooleanField(
+        default=False, 
+        help_text="True if the linked user has verified ownership of this profile"
+    )
+    is_public = models.BooleanField(
+        default=True, 
+        help_text="Whether this profile appears in public searches and listings"
+    )
+    
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    linked_at = models.DateTimeField(
+        null=True, 
+        blank=True, 
+        help_text="When this profile was linked to the current user"
+    )
+    last_active = models.DateTimeField(null=True, blank=True)
+    
+    # Data storage
+    preferences = models.JSONField(
+        null=True, 
+        blank=True,
+        help_text="User-controlled preferences and settings"
+    )
+    profile_data = models.JSONField(
+        default=dict, 
+        help_text="Platform-specific profile data (stats, achievements, etc.)"
+    )
 
     class Meta:
-        unique_together = ["user", "simulator", "profile_name"]
+        unique_together = ['simulator', 'external_data_id']
         indexes = [
-            models.Index(fields=["user"]),
-            models.Index(fields=["simulator"]),
+            models.Index(fields=['simulator', 'external_data_id']),
+            models.Index(fields=['linked_user']),
+            models.Index(fields=['is_public']),
+            models.Index(fields=['profile_name']),
         ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.simulator.name} - {self.profile_name}"
+        return f"{self.simulator.name}: {self.profile_name}"
+
+    def get_absolute_url(self):
+        """Public URL for this profile"""
+        from django.urls import reverse
+        return reverse('profiles:detail', kwargs={
+            'simulator_slug': self.simulator.slug,
+            'profile_identifier': self.external_data_id
+        })
+
+    def get_user_management_url(self):
+        """URL for user to manage this profile (if they own it)"""
+        if self.linked_user:
+            from django.urls import reverse
+            return reverse('users:profile_sim_profile_manage', kwargs={'profile_id': self.pk})
+        return None
+
+    @property
+    def is_owned(self):
+        """Returns True if this profile is linked to a user"""
+        return self.linked_user is not None
+
+    @property
+    def display_name(self):
+        """Returns the best display name for this profile"""
+        if self.linked_user and self.linked_user.get_full_name():
+            return f"{self.profile_name} ({self.linked_user.get_full_name()})"
+        return self.profile_name
+
+    def can_user_link(self, user):
+        """Check if a user can link this profile"""
+        if self.linked_user is None:
+            return True
+        return self.linked_user == user
+
+    def link_to_user(self, user, verified=False):
+        """Link this profile to a user"""
+        from django.utils import timezone
+        
+        if self.linked_user and self.linked_user != user:
+            raise ValueError(f"Profile already linked to {self.linked_user}")
+        
+        self.linked_user = user
+        self.is_verified = verified
+        self.linked_at = timezone.now()
+        self.save(update_fields=['linked_user', 'is_verified', 'linked_at'])
+
+    def unlink_from_user(self):
+        """Remove user link from this profile"""
+        self.linked_user = None
+        self.is_verified = False
+        self.linked_at = None
+        self.save(update_fields=['linked_user', 'is_verified', 'linked_at'])
 
 
 class PitData(models.Model):
@@ -586,7 +696,7 @@ class Event(models.Model):
     @property
     def is_official(self):
         """Check if this is an official event"""
-        return self.event_source in [EventSource.OFFICIAL, EventSource.SERIES]
+        return self.event_source in [EventSource.SPECIAL, EventSource.SERIES]
     
     def can_user_view(self, user):
         """Check if a user can view this event"""
@@ -642,7 +752,7 @@ class Event(models.Model):
         
         # Check skill requirements (if user has sim profiles)
         if self.min_skill_rating or self.min_safety_rating:
-            user_profiles = user.sim_profiles.filter(simulator=self.simulator)
+            user_profiles = user.linked_sim_profiles.filter(simulator=self.simulator)
             if not user_profiles.exists():
                 return False
             

@@ -197,3 +197,7 @@ The django app and the nodejs containers are set to restart continuously in dev 
 
 ## 🎨 Design Language
 Refer to `docs/design/DESIGN_LANGUAGE.md` for the official colour palette, typography, component styles and accessibility guidelines. Ensure any new UI code or template follows these tokens and classes.
+
+Any further requests for creating documents should end up with documents created in appropriate within in docs folder. 
+
+We are still in development phase and not live on production so do not worry about production migrations etc. 

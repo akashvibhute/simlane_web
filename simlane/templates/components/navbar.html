@@ -2,7 +2,7 @@
 
 <nav class="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="flex justify-between h-14">
+    <div class="flex justify-between items-center h-16">
       <!-- Logo -->
       <div class="flex items-center">
         <a class="text-xl font-bold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
@@ -20,8 +20,24 @@
                class="h-10 md:hidden dark:invert" />
         </a>
       </div>
+      
+      <!-- Center Search (Desktop) -->
+      <div class="hidden md:flex flex-1 justify-center px-6">
+        <div class="w-full max-w-md">
+          {% include 'components/search_component.html' %}
+        </div>
+      </div>
+      
       <!-- Desktop Navigation -->
       <div class="hidden md:flex items-center space-x-8">
+        <!-- Public Navigation Links -->
+        <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+           href="{% url 'cars_list' %}">Cars</a>
+        <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+           href="{% url 'tracks_list' %}">Tracks</a>
+        <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+           href="{% url 'sim:profiles_list' %}">Profiles</a>
+        
         {% if request.user.is_authenticated %}
           <!-- User Dropdown -->
           <div class="relative">
@@ -132,7 +148,35 @@
     </div>
     <!-- Mobile Navigation -->
     <div id="mobile-menu" class="md:hidden hidden pb-4">
+      <!-- Mobile Search -->
+      <div class="px-3 pb-3 border-b border-gray-200 dark:border-gray-700 mb-2">
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <input
+            type="text"
+            name="mobile-search"
+            placeholder="Search..."
+            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            onkeydown="if(event.key==='Enter') { const query = encodeURIComponent(this.value.trim()); if(query) window.location.href='{% url 'core:search' %}?q=' + query; }"
+          >
+        </div>
+      </div>
       <div class="space-y-2">
+        <!-- Public Navigation Links (Mobile) -->
+        <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
+           href="{% url 'cars_list' %}"
+           onclick="toggleMobileMenu()">Cars</a>
+        <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
+           href="{% url 'tracks_list' %}"
+           onclick="toggleMobileMenu()">Tracks</a>
+        <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
+           href="{% url 'sim:profiles_list' %}"
+           onclick="toggleMobileMenu()">Profiles</a>
+        
         {% if request.user.is_authenticated %}
           <!-- Authenticated Mobile Menu -->
           <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 mb-2">

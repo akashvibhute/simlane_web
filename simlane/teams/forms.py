@@ -440,7 +440,7 @@ class EventSignupForm(forms.ModelForm):
 
         # Filter sim profiles for the user
         if self.user:
-            self.fields["primary_sim_profile"].queryset = self.user.sim_profiles.all()
+            self.fields["primary_sim_profile"].queryset = self.user.linked_sim_profiles.all()
 
     def clean(self):
         cleaned_data = super().clean()
