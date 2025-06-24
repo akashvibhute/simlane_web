@@ -253,47 +253,7 @@ class ClubEventUpdate(BaseModel):
     track_conditions: str | None = None
 
 
-class EventSignupBase(BaseModel):
-    id: int
-    signup_time: datetime
-    notes: str | None = None
-    car_number: int | None = None
-    livery_url: str | None = None
-    is_confirmed: bool
-    is_reserve: bool
-    expected_lap_time: str | None = None
-
-    class Config:
-        from_attributes = True
-
-
-class EventSignup(EventSignupBase):
-    event: ClubEventBase
-    user: UserBase
-    team: TeamBase | None = None
-
-
-class EventSignupCreate(BaseModel):
-    notes: str | None = None
-    car_number: int | None = None
-    livery_url: str | None = None
-    expected_lap_time: str | None = None
-    team_id: int | None = None
-
-    @validator("car_number")
-    def car_number_validation(cls, v):
-        if v is not None and (v < 1 or v > 999):
-            raise ValueError("Car number must be between 1 and 999")
-        return v
-
-
-class EventSignupUpdate(BaseModel):
-    notes: str | None = None
-    car_number: int | None = None
-    livery_url: str | None = None
-    expected_lap_time: str | None = None
-    is_confirmed: bool | None = None
-    is_reserve: bool | None = None
+# Legacy EventSignup schemas removed - replaced by enhanced participation system
 
 
 class ClubInvitation(BaseModel):

@@ -4,21 +4,27 @@ from . import views
 
 app_name = "sim"
 
+# Main sim app URLs (for any remaining sim-specific functionality)
 urlpatterns = [
-    # Public sim profile discovery
-    path("profiles/", include([
-        path("", views.profiles_list, name="profiles_list"),
-        path("search/", views.profiles_search, name="profiles_search"),
-        path("<slug:simulator_slug>/", views.profiles_by_simulator, name="profiles_by_simulator"),
-        path("<slug:simulator_slug>/<str:profile_identifier>/", views.profile_detail, name="profile_detail"),
-    ])),
-    
-    # Dashboard views (per-simulator dashboards)
-    path("dashboard/", include([
-        path("", views.dashboard_home, name="dashboard_home"),
-        path("<slug:simulator_slug>/", views.simulator_dashboard, name="simulator_dashboard"),
-        path("<slug:simulator_slug>/<str:section>/", views.simulator_dashboard_section, name="simulator_dashboard_section"),
-    ])),
+    # Currently empty - profiles and dashboard moved to root level
+]
+
+# Profiles patterns - to be included at top level
+profiles_patterns = [
+    path("", views.profiles_list, name="profiles_list"),
+    path("search/", views.profiles_search, name="profiles_search"),
+    path("search-to-link/", views.profile_search_to_link, name="profile_search_to_link"),
+    path("<slug:simulator_slug>/", views.profiles_by_simulator, name="profiles_by_simulator"),
+    path("<slug:simulator_slug>/<str:profile_identifier>/", views.profile_detail, name="profile_detail"),
+    path("<slug:simulator_slug>/<str:profile_identifier>/link/", views.profile_link, name="profile_link"),
+    path("<slug:simulator_slug>/<str:profile_identifier>/unlink/", views.profile_unlink, name="profile_unlink"),
+]
+
+# Dashboard patterns - to be included at top level
+dashboard_patterns = [
+    path("", views.dashboard_home, name="dashboard_home"),
+    path("<slug:simulator_slug>/", views.simulator_dashboard, name="simulator_dashboard"),
+    path("<slug:simulator_slug>/<str:section>/", views.simulator_dashboard_section, name="simulator_dashboard_section"),
 ]
 
 # Cars patterns - to be included at top level

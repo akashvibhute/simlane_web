@@ -7,7 +7,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include
 from django.urls import path
 from django.views import defaults as default_views
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 
 from simlane.api.main import api
 from simlane.users.views import (
@@ -17,7 +17,7 @@ from simlane.users.views import (
     auth_signup_view,
     auth_socialaccount_login_error_view,
 )
-from simlane.sim.urls import cars_patterns, tracks_patterns
+from simlane.sim.urls import cars_patterns, tracks_patterns, profiles_patterns, dashboard_patterns
 
 urlpatterns = [
     # Django Admin, use {% url 'admin:index' %}
@@ -36,13 +36,14 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     path("", include("simlane.core.urls", namespace="core")),
     path("teams/", include("simlane.teams.urls", namespace="teams")),
-    # Public sim profile discovery
-    path("profiles/", include("simlane.sim.urls", namespace="profiles")),
-    # Sim dashboards and management
-    path("sim/", include("simlane.sim.urls", namespace="sim")),
+    # Top-level drivers and dashboard
+    path("drivers/", include((profiles_patterns, "drivers"), namespace="drivers")),
+    path("dashboard/", include((dashboard_patterns, "dashboard"), namespace="dashboard")),
     # Top-level cars and tracks pages
     path("cars/", include(cars_patterns)),
     path("tracks/", include(tracks_patterns)),
+    # Sim app (for any remaining sim-specific functionality)
+    path("sim/", include("simlane.sim.urls", namespace="sim")),
     # API endpoints
     path("api/", api.urls),
     path("api/auth/", include("allauth.headless.urls")),

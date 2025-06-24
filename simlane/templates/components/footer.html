@@ -26,15 +26,19 @@
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">All Tracks</a>
           </li>
           <li>
-            <a href="{% url 'sim:profiles_list' %}"
-               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Sim Profiles</a>
+                                                    <a href="{% url 'drivers:profiles_list' %}"
+                       class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Drivers</a>
           </li>
           <li>
-            <a href="{% url 'sim:profiles_by_simulator' simulator_slug='iracing' %}"
-               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">iRacing Profiles</a>
+                                                    <a href="{% url 'drivers:profiles_by_simulator' simulator_slug='iracing' %}"
+                       class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">iRacing Drivers</a>
           </li>
           <li>
-            <a href="{% url 'sim:dashboard_home' %}"
+                                                    <a href="{% url 'drivers:profiles_by_simulator' simulator_slug='assetto-corsa-competizione' %}"
+                       class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">ACC Drivers</a>
+          </li>
+          <li>
+                                <a href="{% url 'dashboard:dashboard_home' %}"
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Sim Dashboard</a>
           </li>
         </ul>
@@ -64,7 +68,7 @@
           </li>
           {% if user.is_authenticated %}
           <li>
-            <a href="{% url 'teams:club_list' %}"
+            <a href="{% url 'teams:clubs_dashboard' %}"
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Clubs</a>
           </li>
           {% endif %}

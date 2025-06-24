@@ -46,7 +46,7 @@
                                 </span>
                             {% endif %}
                             
-                            <a href="{% url 'sim:simulator_dashboard' profile.simulator.slug %}" 
+                            <a href="{% url 'dashboard:simulator_dashboard' profile.simulator.slug %}" 
                                class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium">
                                 View Dashboard
                             </a>
@@ -78,11 +78,11 @@
                     </div>
                     
                     <div class="flex justify-between items-center">
-                        <a href="{% url 'profiles:profiles_by_simulator' simulator.slug %}" 
+                        <a href="{% url 'drivers:profiles_by_simulator' simulator.slug %}" 
                            class="text-gray-600 dark:text-gray-400 hover:text-gray-500 text-sm">
-                            Browse Profiles
+                            Browse Drivers
                         </a>
-                        <a href="{% url 'sim:simulator_dashboard' simulator.slug %}" 
+                        <a href="{% url 'dashboard:simulator_dashboard' simulator.slug %}" 
                            class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium">
                             Dashboard
                         </a>

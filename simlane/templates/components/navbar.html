@@ -36,9 +36,13 @@
         <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
            href="{% url 'tracks_list' %}">Tracks</a>
         <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
-           href="{% url 'sim:profiles_list' %}">Profiles</a>
+                                           href="{% url 'drivers:profiles_list' %}">Drivers</a>
         
         {% if request.user.is_authenticated %}
+          <!-- Dashboard Link -->
+          <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+             href="{% url 'core:dashboard' %}">Dashboard</a>
+          
           <!-- User Dropdown -->
           <div class="relative">
             <button onclick="toggleUserDropdown()"
@@ -61,6 +65,16 @@
             </button>
             <div id="user-dropdown"
                  class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-50 border border-gray-200 dark:border-gray-600 opacity-0 scale-95 transition-all duration-100 ease-out">
+              <a href="{% url 'core:dashboard' %}"
+                 class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                <svg class="h-4 w-4 mr-3"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                {% translate "Dashboard" %}
+              </a>
               <a href="{% url 'users:detail' request.user.username %}"
                  class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <svg class="h-4 w-4 mr-3"
@@ -174,8 +188,8 @@
            href="{% url 'tracks_list' %}"
            onclick="toggleMobileMenu()">Tracks</a>
         <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
-           href="{% url 'sim:profiles_list' %}"
-           onclick="toggleMobileMenu()">Profiles</a>
+                                                                               href="{% url 'drivers:profiles_list' %}"
+             onclick="toggleMobileMenu()">Drivers</a>
         
         {% if request.user.is_authenticated %}
           <!-- Authenticated Mobile Menu -->
@@ -187,6 +201,9 @@
               <span class="font-medium text-gray-900 dark:text-white">{{ request.user.username }}</span>
             </div>
           </div>
+          <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
+             href="{% url 'core:dashboard' %}"
+             onclick="toggleMobileMenu()">{% translate "Dashboard" %}</a>
           <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
              href="{% url 'users:detail' request.user.username %}">{% translate "My Profile" %}</a>
           <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"

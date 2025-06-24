@@ -61,7 +61,7 @@ user_redirect_view = UserRedirectView.as_view()
 def sim_profiles_view(request):
     """View and manage user's sim racing profiles with HTMX support."""
     user_profiles = (
-        SimProfile.objects.filter(user=request.user)
+        SimProfile.objects.filter(linked_user=request.user)
         .select_related("simulator")
         .order_by("-created_at")
     )
@@ -82,7 +82,7 @@ def sim_profile_add_view(request):
         form = SimProfileForm(request.POST, user=request.user)
         if form.is_valid():
             sim_profile = form.save(commit=False)
-            sim_profile.user = request.user
+            sim_profile.linked_user = request.user
             sim_profile.save()
 
             messages.success(
@@ -96,7 +96,7 @@ def sim_profile_add_view(request):
             if request.htmx:
                 # Return updated profiles list
                 user_profiles = (
-                    SimProfile.objects.filter(user=request.user)
+                    SimProfile.objects.filter(linked_user=request.user)
                     .select_related("simulator")
                     .order_by("-created_at")
                 )
@@ -120,7 +120,7 @@ def sim_profile_add_view(request):
 
 def sim_profile_edit_view(request, profile_id):
     """Edit an existing sim racing profile with HTMX support."""
-    sim_profile = get_object_or_404(SimProfile, id=profile_id, user=request.user)
+    sim_profile = get_object_or_404(SimProfile, id=profile_id, linked_user=request.user)
 
     if request.method == "POST":
         form = SimProfileForm(request.POST, instance=sim_profile, user=request.user)
@@ -138,7 +138,7 @@ def sim_profile_edit_view(request, profile_id):
             if request.htmx:
                 # Return updated profiles list
                 user_profiles = (
-                    SimProfile.objects.filter(user=request.user)
+                    SimProfile.objects.filter(linked_user=request.user)
                     .select_related("simulator")
                     .order_by("-created_at")
                 )
@@ -166,7 +166,7 @@ def sim_profile_edit_view(request, profile_id):
 
 def sim_profile_disconnect_view(request, profile_id):
     """Disconnect a sim racing profile with HTMX support."""
-    sim_profile = get_object_or_404(SimProfile, id=profile_id, user=request.user)
+    sim_profile = get_object_or_404(SimProfile, id=profile_id, linked_user=request.user)
 
     if request.method == "POST":
         profile_name = sim_profile.profile_name
@@ -181,7 +181,7 @@ def sim_profile_disconnect_view(request, profile_id):
         if request.htmx:
             # Return updated profiles list
             user_profiles = (
-                SimProfile.objects.filter(user=request.user)
+                SimProfile.objects.filter(linked_user=request.user)
                 .select_related("simulator")
                 .order_by("-created_at")
             )
@@ -251,7 +251,7 @@ def profile_general_view(request):
 def profile_sim_profiles_view(request):
     """Sim profiles management in profile area."""
     user_profiles = (
-        SimProfile.objects.filter(user=request.user)
+        SimProfile.objects.filter(linked_user=request.user)
         .select_related("simulator")
         .order_by("-created_at")
     )

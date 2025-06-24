@@ -261,7 +261,7 @@ def dashboard_view(request):
 
     # Get user's sim profiles grouped by simulator
     user_profiles = (
-        SimProfile.objects.filter(user=request.user)
+        SimProfile.objects.filter(linked_user=request.user)
         .select_related("simulator")
         .order_by("simulator__name", "-last_active")
     )

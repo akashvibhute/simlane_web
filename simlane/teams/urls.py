@@ -9,6 +9,7 @@ urlpatterns = [
     path("", views.clubs_dashboard, name="clubs_dashboard"),
     # Club Management URLs (using club slug)
     path("create/", views.club_create, name="club_create"),
+    path("browse/", views.browse_clubs, name="browse_clubs"),
     path("<slug:club_slug>/", views.club_dashboard, name="club_dashboard"),
     path(
         "<slug:club_slug>/<str:section>/",
@@ -48,72 +49,25 @@ urlpatterns = [
     # Team URLs within clubs (using club slug and team slug) - TODO: Implement team views
     # path("<slug:club_slug>/teams/<slug:team_slug>/", views.team_dashboard, name="team_dashboard"),
     # path("<slug:club_slug>/teams/<slug:team_slug>/<str:section>/", views.team_dashboard_section, name="team_dashboard_section"),
-    # Event Signup URLs (within clubs)
-    path(
-        "<slug:club_slug>/signups/create/",
-        views.event_signup_create,
-        name="event_signup_create",
-    ),
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/",
-        views.event_signup_detail,
-        name="event_signup_detail",
-    ),
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/join/",
-        views.event_signup_join,
-        name="event_signup_join",
-    ),
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/entries/<uuid:entry_id>/update/",
-        views.event_signup_update,
-        name="event_signup_update",
-    ),
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/close/",
-        views.event_signup_close,
-        name="event_signup_close",
-    ),
-    # Team Allocation URLs (within club context)
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/allocate/",
-        views.team_allocation_wizard,
-        name="team_allocation_wizard",
-    ),
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/allocate/preview/",
-        views.team_allocation_preview,
-        name="team_allocation_preview",
-    ),
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/allocate/create/",
-        views.team_allocation_create,
-        name="team_allocation_create",
-    ),
-    path(
-        "<slug:club_slug>/allocations/<slug:allocation_slug>/update/",
-        views.team_allocation_update,
-        name="team_allocation_update",
-    ),
-    # Team Planning URLs (within club context)
+    # Legacy team planning URLs - redirects to enhanced system
     path(
         "<slug:club_slug>/allocations/<slug:allocation_slug>/planning/",
-        views.team_planning_dashboard,
-        name="team_planning_dashboard",
+        views.clubs_dashboard,  # Redirect to main dashboard
+        name="team_planning_dashboard_legacy",
     ),
     path(
         "<slug:club_slug>/allocations/<slug:allocation_slug>/stints/",
-        views.stint_planning,
-        name="stint_planning",
+        views.clubs_dashboard,  # Redirect to main dashboard
+        name="stint_planning_legacy",
     ),
     path(
         "<slug:club_slug>/allocations/<slug:allocation_slug>/stints/update/",
-        views.stint_plan_update,
+        views.stint_plan_update_legacy,
         name="stint_plan_update",
     ),
     path(
         "<slug:club_slug>/allocations/<slug:allocation_slug>/stints/export/",
-        views.stint_plan_export,
+        views.stint_plan_export_legacy,
         name="stint_plan_export",
     ),
     # HTMX Partial URLs (within club context)
@@ -122,19 +76,10 @@ urlpatterns = [
         views.club_members_partial,
         name="club_members_partial",
     ),
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/entries/partial/",
-        views.signup_entries_partial,
-        name="signup_entries_partial",
-    ),
-    path(
-        "<slug:club_slug>/signups/<uuid:signup_id>/allocate/partial/",
-        views.team_allocation_partial,
-        name="team_allocation_partial",
-    ),
+    # Legacy signup/allocation partials removed - replaced by enhanced system
     path(
         "<slug:club_slug>/allocations/<slug:allocation_slug>/stints/partial/",
-        views.stint_plan_partial,
+        views.stint_plan_partial_legacy,
         name="stint_plan_partial",
     ),
     
@@ -201,4 +146,6 @@ urlpatterns = [
     path('events/<uuid:event_id>/notify-signup/', 
          views.notify_signup_update, 
          name='notify_signup_update'),
+
+    path("request-join/<slug:club_slug>/", views.request_join_club, name="request_join_club"),
 ]

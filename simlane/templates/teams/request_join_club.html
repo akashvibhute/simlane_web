@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+  Request to Join {{ club.name }} - SimLane
+{% endblock title %}
+
+{% block content %}
+  <div class="bg-gray-50 dark:bg-gray-900">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <!-- Left section with title -->
+          <div class="flex items-center">
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Join Club</h1>
+          </div>
+          <!-- Right section -->
+          <div class="flex items-center space-x-4">
+            <a href="{% url 'teams:browse_clubs' %}"
+               class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer">
+              ← Back to Browse
+            </a>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div class="px-6 py-8">
+          <!-- Club Info -->
+          <div class="flex items-start space-x-6 mb-8">
+            {% if club.logo_url %}
+              <img src="{{ club.logo_url }}"
+                   alt="{{ club.name }}"
+                   class="w-16 h-16 rounded-lg object-cover" />
+            {% else %}
+              <div class="w-16 h-16 bg-primary-500 rounded-lg flex items-center justify-center">
+                <span class="text-2xl font-bold text-white">{{ club.name|first }}</span>
+              </div>
+            {% endif %}
+            <div class="flex-1">
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ club.name }}</h2>
+              {% if club.description %}
+                <p class="text-gray-600 dark:text-gray-300 mt-2">{{ club.description }}</p>
+              {% endif %}
+              {% if club.website %}
+                <a href="{{ club.website }}"
+                   target="_blank"
+                   class="inline-flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-500 mt-2">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                  </svg>
+                  Visit Website
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Join Request Form -->
+          <div class="border-t border-gray-200 dark:border-gray-600 pt-8">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Request to Join</h3>
+            <p class="text-gray-600 dark:text-gray-300 mb-6">
+              Submit a request to join {{ club.name }}. Club administrators will review your request and get back to you.
+            </p>
+
+            <form method="post" class="space-y-6">
+              {% csrf_token %}
+              
+              <!-- Confirmation -->
+              <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+                <div class="flex">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Before you submit your request
+                    </h4>
+                    <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                      <ul class="list-disc pl-5 space-y-1">
+                        <li>Make sure you're interested in joining this specific club</li>
+                        <li>You'll receive a notification when your request is reviewed</li>
+                        <li>Club administrators may contact you for additional information</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex justify-end space-x-4">
+                <a href="{% url 'teams:browse_clubs' %}"
+                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                  Cancel
+                </a>
+                <button type="submit"
+                        class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+{% endblock content %} 

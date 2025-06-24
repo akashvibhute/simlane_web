@@ -69,13 +69,13 @@ This project runs entirely within Docker containers. **NEVER** suggest running P
 ### Django Management Commands
 Instead of `python manage.py <command>`, always use:
 ```bash
-just manage <command>
+docker compose exec django python manage.py <command>
 ```
 
 Examples:
-- `just manage makemigrations core` (not `python manage.py makemigrations core`)
-- `just manage migrate` (not `python manage.py migrate`)
-- `just manage createsuperuser` (not `python manage.py createsuperuser`)
+- `docker compose exec django python manage.py makemigrations core` (not `python manage.py makemigrations core`)
+- `docker compose exec django python manage.py migrate` (not `python manage.py migrate`)
+- `docker compose exec django python manage.py createsuperuser` (not `python manage.py createsuperuser`)
 
 ## 📁 Project Structure
 

@@ -14,7 +14,6 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from django.db import models
 
 from simlane.sim.models import Event
 
@@ -22,22 +21,21 @@ from .decorators import club_admin_required
 from .decorators import club_manager_required
 from .decorators import club_member_required
 from .decorators import event_signup_access
-# team_allocation_access decorator removed - use club_member_required instead
+from .decorators import team_allocation_access
 from .forms import ClubCreateForm
 from .forms import ClubInvitationForm
 from .forms import ClubUpdateForm
-# Legacy EventSignupForm removed
+from .forms import EventSignupForm
 from .models import Club
 from .models import ClubEvent
 from .models import ClubInvitation
 from .models import ClubMember
-from .models import ClubRole
-# Legacy EventSignup model removed
+from .models import EventSignup
 from .models import Team
-# Legacy TeamEventStrategy model removed
+from .models import TeamEventStrategy
 from .services import EventParticipationService
 from .utils import export_signup_data
-from .utils import generate_stint_plan_pdf_enhanced
+from .utils import generate_stint_plan_pdf
 
 # Enhanced views imports
 from django.http import JsonResponse
@@ -118,89 +116,6 @@ def clubs_dashboard(request):
 
 
 @login_required
-def browse_clubs(request):
-    """Browse all available clubs for joining."""
-    # Get all public and active clubs with annotations for efficiency
-    all_clubs = (
-        Club.objects.filter(is_active=True)
-        .annotate(
-            member_count=models.Count('members', distinct=True),
-            team_count=models.Count('teams', filter=models.Q(teams__is_active=True), distinct=True)
-        )
-        .order_by("name")
-    )
-    
-    # Get user's current club memberships to exclude from browsing
-    user_club_ids = ClubMember.objects.filter(user=request.user).values_list('club_id', flat=True)
-    available_clubs = all_clubs.exclude(id__in=user_club_ids)
-    
-    context = {
-        'available_clubs': available_clubs,
-        'total_available_clubs': available_clubs.count(),
-    }
-    
-    return render(request, "teams/browse_clubs.html", context)
-
-
-@login_required
-def request_join_club(request, club_slug):
-    """Request to join a club."""
-    try:
-        club = Club.objects.get(slug=club_slug, is_active=True)
-    except Club.DoesNotExist:
-        messages.error(request, "Club not found or is not active.")
-        return redirect("teams:browse_clubs")
-    
-    # Check if user is already a member
-    if ClubMember.objects.filter(user=request.user, club=club).exists():
-        messages.info(request, f"You are already a member of {club.name}.")
-        return redirect("teams:club_dashboard", club_slug=club.slug)
-    
-    # Check if there's already a pending invitation
-    existing_invitation = ClubInvitation.objects.filter(
-        club=club,
-        email=request.user.email,
-        accepted_at__isnull=True,
-        declined_at__isnull=True,
-        expires_at__gt=timezone.now(),
-    ).first()
-    
-    if existing_invitation:
-        messages.info(request, f"You already have a pending invitation to join {club.name}.")
-        return redirect("teams:browse_clubs")
-    
-    # For now, we'll show a simple form or direct contact method
-    # In a more complete implementation, this could create a join request
-    # or automatically send an invitation request to club admins
-    
-    context = {
-        'club': club,
-    }
-    
-    if request.method == 'POST':
-        # Simple implementation: create a self-invitation with member role
-        # In practice, you might want to notify club admins instead
-        invitation = ClubInvitation.objects.create(
-            club=club,
-            email=request.user.email,
-            invited_by=request.user,  # Self-invitation for now
-            role=ClubRole.MEMBER,
-            personal_message="User requested to join the club",
-            token=ClubInvitation.generate_token(),
-            expires_at=timezone.now() + timedelta(days=7),
-        )
-        
-        messages.success(
-            request, 
-            f"Your request to join {club.name} has been submitted. "
-            f"Club administrators will be notified."
-        )
-        return redirect("teams:browse_clubs")
-    
-    return render(request, "teams/request_join_club.html", context)
-
-
-@login_required
 def club_dashboard(request, club_slug):
     """Individual club dashboard - defaults to overview section."""
     return club_dashboard_section(request, club_slug, "overview")
@@ -209,7 +124,7 @@ def club_dashboard(request, club_slug):
 @login_required
 def club_dashboard_section(request, club_slug, section="overview"):
     """Club dashboard section view with HTMX support."""
-    from .models import EventParticipation
+    from .models import EventEntry
     from .models import TeamMember
 
     # Get the club by slug, ensuring user has access through ClubMember
@@ -253,13 +168,10 @@ def club_dashboard_section(request, club_slug, section="overview"):
         .order_by("-role", "user__username")
     )
 
-    # Get recent events/entries for this club  
+    # Get recent events/entries for this club
     recent_entries = (
-        EventParticipation.objects.filter(
-            team__club=club,
-            status__in=['confirmed', 'participated']
-        )
-        .select_related("event", "user", "assigned_car", "team")
+        EventEntry.objects.filter(team__club=club)
+        .select_related("event", "user", "sim_car", "team")
         .order_by("-created_at")[:10]
     )
 
@@ -287,10 +199,7 @@ def club_dashboard_section(request, club_slug, section="overview"):
         "active_section": section,
         "total_members": club_members.count(),
         "total_teams": club_teams.count(),
-        "total_entries": EventParticipation.objects.filter(
-            team__club=club,
-            status__in=['confirmed', 'participated']
-        ).count(),
+        "total_entries": EventEntry.objects.filter(team__club=club).count(),
         "user_clubs": user_clubs,
         "is_public_view": user_role is None,
     }
@@ -471,32 +380,493 @@ def club_invitation_decline(request, token):
     return redirect("account_login")
 
 
-# Legacy event signup and team allocation views removed - replaced by enhanced system
+# Event Signup Views
+
+
+@club_manager_required
+def event_signup_create(request, club_slug):
+    """Open signup for existing club events"""
+    from simlane.sim.models import Simulator
+
+    club = request.club
+
+    # DEBUG: Let's see what's available
+    total_sim_events = Event.objects.count()
+    total_club_events = ClubEvent.objects.filter(club=club).count()
+    draft_club_events_count = ClubEvent.objects.filter(
+        club=club,
+        status="draft",
+    ).count()
+
+    # Get club events that don't have signups open yet (status is draft)
+    available_club_events = (
+        ClubEvent.objects.filter(club=club, status="draft")
+        .select_related(
+            "base_event",
+            "base_event__sim_layout",
+            "base_event__sim_layout__sim_track",
+            "base_event__sim_layout__sim_track__track_model",
+            "base_event__series",
+            "base_event__simulator",
+        )
+        .prefetch_related("base_event__sessions", "base_event__instances")
+        .order_by("-created_at")
+    )
+
+    # Convert to base events for template compatibility
+    available_events = [club_event.base_event for club_event in available_club_events]
+
+    # Get all simulators for filtering
+    simulators = Simulator.objects.filter(is_active=True).order_by("name")
+
+    # DEBUG: Add debug information to messages if no events found
+    if not available_events:
+        messages.info(
+            request,
+            f"Debug Info: Total Sim Events: {total_sim_events}, "
+            f"Club Events: {total_club_events}, "
+            f"Draft Club Events: {draft_club_events_count}. "
+            f"{'No events added to club yet - use Add Events button.' if total_club_events == 0 else 'Club events exist but none are in draft status.'}",
+        )
+
+    if request.method == "POST":
+        selected_event_id = request.POST.get("base_event")
+        if selected_event_id:
+            try:
+                # Find the club event for this base event
+                club_event = ClubEvent.objects.get(
+                    club=club,
+                    base_event_id=selected_event_id,
+                    status="draft",
+                )
+
+                # Update signup details
+                club_event.signup_deadline = timezone.now() + timedelta(
+                    days=7,
+                )  # Default 7 days
+                club_event.status = "signup_open"
+                club_event.save()
+
+                messages.success(request, f"Signup opened for: {club_event.title}")
+                return redirect(
+                    "teams:event_signup_detail",
+                    club_slug=club.slug,
+                    signup_id=club_event.id,
+                )
+            except ClubEvent.DoesNotExist:
+                messages.error(
+                    request,
+                    "Selected event not found or already has signup open.",
+                )
+        else:
+            messages.error(request, "Please select an event.")
+
+    context = {
+        "club": club,
+        "available_events": available_events,
+        "simulators": simulators,
+        "title": f"Open Event Signup - {club.name}",
+        # DEBUG: Add debug context
+        "debug_info": {
+            "total_sim_events": total_sim_events,
+            "total_club_events": total_club_events,
+            "draft_club_events_count": draft_club_events_count,
+        },
+    }
+
+    return render(request, "teams/event_signup_create.html", context)
+
+
+@event_signup_access
+def event_signup_detail(request, club_slug, signup_id):
+    """View signup sheet details and entries"""
+    club_event = request.club_event  # Set by decorator
+
+    # Get signups with related data
+    signups = (
+        club_event.signups.select_related(
+            "user",
+            "primary_sim_profile",
+            "assigned_team",
+        )
+        .prefetch_related(
+            "preferred_cars",
+            "backup_cars",
+            "availabilities",
+        )
+        .order_by("-created_at")
+    )
+
+    # Calculate statistics
+    stats = EventSignupService.get_signup_summary(club_event.id)
+
+    # Check if user has signed up
+    user_signup = None
+    if request.user.is_authenticated:
+        user_signup = signups.filter(user=request.user).first()
+
+    context = {
+        "club_event": club_event,
+        "club": club_event.club,
+        "signups": signups,
+        "stats": stats,
+        "user_signup": user_signup,
+        "can_manage": request.club_member.can_manage_club(),
+        "is_signup_open": club_event.is_signup_open,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, "teams/event_signup_detail_partial.html", context)
+
+    return render(request, "teams/event_signup_detail.html", context)
+
+
+@event_signup_access
+@require_http_methods(["GET", "POST"])
+def event_signup_join(request, club_slug, signup_id):
+    """Member signup form"""
+    club_event = request.club_event
+
+    # Check if already signed up
+    existing_signup = EventSignup.objects.filter(
+        club_event=club_event,
+        user=request.user,
+    ).first()
+
+    if existing_signup:
+        messages.info(request, "You have already signed up for this event.")
+        return redirect(
+            "teams:event_signup_update",
+            signup_id=signup_id,
+            entry_id=existing_signup.id,
+        )
+
+    if request.method == "POST":
+        form = EventSignupForm(
+            request.POST,
+            club_event=club_event,
+            user=request.user,
+        )
+
+        if form.is_valid():
+            with transaction.atomic():
+                signup = form.save(commit=False)
+                signup.club_event = club_event
+                signup.user = request.user
+                signup.save()
+
+                # Save many-to-many relationships
+                form.save_m2m()
+
+                # Handle availability formset
+                # This would be handled with additional forms
+
+                # Send confirmation
+                NotificationService.send_signup_confirmation(signup)
+
+                messages.success(request, "Successfully signed up for the event!")
+                return redirect("teams:event_signup_detail", signup_id=club_event.id)
+    else:
+        form = EventSignupForm(club_event=club_event, user=request.user)
+
+    context = {
+        "form": form,
+        "club_event": club_event,
+        "club": club_event.club,
+        "title": f"Sign Up - {club_event.title}",
+    }
+
+    return render(request, "teams/event_signup_join.html", context)
+
+
+@event_signup_access
+def event_signup_update(request, club_slug, signup_id, entry_id):
+    """Update existing signup"""
+    club_event = request.club_event
+    signup = get_object_or_404(
+        EventSignup,
+        id=entry_id,
+        club_event=club_event,
+        user=request.user,
+    )
+
+    if request.method == "POST":
+        form = EventSignupForm(
+            request.POST,
+            instance=signup,
+            club_event=club_event,
+            user=request.user,
+        )
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Signup updated successfully!")
+
+            if request.headers.get("HX-Request"):
+                return HttpResponse(status=204, headers={"HX-Refresh": "true"})
+
+            return redirect("teams:event_signup_detail", signup_id=club_event.id)
+    else:
+        form = EventSignupForm(
+            instance=signup,
+            club_event=club_event,
+            user=request.user,
+        )
+
+    context = {
+        "form": form,
+        "club_event": club_event,
+        "signup": signup,
+        "title": f"Update Signup - {club_event.title}",
+    }
+
+    return render(request, "teams/event_signup_update.html", context)
+
+
+@club_manager_required
+def event_signup_close(request, club_slug, signup_id):
+    """Close signup for team allocation"""
+    club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
+
+    if request.method == "POST":
+        EventSignupService.close_signup(club_event.id)
+        messages.success(request, "Signup closed. You can now allocate teams.")
+        return redirect("teams:team_allocation_wizard", signup_id=club_event.id)
+
+    context = {
+        "club_event": club_event,
+        "signups_count": club_event.signups.count(),
+    }
+
+    return render(request, "teams/event_signup_close_confirm.html", context)
+
+
+# Team Allocation Views
+
+
+@club_manager_required
+def team_allocation_wizard(request, club_slug, signup_id):
+    """Multi-step team allocation interface"""
+    club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
+
+    # Get all signups
+    signups = club_event.signups.filter(can_drive=True).select_related("user")
+
+    if request.method == "POST":
+        # Handle different wizard steps
+        step = request.POST.get("step", "1")
+
+        if step == "auto_suggest":
+            # Get AI suggestions
+            criteria = {
+                "prioritize_skill": request.POST.get("prioritize_skill", True),
+                "prioritize_availability": request.POST.get(
+                    "prioritize_availability",
+                    False,
+                ),
+                "team_count": int(request.POST.get("team_count", 2)),
+            }
+
+            suggestions = TeamAllocationService.suggest_team_allocations(
+                club_event.id,
+                criteria,
+            )
+
+            context = {
+                "club_event": club_event,
+                "suggestions": suggestions,
+                "step": "review",
+            }
+
+            if request.headers.get("HX-Request"):
+                return render(
+                    request,
+                    "teams/team_allocation_suggestions_partial.html",
+                    context,
+                )
+
+    context = {
+        "club_event": club_event,
+        "signups": signups,
+        "available_teams": Team.objects.filter(club=request.club, is_active=True),
+        "step": request.GET.get("step", "1"),
+    }
+
+    return render(request, "teams/team_allocation_wizard.html", context)
+
+
+@club_manager_required
+def team_allocation_preview(request, club_slug, signup_id):
+    """Preview suggested allocations"""
+    club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
+
+    # This would show the preview of allocations before finalizing
+
+    context = {
+        "club_event": club_event,
+    }
+
+    return render(request, "teams/team_allocation_preview.html", context)
+
+
+@club_manager_required
+@require_http_methods(["POST"])
+def team_allocation_create(request, club_slug, signup_id):
+    """Finalize team allocations"""
+    club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
+
+    try:
+        # Parse allocation data from request
+        allocations = []
+        # This would parse the form data to create allocations
+
+        # Create allocations
+        created = TeamAllocationService.create_team_allocation(
+            club_event.id,
+            allocations,
+        )
+
+        messages.success(
+            request,
+            f"Successfully created {len(created)} team allocations!",
+        )
+        return redirect("teams:event_signup_detail", signup_id=club_event.id)
+
+    except (OSError, ValueError) as e:
+        messages.error(request, f"Failed to create allocations: {e!s}")
+        return redirect("teams:team_allocation_wizard", signup_id=club_event.id)
+
+
+@team_allocation_access
+def team_allocation_update(request, allocation_id):
+    """Modify existing allocations"""
+    allocation = request.allocation  # Set by decorator
+
+    # Handle updates to team allocations
+
+    context = {
+        "allocation": allocation,
+    }
+
+    return render(request, "teams/team_allocation_update.html", context)
 
 
 # Team Planning Views
 
 
-# Legacy team planning views removed - these depended on TeamEventStrategy and TeamAllocation models
-# Team planning functionality has been moved to the enhanced participation system
-# TODO: Rebuild team planning views using EventParticipation and AvailabilityWindow models
+@team_allocation_access
+def team_planning_dashboard(request, allocation_id):
+    """Team-specific planning interface"""
+    allocation = request.allocation
+
+    # Get or create team strategy
+    strategy, created = TeamEventStrategy.objects.get_or_create(
+        team=allocation.team,
+        club_event=allocation.club_event,
+        team_allocation=allocation,
+        defaults={
+            "selected_car": allocation.assigned_sim_car,
+            "selected_instance": allocation.club_event.base_event.instances.first(),
+        },
+    )
+
+    # Get team members
+    team_members = allocation.members.select_related("event_signup__user")
+
+    # Get stint assignments
+    stints = strategy.stint_assignments.order_by("stint_number")
+
+    context = {
+        "allocation": allocation,
+        "strategy": strategy,
+        "team_members": team_members,
+        "stints": stints,
+        "club": allocation.club_event.club,
+        "event": allocation.club_event,
+    }
+
+    return render(request, "teams/team_planning_dashboard.html", context)
 
 
-# Legacy stint planning views removed - TeamAllocation model no longer exists
-# These views have been replaced by the enhanced team formation system
+@team_allocation_access
+def stint_planning(request, allocation_id):
+    """Stint planning and pit strategy"""
+    allocation = request.allocation
 
-@login_required
-def stint_plan_update_legacy(request, allocation_id):
-    """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(request, "Stint planning has been moved to the enhanced team formation system")
-    return redirect("teams:clubs_dashboard")
+    # Get strategy through the relationship
+    try:
+        strategy = allocation.strategy
+    except TeamEventStrategy.DoesNotExist:
+        # Create strategy if it doesn't exist
+        strategy = TeamEventStrategy.objects.create(
+            team=allocation.team,
+            club_event=allocation.club_event,
+            team_allocation=allocation,
+            selected_car=allocation.assigned_sim_car,
+            selected_instance=allocation.club_event.base_event.instances.first(),
+        )
+
+    if request.method == "POST":
+        # Handle stint planning updates
+        pass
+
+    # Calculate pit windows
+    pit_windows = StintPlanningService.calculate_pit_windows(
+        strategy.selected_instance,
+        strategy.selected_car,
+    )
+
+    context = {
+        "allocation": allocation,
+        "strategy": strategy,
+        "pit_windows": pit_windows,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, "teams/stint_planning_partial.html", context)
+
+    return render(request, "teams/stint_planning.html", context)
 
 
-@login_required  
-def stint_plan_export_legacy(request, allocation_id):
-    """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(request, "Export functionality has been moved to the enhanced team formation system")
-    return redirect("teams:clubs_dashboard")
+@team_allocation_access
+@require_http_methods(["POST"])
+def stint_plan_update(request, allocation_id):
+    """Update stint assignments"""
+    allocation = request.allocation
+
+    # Handle stint updates
+
+    messages.success(request, "Stint plan updated successfully!")
+
+    if request.headers.get("HX-Request"):
+        return HttpResponse(status=204, headers={"HX-Refresh": "true"})
+
+    return redirect("teams:stint_planning", allocation_id=allocation.id)
+
+
+@team_allocation_access
+def stint_plan_export(request, allocation_id):
+    """Export stint plan as PDF/CSV"""
+    allocation = request.allocation
+    export_format = request.GET.get("format", "pdf")
+
+    if export_format == "pdf":
+        pdf_file = generate_stint_plan_pdf(allocation)
+        response = HttpResponse(pdf_file, content_type="application/pdf")
+        response["Content-Disposition"] = (
+            f'attachment; filename="stint_plan_{allocation.team.name}.pdf"'
+        )
+        return response
+
+    if export_format == "csv":
+        csv_file = export_signup_data(allocation.club_event, format="csv")
+        response = HttpResponse(csv_file, content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="signups_{allocation.club_event.title}.csv"'
+        )
+        return response
+
+    return HttpResponse("Invalid format", status=400)
 
 
 # HTMX Partial Views
@@ -508,14 +878,36 @@ def club_members_partial(request, club_slug):
     return club_members(request, club_slug)
 
 
-# Legacy signup and allocation partial views removed - replaced by enhanced system
+@event_signup_access
+def signup_entries_partial(request, club_slug, signup_id):
+    """Dynamic signup list"""
+    club_event = request.club_event
+    signups = club_event.signups.select_related("user").order_by("-created_at")
+
+    context = {
+        "signups": signups,
+        "club_event": club_event,
+    }
+
+    return render(request, "teams/signup_entries_partial.html", context)
 
 
-@login_required
-def stint_plan_partial_legacy(request, allocation_id):
-    """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(request, "Stint planning has been moved to the enhanced team formation system")
-    return redirect("teams:clubs_dashboard")
+@club_manager_required
+def team_allocation_partial(request, club_slug, signup_id):
+    """Dynamic team allocation interface"""
+    club_event = get_object_or_404(ClubEvent, id=signup_id, club=request.club)
+
+    context = {
+        "club_event": club_event,
+    }
+
+    return render(request, "teams/team_allocation_partial.html", context)
+
+
+@team_allocation_access
+def stint_plan_partial(request, allocation_id):
+    """Dynamic stint plan updates"""
+    return stint_planning(request, allocation_id)
 
 
 @club_manager_required

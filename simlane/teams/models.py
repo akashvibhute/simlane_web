@@ -452,127 +452,6 @@ class TeamMember(models.Model):
         return True
 
 
-class EventEntry(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="entries")
-    sim_car = models.ForeignKey(
-        SimCar,
-        on_delete=models.CASCADE,
-        related_name="entries",
-    )
-    team = models.ForeignKey(
-        Team,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="entries",
-    )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="event_entries",
-    )
-    event_class = models.ForeignKey(
-        EventClass,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="entries",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["event"]),
-            models.Index(fields=["sim_car"]),
-            models.Index(fields=["team"]),
-            models.Index(fields=["user"]),
-        ]
-
-    def __str__(self):
-        return f"{self.user.username} - {self.event.name}"
-
-
-class DriverAvailability(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event_entry = models.ForeignKey(
-        EventEntry,
-        on_delete=models.CASCADE,
-        related_name="availabilities",
-    )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="driver_availabilities",
-    )
-    instance = models.ForeignKey(
-        EventInstance,
-        on_delete=models.CASCADE,
-        related_name="availabilities",
-    )
-    available = models.BooleanField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ["event_entry", "user", "instance"]
-        indexes = [
-            models.Index(fields=["event_entry"]),
-            models.Index(fields=["user"]),
-            models.Index(fields=["instance"]),
-        ]
-
-    def __str__(self):
-        return (
-            f"{self.event_entry.user.username} - "
-            f"{self.instance.event.name} - "
-            f"{self.available}"
-        )
-
-
-class PredictedStint(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    event_entry = models.ForeignKey(
-        EventEntry,
-        on_delete=models.CASCADE,
-        related_name="predicted_stints",
-    )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="predicted_stints",
-    )
-    instance = models.ForeignKey(
-        EventInstance,
-        on_delete=models.CASCADE,
-        related_name="predicted_stints",
-    )
-    stint_order = models.IntegerField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        indexes = [
-            models.Index(fields=["event_entry"]),
-            models.Index(fields=["user"]),
-            models.Index(fields=["instance"]),
-        ]
-
-    def __str__(self):
-        return (
-            f"{self.event_entry.user.username} - "
-            f"{self.instance.event.name} - "
-            f"{self.stint_order}"
-        )
-
-
-# NEW MODELS FOR CLUB MANAGEMENT SYSTEM
-
-# ===== UNIFIED EVENT PARTICIPATION MODELS =====
-
 class EventParticipation(models.Model):
     """
     Unified model for ALL event participation - replaces EventEntry and EventSignupEntry
@@ -730,14 +609,7 @@ class EventParticipation(models.Model):
         help_text="Club event this participation is associated with"
     )
     
-    # Link to team allocation (for club events)
-    team_allocation = models.ForeignKey(
-        "TeamAllocation",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="participations"
-    )
+    # Legacy team allocation field removed - using direct team assignment in enhanced system
     
     # For individual team formation
     signup_invitation = models.ForeignKey(
@@ -937,19 +809,83 @@ class AvailabilityWindow(models.Model):
             models.Index(fields=['participation', 'start_time', 'end_time']),
         ]
         constraints = [
+            # Basic time validation - start must be before end
             models.CheckConstraint(
                 check=models.Q(start_time__lt=models.F('end_time')),
                 name='availability_window_valid_time_range'
             ),
+            # Must be available for at least one role (drive, spot, or strategize)
             models.CheckConstraint(
                 check=(
-                    models.Q(can_drive=True) |
-                    models.Q(can_spot=True) |
+                    models.Q(can_drive=True) | 
+                    models.Q(can_spot=True) | 
                     models.Q(can_strategize=True)
                 ),
                 name='availability_window_has_role'
             )
         ]
+    
+    def clean(self):
+        """
+        Custom validation for complex constraints that can't be done at database level
+        """
+        from django.core.exceptions import ValidationError
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        # Check minimum duration (15 minutes)
+        if self.start_time and self.end_time:
+            duration = self.end_time - self.start_time
+            if duration < timedelta(minutes=15):
+                raise ValidationError({
+                    '__all__': 'Availability window must be at least 15 minutes long.'
+                })
+            
+            # Check that duration is a multiple of 15 minutes
+            duration_minutes = int(duration.total_seconds() / 60)
+            if duration_minutes % 15 != 0:
+                raise ValidationError({
+                    '__all__': 'Availability window duration must be a multiple of 15 minutes.'
+                })
+        
+        # Check if window is within event time boundaries
+        if self.participation and self.participation.event:
+            event = self.participation.event
+            
+            # Get event time boundaries
+            if hasattr(event, 'start_time') and event.start_time:
+                if self.start_time < event.start_time:
+                    raise ValidationError({
+                        'start_time': f'Availability window cannot start before event start time ({event.start_time})'
+                    })
+            
+            if hasattr(event, 'end_time') and event.end_time:
+                if self.end_time > event.end_time:
+                    raise ValidationError({
+                        'end_time': f'Availability window cannot end after event end time ({event.end_time})'
+                    })
+        
+        # Check for overlapping windows for the same participation
+        if self.participation:
+            overlapping_windows = AvailabilityWindow.objects.filter(
+                participation=self.participation,
+                start_time__lt=self.end_time,
+                end_time__gt=self.start_time
+            ).exclude(pk=self.pk)
+            
+            if overlapping_windows.exists():
+                overlapping = overlapping_windows.first()
+                if overlapping:
+                    raise ValidationError({
+                        '__all__': f'This availability window overlaps with another window '
+                                  f'({overlapping.start_time} to {overlapping.end_time}). '
+                                  f'Windows for the same participant cannot overlap.'
+                    })
+    
+    def save(self, *args, **kwargs):
+        """Override save to call clean() validation"""
+        self.full_clean()
+        super().save(*args, **kwargs)
     
     def __str__(self):
         participant = self.participation.effective_participant_name
@@ -1187,6 +1123,311 @@ class AvailabilityWindow(models.Model):
                 used_users.update(potential_team)
         
         return sorted(recommendations, key=lambda x: x['total_overlap_score'], reverse=True)
+
+
+# ===== RACE STRATEGY AND PLANNING MODELS =====
+
+class RaceStrategy(models.Model):
+    """
+    High-level race strategy for a team in an event
+    Replaces the legacy TeamEventStrategy model with more flexibility
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Core relationships
+    team = models.ForeignKey(
+        Team, 
+        on_delete=models.CASCADE, 
+        related_name="race_strategies"
+    )
+    event = models.ForeignKey(
+        Event, 
+        on_delete=models.CASCADE, 
+        related_name="race_strategies"
+    )
+    event_instance = models.ForeignKey(
+        EventInstance,
+        on_delete=models.CASCADE,
+        related_name="race_strategies",
+        help_text="Specific event instance/session this strategy is for"
+    )
+    
+    # Strategy identification
+    name = models.CharField(
+        max_length=255, 
+        default="Primary Strategy",
+        help_text="Name for this strategy variant"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this is the active strategy being used"
+    )
+    
+    # Strategy parameters
+    target_stint_length = models.IntegerField(
+        help_text="Target stint length in minutes"
+    )
+    min_driver_rest = models.IntegerField(
+        help_text="Minimum rest between stints in minutes"
+    )
+    pit_stop_time = models.IntegerField(
+        default=60,
+        help_text="Expected pit stop time in seconds"
+    )
+    
+    # Fuel strategy
+    fuel_per_stint = models.FloatField(
+        null=True, 
+        blank=True,
+        help_text="Expected fuel consumption per stint in liters/gallons"
+    )
+    fuel_tank_size = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Fuel tank capacity in liters/gallons"
+    )
+    
+    # Tire strategy
+    tire_change_frequency = models.IntegerField(
+        default=1,
+        help_text="Change tires every N pit stops"
+    )
+    tire_compound_strategy = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Tire compound plan for different conditions/phases"
+    )
+    
+    # Additional strategy data
+    notes = models.TextField(blank=True)
+    strategy_data = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Additional strategy parameters and calculations"
+    )
+    
+    # Metadata
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="created_strategies"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = [['team', 'event', 'event_instance', 'name']]
+        indexes = [
+            models.Index(fields=['team', 'event']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['event_instance']),
+        ]
+        ordering = ['-is_active', '-created_at']
+    
+    def __str__(self):
+        return f"{self.team.name} - {self.event.name} - {self.name}"
+    
+    def calculate_total_stints(self):
+        """Calculate total number of stints based on event duration"""
+        if not self.event_instance.session:
+            return 0
+        
+        session_duration = self.event_instance.session.duration  # in minutes
+        return int(session_duration / self.target_stint_length)
+    
+    def validate_driver_rest(self):
+        """Validate that all drivers get sufficient rest between stints"""
+        # This will check the stint plans associated with this strategy
+        from collections import defaultdict
+        driver_stints = defaultdict(list)
+        
+        for stint in self.stint_plans.all().order_by('stint_number'):
+            driver_stints[stint.driver_id].append(stint)
+        
+        issues = []
+        for driver_id, stints in driver_stints.items():
+            for i in range(1, len(stints)):
+                prev_end = stints[i-1].get_planned_end_time()
+                next_start = stints[i].planned_start_time
+                
+                if prev_end and next_start:
+                    rest_duration = (next_start - prev_end).total_seconds() / 60
+                    if rest_duration < self.min_driver_rest:
+                        issues.append(f"Insufficient rest for driver {stints[i].driver}")
+        
+        return issues
+
+
+class StintPlan(models.Model):
+    """
+    Individual stint within a race strategy
+    Replaces the legacy StintAssignment model with better tracking
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Core relationships
+    strategy = models.ForeignKey(
+        RaceStrategy, 
+        on_delete=models.CASCADE, 
+        related_name='stint_plans'
+    )
+    driver = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='stint_plans'
+    )
+    
+    # Stint identification
+    stint_number = models.IntegerField(
+        help_text="Sequential stint number in the race"
+    )
+    
+    # Planned timing (laps)
+    planned_start_lap = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Planned starting lap for this stint"
+    )
+    planned_end_lap = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Planned ending lap for this stint"
+    )
+    
+    # Planned timing (time-based)
+    planned_start_time = models.DurationField(
+        null=True, 
+        blank=True,
+        help_text="Planned start time from race start"
+    )
+    planned_duration = models.DurationField(
+        help_text="Planned stint duration"
+    )
+    
+    # Actual execution tracking
+    actual_start_lap = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Actual starting lap"
+    )
+    actual_end_lap = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Actual ending lap"
+    )
+    actual_start_time = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="Actual start timestamp"
+    )
+    actual_end_time = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="Actual end timestamp"
+    )
+    
+    # Pit stop instructions
+    pit_instructions = models.JSONField(
+        null=True, 
+        blank=True,
+        help_text="Detailed pit stop instructions (fuel, tires, repairs, etc.)"
+    )
+    
+    # Example pit_instructions structure:
+    # {
+    #     "fuel_amount": 60,  # liters
+    #     "tire_change": true,
+    #     "tire_compound": "medium",
+    #     "tire_pressures": {"fl": 26.5, "fr": 26.5, "rl": 26.0, "rr": 26.0},
+    #     "repairs": [],
+    #     "driver_change": true,
+    #     "special_instructions": "Check front wing damage"
+    # }
+    
+    # Status tracking
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('planned', 'Planned'),
+            ('ready', 'Ready to Execute'),
+            ('in_progress', 'In Progress'),
+            ('completed', 'Completed'),
+            ('skipped', 'Skipped'),
+            ('aborted', 'Aborted'),
+        ],
+        default='planned'
+    )
+    
+    # Performance tracking
+    avg_lap_time = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="Average lap time during this stint"
+    )
+    fastest_lap_time = models.DurationField(
+        null=True,
+        blank=True,
+        help_text="Fastest lap time during this stint"
+    )
+    incidents_count = models.IntegerField(
+        default=0,
+        help_text="Number of incidents during this stint"
+    )
+    
+    # Notes and metadata
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['stint_number']
+        unique_together = [['strategy', 'stint_number']]
+        indexes = [
+            models.Index(fields=['strategy', 'stint_number']),
+            models.Index(fields=['driver', 'status']),
+            models.Index(fields=['status']),
+        ]
+    
+    def __str__(self):
+        return f"Stint {self.stint_number} - {self.driver.username} ({self.strategy.team.name})"
+    
+    def get_planned_end_time(self):
+        """Calculate planned end time based on start time and duration"""
+        if self.planned_start_time and self.planned_duration:
+            return self.planned_start_time + self.planned_duration
+        return None
+    
+    def get_actual_duration(self):
+        """Calculate actual stint duration"""
+        if self.actual_start_time and self.actual_end_time:
+            return self.actual_end_time - self.actual_start_time
+        return None
+    
+    def is_overdue(self):
+        """Check if stint has exceeded planned duration"""
+        if self.status != 'in_progress' or not self.actual_start_time:
+            return False
+        
+        from django.utils import timezone
+        elapsed = timezone.now() - self.actual_start_time
+        return elapsed > self.planned_duration
+    
+    def can_start(self):
+        """Check if this stint can be started"""
+        if self.status != 'ready':
+            return False
+        
+        # Check if previous stint is completed
+        previous_stint = StintPlan.objects.filter(
+            strategy=self.strategy,
+            stint_number=self.stint_number - 1
+        ).first()
+        
+        if previous_stint and previous_stint.status != 'completed':
+            return False
+        
+        return True
 
 
 class EventSignupInvitation(models.Model):
@@ -1466,471 +1707,3 @@ class ClubEvent(models.Model):
         if self.track_layout and self.track_layout.pit_data:
             return self.track_layout.pit_data
         return None
-
-
-class EventSignup(models.Model):
-    """Member signup for club events with preferences"""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    club_event = models.ForeignKey(
-        ClubEvent,
-        on_delete=models.CASCADE,
-        related_name="signups",
-    )
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="event_signups",
-    )
-
-    # Car preferences (ManyToMany will be set after this model is defined)
-    # preferred_cars
-    # backup_cars
-
-    # Availability and preferences
-    can_drive = models.BooleanField(default=True)
-    can_spectate = models.BooleanField(default=True)
-    experience_level = models.CharField(
-        max_length=20,
-        choices=[
-            ("beginner", "Beginner"),
-            ("intermediate", "Intermediate"),
-            ("advanced", "Advanced"),
-            ("professional", "Professional"),
-        ],
-        default="intermediate",
-    )
-
-    # Link to sim profile for automatic skill assessment
-    primary_sim_profile = models.ForeignKey(
-        SimProfile,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Primary sim profile for skill assessment",
-    )
-
-    # Better availability tracking
-    availability_notes = models.TextField(blank=True)
-    max_stint_duration = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text="Maximum stint duration in minutes",
-    )
-    min_rest_duration = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text="Minimum rest between stints in minutes",
-    )
-
-    notes = models.TextField(blank=True)
-
-    # Team assignment (filled by admin)
-    assigned_team = models.ForeignKey(
-        Team,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-    )
-    assigned_at = models.DateTimeField(null=True, blank=True)
-    assignment_locked = models.BooleanField(default=False)  # Prevent auto-reassignment
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ["club_event", "user"]
-        indexes = [
-            models.Index(fields=["club_event", "assigned_team"]),
-            models.Index(fields=["user", "created_at"]),
-            models.Index(fields=["experience_level"]),
-        ]
-
-    def __str__(self):
-        return f"{self.user.username} - {self.club_event.title}"
-
-    def get_skill_rating(self):
-        """Get skill rating from sim profile if available"""
-        if self.primary_sim_profile:
-            # Get latest rating from the profile
-            latest_rating = (
-                self.primary_sim_profile.ratings.filter(
-                    rating_system__category="SKILL",
-                )
-                .order_by("-recorded_at")
-                .first()
-            )
-            return latest_rating.value if latest_rating else None
-        return None
-
-    def get_track_experience(self):
-        """Get lap times for this track if available"""
-        if self.primary_sim_profile and self.club_event.track_layout:
-            return self.primary_sim_profile.lap_times.filter(
-                sim_layout=self.club_event.track_layout,
-                is_valid=True,
-            ).order_by("lap_time_ms")
-        return None
-
-
-# Add ManyToMany relationships after EventSignup is defined
-EventSignup.add_to_class(
-    "preferred_cars",
-    models.ManyToManyField(SimCar, blank=True, related_name="preferred_signups"),
-)
-EventSignup.add_to_class(
-    "backup_cars",
-    models.ManyToManyField(SimCar, blank=True, related_name="backup_signups"),
-)
-EventSignup.add_to_class(
-    "preferred_instances",
-    models.ManyToManyField(EventInstance, blank=True, related_name="signups"),
-)
-EventSignup.add_to_class(
-    "preferred_classes",
-    models.ManyToManyField(EventClass, blank=True, related_name="signups"),
-)
-
-
-class EventSignupAvailability(models.Model):
-    """Member availability for event instances"""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    signup = models.ForeignKey(
-        EventSignup,
-        on_delete=models.CASCADE,
-        related_name="availabilities",
-    )
-    event_instance = models.ForeignKey(EventInstance, on_delete=models.CASCADE)
-    available = models.BooleanField(default=True)
-    preferred_stint_duration = models.IntegerField(
-        null=True,
-        blank=True,
-        help_text="Preferred stint duration in minutes",
-    )
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ["signup", "event_instance"]
-        indexes = [
-            models.Index(fields=["signup"]),
-            models.Index(fields=["event_instance"]),
-        ]
-
-    def __str__(self):
-        return f"{self.signup.user.username} - {self.event_instance} - {'Available' if self.available else 'Unavailable'}"
-
-
-class TeamAllocation(models.Model):
-    """Team allocation for club events"""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    club_event = models.ForeignKey(
-        ClubEvent,
-        on_delete=models.CASCADE,
-        related_name="allocations",
-    )
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="allocations")
-    slug = models.SlugField(max_length=320, blank=True)
-    assigned_sim_car = models.ForeignKey(SimCar, on_delete=models.CASCADE)
-
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ["club_event", "team", "slug"]
-        indexes = [
-            models.Index(fields=["club_event"]),
-            models.Index(fields=["team"]),
-            models.Index(fields=["club_event", "slug"]),
-        ]
-
-    def __str__(self):
-        return f"{self.club_event.title} - {self.team.name}"
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(f"{self.team.name} {self.club_event.title}")
-            # Ensure uniqueness within club_event
-            counter = 1
-            original_slug = self.slug
-            while TeamAllocation.objects.filter(
-                club_event=self.club_event,
-                slug=self.slug,
-            ).exists():
-                self.slug = f"{original_slug}-{counter}"
-                counter += 1
-        super().save(*args, **kwargs)
-
-
-class TeamAllocationMember(models.Model):
-    """Members assigned to each team allocation"""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    team_allocation = models.ForeignKey(
-        TeamAllocation,
-        on_delete=models.CASCADE,
-        related_name="members",
-    )
-    event_signup = models.ForeignKey(EventSignup, on_delete=models.CASCADE)
-    role = models.CharField(
-        max_length=20,
-        choices=[
-            ("driver", "Driver"),
-            ("reserve", "Reserve Driver"),
-            ("spotter", "Spotter"),
-            ("strategist", "Strategist"),
-        ],
-        default="driver",
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        unique_together = ["team_allocation", "event_signup"]
-        indexes = [
-            models.Index(fields=["team_allocation"]),
-            models.Index(fields=["event_signup"]),
-        ]
-
-    def __str__(self):
-        return f"{self.event_signup.user.username} - {self.team_allocation.team.name} ({self.role})"
-
-
-class TeamEventStrategy(models.Model):
-    """Strategy planning with deep pit data and weather integration"""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    team = models.ForeignKey(
-        Team,
-        on_delete=models.CASCADE,
-        related_name="event_strategies",
-    )
-    club_event = models.ForeignKey(
-        ClubEvent,
-        on_delete=models.CASCADE,
-        related_name="team_strategies",
-    )
-    team_allocation = models.OneToOneField(
-        TeamAllocation,
-        on_delete=models.CASCADE,
-        related_name="strategy",
-    )
-    slug = models.SlugField(max_length=340, blank=True)
-
-    # Direct sim model relationships
-    selected_car = models.ForeignKey(SimCar, on_delete=models.CASCADE)
-    selected_instance = models.ForeignKey(EventInstance, on_delete=models.CASCADE)
-    selected_class = models.ForeignKey(
-        EventClass,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-    )
-
-    # Strategy data
-    strategy_notes = models.TextField(blank=True)
-
-    # Automated calculations using pit data
-    calculated_pit_windows = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Calculated using PitData - optimal pit stop windows",
-    )
-    fuel_strategy = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Fuel loads per stint calculated from PitData.refuel_flow_rate",
-    )
-    tire_strategy = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Tire change schedule based on PitData.tire_change_all_four_sec",
-    )
-    weather_contingencies = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Strategy adjustments based on WeatherForecast data",
-    )
-
-    # Strategy management
-    is_finalized = models.BooleanField(default=False)
-    finalized_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="finalized_strategies",
-    )
-    finalized_at = models.DateTimeField(null=True, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ["team", "club_event", "slug"]
-        indexes = [
-            models.Index(fields=["team"]),
-            models.Index(fields=["club_event"]),
-            models.Index(fields=["team_allocation"]),
-            models.Index(fields=["team", "slug"]),
-        ]
-
-    def __str__(self):
-        return f"{self.team.name} - {self.club_event.title} Strategy"
-
-    def calculate_optimal_strategy(self):
-        """Calculate optimal strategy using pit data and weather forecasts"""
-        if not self.club_event.pit_data:
-            return None
-
-        pit_data = self.club_event.pit_data
-        event_duration = (
-            self.selected_instance.end_time - self.selected_instance.start_time
-        )
-
-        # Calculate fuel strategy
-        fuel_strategy = {
-            "refuel_flow_rate": pit_data.refuel_flow_rate,
-            "fuel_unit": pit_data.fuel_unit,
-            "optimal_fuel_loads": [],  # Would be calculated based on stint length
-        }
-
-        # Calculate pit windows
-        pit_windows = {
-            "drive_through_penalty": pit_data.drive_through_loss_sec,
-            "stop_go_penalty": pit_data.stop_go_base_loss_sec,
-            "tire_change_time": pit_data.tire_change_all_four_sec,
-            "simultaneous_actions": pit_data.simultaneous_actions,
-            "tire_then_refuel": pit_data.tire_then_refuel,
-        }
-
-        # Get weather data if available
-        weather_data = []
-        if hasattr(self.selected_instance, "weather_forecasts"):
-            weather_data = list(self.selected_instance.weather_forecasts.all().values())
-
-        return {
-            "fuel_strategy": fuel_strategy,
-            "pit_windows": pit_windows,
-            "weather_contingencies": weather_data,
-            "calculated_at": timezone.now().isoformat(),
-        }
-
-    def save(self, *args, **kwargs):
-        # Generate slug if not provided
-        if not self.slug:
-            self.slug = slugify(f"{self.team.name} {self.club_event.title} strategy")
-            # Ensure uniqueness within team
-            counter = 1
-            original_slug = self.slug
-            while TeamEventStrategy.objects.filter(
-                team=self.team,
-                slug=self.slug,
-            ).exists():
-                self.slug = f"{original_slug}-{counter}"
-                counter += 1
-
-        # Auto-calculate strategy on save
-        if self.club_event.pit_data and not self.calculated_pit_windows:
-            strategy = self.calculate_optimal_strategy()
-            if strategy:
-                self.fuel_strategy = strategy["fuel_strategy"]
-                self.calculated_pit_windows = strategy["pit_windows"]
-                self.weather_contingencies = strategy["weather_contingencies"]
-
-        super().save(*args, **kwargs)
-
-
-class StintAssignment(models.Model):
-    """Stint assignments with pit strategy integration"""
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    team_strategy = models.ForeignKey(
-        TeamEventStrategy,
-        on_delete=models.CASCADE,
-        related_name="stint_assignments",
-    )
-    driver = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="stint_assignments",
-    )
-
-    stint_number = models.IntegerField()
-    estimated_start_time = models.DateTimeField()
-    estimated_end_time = models.DateTimeField()
-    estimated_duration_minutes = models.IntegerField()
-
-    # Link to existing PredictedStint model
-    predicted_stint = models.OneToOneField(
-        PredictedStint,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="club_assignment",
-    )
-
-    # More detailed role assignments
-    role = models.CharField(
-        max_length=20,
-        choices=[
-            ("primary_driver", "Primary Driver"),
-            ("secondary_driver", "Secondary Driver"),
-            ("reserve_driver", "Reserve Driver"),
-            ("spotter", "Spotter"),
-            ("strategist", "Strategist"),
-            ("pit_crew", "Pit Crew"),
-        ],
-        default="primary_driver",
-    )
-
-    # Pit strategy for this stint
-    pit_entry_planned = models.BooleanField(default=False)
-    pit_strategy_notes = models.TextField(blank=True)
-    fuel_load_start = models.FloatField(
-        null=True,
-        blank=True,
-        help_text="Fuel load at stint start",
-    )
-    fuel_load_end = models.FloatField(
-        null=True,
-        blank=True,
-        help_text="Expected fuel at stint end",
-    )
-    tire_compound = models.CharField(max_length=50, blank=True)
-
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        unique_together = ["team_strategy", "stint_number"]
-        indexes = [
-            models.Index(fields=["team_strategy", "driver"]),
-            models.Index(fields=["estimated_start_time"]),
-            models.Index(fields=["stint_number"]),
-        ]
-
-    def __str__(self):
-        return f"{self.driver.username} - Stint {self.stint_number} ({self.team_strategy.club_event.title})"
-
-    def calculate_pit_strategy(self):
-        """Calculate pit requirements for this stint using PitData"""
-        if not self.team_strategy.selected_car.pit_data:
-            return None
-
-        pit_data = self.team_strategy.selected_car.pit_data
-
-        # Calculate fuel needed for stint
-        return {
-            "refuel_time": (self.fuel_load_start / pit_data.refuel_flow_rate)
-            if self.fuel_load_start
-            else 0,
-            "tire_change_time": pit_data.tire_change_all_four_sec
-            if self.tire_compound
-            else 0,
-            "total_pit_time": 0,  # Would be calculated based on above and simultaneous_actions
-        }

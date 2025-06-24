@@ -3,11 +3,15 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
+from .models import AvailabilityWindow
 from .models import Club
+from .models import ClubEvent
+from .models import ClubInvitation
 from .models import ClubMember
-from .models import DriverAvailability
-from .models import EventEntry
-from .models import PredictedStint
+from .models import EventParticipation
+from .models import EventSignupInvitation
+from .models import RaceStrategy
+from .models import StintPlan
 from .models import Team
 from .models import TeamMember
 
@@ -40,59 +44,302 @@ class ClubMemberAdmin(ModelAdmin):
 
 @admin.register(Team)
 class TeamAdmin(ModelAdmin):
-    list_display = ["name", "club", "is_active", "created_at"]
-    list_filter = ["club", "is_active", "created_at"]
-    search_fields = ["name", "description", "club__name"]
+    list_display = ["name", "club", "owner_user", "owner_sim_profile", "is_active", "is_temporary", "created_at"]
+    list_filter = ["club", "is_active", "is_temporary", "is_public", "created_at"]
+    search_fields = ["name", "description", "club__name", "owner_user__username"]
     readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["club"]
+    raw_id_fields = ["club", "owner_user", "owner_sim_profile"]
 
 
 @admin.register(TeamMember)
 class TeamMemberAdmin(ModelAdmin):
-    list_display = ["user", "team", "created_at"]
-    list_filter = ["team__club", "created_at"]
+    list_display = ["user", "team", "role", "status", "created_at"]
+    list_filter = ["role", "status", "team__club", "created_at"]
     search_fields = ["user__username", "user__email", "team__name"]
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["user", "team"]
 
 
-@admin.register(EventEntry)
-class EventEntryAdmin(ModelAdmin):
-    list_display = ["user", "event", "sim_car", "team", "event_class", "created_at"]
-    list_filter = ["event__simulator", "event__type", "event_class", "created_at"]
-    search_fields = ["user__username", "event__name", "team__name"]
+# NEW UNIFIED EVENT PARTICIPATION ADMIN
+
+@admin.register(EventParticipation)
+class EventParticipationAdmin(ModelAdmin):
+    list_display = [
+        "get_participant_display",
+        "event",
+        "participation_type",
+        "status",
+        "assigned_car",
+        "team",
+        "created_at"
+    ]
+    list_filter = [
+        "participation_type",
+        "status",
+        "event__simulator",
+        "event__type",
+        "created_at"
+    ]
+    search_fields = [
+        "user__username",
+        "user__email",
+        "team__name",
+        "event__name"
+    ]
+    readonly_fields = [
+        "created_at",
+        "updated_at",
+        "signed_up_at",
+        "team_assigned_at",
+        "entered_at",
+        "confirmed_at",
+        "withdrawn_at"
+    ]
+    raw_id_fields = [
+        "event",
+        "user",
+        "team",
+        "preferred_car",
+        "backup_car",
+        "assigned_car",
+        "assigned_class",
+        "club_event",
+        "signup_invitation"
+    ]
+    
+    @admin.display(description="Participant")
+    def get_participant_display(self, obj):
+        if obj.user:
+            return f"User: {obj.user.username}"
+        elif obj.team:
+            return f"Team: {obj.team.name}"
+        return "No participant"
+    
+    fieldsets = (
+        ("Participant Information", {
+            "fields": (
+                "event",
+                "user",
+                "team",
+                "participation_type",
+                "status",
+            )
+        }),
+        ("Car Selection", {
+            "fields": (
+                "preferred_car",
+                "backup_car",
+                "assigned_car",
+                "assigned_class",
+                "car_number",
+                "starting_position",
+            )
+        }),
+        ("Preferences", {
+            "fields": (
+                "experience_level",
+                "max_stint_duration",
+                "min_rest_duration",
+                "participant_timezone",
+            )
+        }),
+        ("Relationships", {
+            "fields": (
+                "club_event",
+                "signup_invitation",
+            )
+        }),
+        ("Additional Data", {
+            "fields": (
+                "notes",
+                "registration_data",
+            ),
+            "classes": ("collapse",)
+        }),
+        ("Timestamps", {
+            "fields": (
+                "signed_up_at",
+                "team_assigned_at",
+                "entered_at",
+                "confirmed_at",
+                "withdrawn_at",
+                "created_at",
+                "updated_at",
+            ),
+            "classes": ("collapse",)
+        }),
+    )
+
+
+@admin.register(AvailabilityWindow)
+class AvailabilityWindowAdmin(ModelAdmin):
+    list_display = [
+        "participation",
+        "start_time",
+        "end_time",
+        "can_drive",
+        "can_spot",
+        "preference_level",
+        "created_at"
+    ]
+    list_filter = [
+        "can_drive",
+        "can_spot",
+        "can_strategize",
+        "preference_level",
+        "created_at"
+    ]
+    search_fields = [
+        "participation__user__username",
+        "participation__event__name",
+        "notes"
+    ]
     readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["event", "sim_car", "team", "user", "event_class"]
+    raw_id_fields = ["participation"]
 
 
-@admin.register(DriverAvailability)
-class DriverAvailabilityAdmin(ModelAdmin):
-    list_display = ["user", "event_entry", "instance", "available", "created_at"]
-    list_filter = ["available", "instance__event", "created_at"]
-    search_fields = ["user__username", "event_entry__event__name"]
+# RACE STRATEGY AND PLANNING ADMIN
+
+@admin.register(RaceStrategy)
+class RaceStrategyAdmin(ModelAdmin):
+    list_display = [
+        "name",
+        "team",
+        "event",
+        "event_instance",
+        "is_active",
+        "target_stint_length",
+        "created_at"
+    ]
+    list_filter = ["is_active", "team", "event", "created_at"]
+    search_fields = ["name", "team__name", "event__name", "notes"]
     readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["event_entry", "user", "instance"]
+    raw_id_fields = ["team", "event", "event_instance", "created_by"]
+    
+    fieldsets = (
+        ("Strategy Information", {
+            "fields": (
+                "team",
+                "event",
+                "event_instance",
+                "name",
+                "is_active",
+            )
+        }),
+        ("Timing Parameters", {
+            "fields": (
+                "target_stint_length",
+                "min_driver_rest",
+                "pit_stop_time",
+            )
+        }),
+        ("Fuel & Tire Strategy", {
+            "fields": (
+                "fuel_per_stint",
+                "fuel_tank_size",
+                "tire_change_frequency",
+                "tire_compound_strategy",
+            )
+        }),
+        ("Additional Information", {
+            "fields": (
+                "notes",
+                "strategy_data",
+            ),
+            "classes": ("collapse",)
+        }),
+        ("Metadata", {
+            "fields": (
+                "created_by",
+                "created_at",
+                "updated_at",
+            ),
+            "classes": ("collapse",)
+        }),
+    )
 
 
-@admin.register(PredictedStint)
-class PredictedStintAdmin(ModelAdmin):
-    list_display = ["user", "event_entry", "instance", "stint_order", "created_at"]
-    list_filter = ["instance__event", "stint_order", "created_at"]
-    search_fields = ["user__username", "event_entry__event__name"]
+@admin.register(StintPlan)
+class StintPlanAdmin(ModelAdmin):
+    list_display = [
+        "stint_number",
+        "driver",
+        "strategy",
+        "status",
+        "planned_duration",
+        "actual_start_time",
+        "actual_end_time",
+    ]
+    list_filter = ["status", "strategy__team", "strategy__event", "created_at"]
+    search_fields = ["driver__username", "strategy__team__name", "notes"]
     readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["event_entry", "user", "instance"]
+    raw_id_fields = ["strategy", "driver"]
+    
+    fieldsets = (
+        ("Stint Information", {
+            "fields": (
+                "strategy",
+                "driver",
+                "stint_number",
+                "status",
+            )
+        }),
+        ("Planned Timing", {
+            "fields": (
+                "planned_start_lap",
+                "planned_end_lap",
+                "planned_start_time",
+                "planned_duration",
+            )
+        }),
+        ("Actual Timing", {
+            "fields": (
+                "actual_start_lap",
+                "actual_end_lap",
+                "actual_start_time",
+                "actual_end_time",
+            )
+        }),
+        ("Performance", {
+            "fields": (
+                "avg_lap_time",
+                "fastest_lap_time",
+                "incidents_count",
+            ),
+            "classes": ("collapse",)
+        }),
+        ("Pit Instructions", {
+            "fields": (
+                "pit_instructions",
+                "notes",
+            ),
+            "classes": ("collapse",)
+        }),
+        ("Timestamps", {
+            "fields": (
+                "created_at",
+                "updated_at",
+            ),
+            "classes": ("collapse",)
+        }),
+    )
 
 
-# NEW ADMIN CONFIGURATIONS FOR CLUB MANAGEMENT
-
-from .models import ClubEvent
-from .models import ClubInvitation
-from .models import EventSignup
-from .models import EventSignupAvailability
-from .models import StintAssignment
-from .models import TeamAllocation
-from .models import TeamAllocationMember
-from .models import TeamEventStrategy
+@admin.register(EventSignupInvitation)
+class EventSignupInvitationAdmin(ModelAdmin):
+    list_display = [
+        "team_name",
+        "event",
+        "organizer_user",
+        "invitee_email",
+        "status",
+        "created_at",
+        "expires_at"
+    ]
+    list_filter = ["status", "event", "created_at", "expires_at"]
+    search_fields = ["team_name", "invitee_email", "organizer_user__username", "event__name"]
+    readonly_fields = ["token", "created_at", "responded_at"]
+    raw_id_fields = ["event", "organizer_user", "invitee_user"]
 
 
 @admin.register(ClubInvitation)
@@ -218,255 +465,4 @@ class ClubEventAdmin(ModelAdmin):
     )
 
 
-@admin.register(EventSignup)
-class EventSignupAdmin(ModelAdmin):
-    list_display = [
-        "user",
-        "club_event",
-        "experience_level",
-        "can_drive",
-        "can_spectate",
-        "assigned_team",
-        "created_at",
-    ]
-    list_filter = [
-        "experience_level",
-        "can_drive",
-        "can_spectate",
-        "assigned_team",
-        "created_at",
-    ]
-    search_fields = ["user__username", "club_event__title", "club_event__club__name"]
-    readonly_fields = ["created_at", "updated_at", "assigned_at"]
-    raw_id_fields = ["club_event", "user", "primary_sim_profile", "assigned_team"]
-    filter_horizontal = [
-        "preferred_cars",
-        "backup_cars",
-        "preferred_instances",
-        "preferred_classes",
-    ]
 
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": ("club_event", "user", "primary_sim_profile"),
-            },
-        ),
-        (
-            "Preferences",
-            {
-                "fields": (
-                    "can_drive",
-                    "can_spectate",
-                    "experience_level",
-                    "preferred_cars",
-                    "backup_cars",
-                    "preferred_instances",
-                    "preferred_classes",
-                ),
-            },
-        ),
-        (
-            "Availability",
-            {
-                "fields": (
-                    "availability_notes",
-                    "max_stint_duration",
-                    "min_rest_duration",
-                    "notes",
-                ),
-            },
-        ),
-        (
-            "Team Assignment",
-            {
-                "fields": ("assigned_team", "assigned_at", "assignment_locked"),
-            },
-        ),
-        (
-            "Metadata",
-            {
-                "fields": ("created_at", "updated_at"),
-            },
-        ),
-    )
-
-
-@admin.register(EventSignupAvailability)
-class EventSignupAvailabilityAdmin(ModelAdmin):
-    list_display = [
-        "signup",
-        "event_instance",
-        "available",
-        "preferred_stint_duration",
-        "created_at",
-    ]
-    list_filter = ["available", "event_instance__event", "created_at"]
-    search_fields = ["signup__user__username"]
-    readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["signup", "event_instance"]
-
-
-@admin.register(TeamAllocation)
-class TeamAllocationAdmin(ModelAdmin):
-    list_display = [
-        "team",
-        "club_event",
-        "assigned_sim_car",
-        "created_by",
-        "created_at",
-    ]
-    list_filter = ["team__club", "assigned_sim_car", "created_at"]
-    search_fields = ["team__name", "club_event__title"]
-    readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["club_event", "team", "assigned_sim_car", "created_by"]
-
-    @admin.display(
-        description="Members",
-    )
-    def member_count(self, obj):
-        return obj.members.count()
-
-
-@admin.register(TeamAllocationMember)
-class TeamAllocationMemberAdmin(ModelAdmin):
-    list_display = ["event_signup", "team_allocation", "role", "created_at"]
-    list_filter = ["role", "team_allocation__team__club", "created_at"]
-    search_fields = ["event_signup__user__username", "team_allocation__team__name"]
-    readonly_fields = ["created_at"]
-    raw_id_fields = ["team_allocation", "event_signup"]
-
-
-@admin.register(TeamEventStrategy)
-class TeamEventStrategyAdmin(ModelAdmin):
-    list_display = [
-        "team",
-        "club_event",
-        "selected_car",
-        "selected_instance",
-        "is_finalized",
-        "created_at",
-    ]
-    list_filter = ["is_finalized", "club_event__club", "selected_car", "created_at"]
-    search_fields = ["team__name", "club_event__title"]
-    readonly_fields = [
-        "created_at",
-        "updated_at",
-        "finalized_at",
-        "calculated_pit_windows",
-    ]
-    raw_id_fields = [
-        "team",
-        "club_event",
-        "team_allocation",
-        "selected_car",
-        "selected_instance",
-        "selected_class",
-        "finalized_by",
-    ]
-
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": ("team", "club_event", "team_allocation"),
-            },
-        ),
-        (
-            "Event Settings",
-            {
-                "fields": ("selected_car", "selected_instance", "selected_class"),
-            },
-        ),
-        (
-            "Strategy",
-            {
-                "fields": (
-                    "strategy_notes",
-                    "calculated_pit_windows",
-                    "fuel_strategy",
-                    "tire_strategy",
-                    "weather_contingencies",
-                ),
-            },
-        ),
-        (
-            "Finalization",
-            {
-                "fields": ("is_finalized", "finalized_by", "finalized_at"),
-            },
-        ),
-        (
-            "Metadata",
-            {
-                "fields": ("created_at", "updated_at"),
-            },
-        ),
-    )
-
-
-@admin.register(StintAssignment)
-class StintAssignmentAdmin(ModelAdmin):
-    list_display = [
-        "driver",
-        "team_strategy",
-        "stint_number",
-        "estimated_start_time",
-        "estimated_duration_minutes",
-        "role",
-        "pit_entry_planned",
-    ]
-    list_filter = [
-        "role",
-        "pit_entry_planned",
-        "team_strategy__club_event",
-        "created_at",
-    ]
-    search_fields = ["driver__username", "team_strategy__team__name"]
-    readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["team_strategy", "driver", "predicted_stint"]
-    ordering = ["team_strategy", "stint_number"]
-
-    fieldsets = (
-        (
-            None,
-            {
-                "fields": ("team_strategy", "driver", "stint_number", "role"),
-            },
-        ),
-        (
-            "Timing",
-            {
-                "fields": (
-                    "estimated_start_time",
-                    "estimated_end_time",
-                    "estimated_duration_minutes",
-                ),
-            },
-        ),
-        (
-            "Pit Strategy",
-            {
-                "fields": (
-                    "pit_entry_planned",
-                    "pit_strategy_notes",
-                    "fuel_load_start",
-                    "fuel_load_end",
-                    "tire_compound",
-                ),
-            },
-        ),
-        (
-            "Links",
-            {
-                "fields": ("predicted_stint", "notes"),
-            },
-        ),
-        (
-            "Metadata",
-            {
-                "fields": ("created_at", "updated_at"),
-            },
-        ),
-    )

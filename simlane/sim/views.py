@@ -3,6 +3,9 @@ from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, Http404
 from django.db.models import Q, Count, Prefetch
 from django.core.paginator import Paginator
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.urls import reverse
 
 from simlane.sim.models import (
     SimProfile, Simulator, CarModel, CarClass, 
@@ -89,27 +92,200 @@ def profiles_by_simulator(request, simulator_slug):
 
 
 def profile_detail(request, simulator_slug, profile_identifier):
-    """Public profile detail view"""
+    """View individual profile details"""
     simulator = get_object_or_404(Simulator, slug=simulator_slug, is_active=True)
-    profile = get_object_or_404(
-        SimProfile, 
-        simulator=simulator, 
-        external_data_id=profile_identifier,
-        is_public=True
-    )
     
-    # Get recent lap times and ratings
-    recent_lap_times = profile.lap_times.select_related('sim_layout__sim_track__track_model').order_by('-recorded_at')[:10]
-    current_ratings = profile.ratings.select_related('rating_system').order_by('-recorded_at')
+    # Try to find the profile by external_data_id first, then by profile_name
+    profile = None
+    try:
+        profile = SimProfile.objects.select_related('simulator', 'linked_user').get(
+            simulator=simulator,
+            external_data_id=profile_identifier,
+            is_public=True
+        )
+    except SimProfile.DoesNotExist:
+        # Fallback to profile_name if external_data_id doesn't match
+        try:
+            profile = SimProfile.objects.select_related('simulator', 'linked_user').get(
+                simulator=simulator,
+                profile_name=profile_identifier,
+                is_public=True
+            )
+        except SimProfile.DoesNotExist:
+            raise Http404("Profile not found")
+    
+    # Get current ratings
+    current_ratings = profile.ratings.select_related('rating_system').order_by('-recorded_at')[:6]
+    
+    # Get recent lap times
+    recent_lap_times = profile.lap_times.select_related(
+        'sim_layout__sim_track__track_model'
+    ).order_by('-recorded_at')[:10]
+    
+    # Check if current user can link this profile
+    can_link = False
+    if request.user.is_authenticated:
+        can_link = profile.can_user_link(request.user)
     
     context = {
         'profile': profile,
-        'simulator': simulator,
-        'recent_lap_times': recent_lap_times,
         'current_ratings': current_ratings,
+        'recent_lap_times': recent_lap_times,
+        'can_link': can_link,
     }
     
     return render(request, 'sim/profiles/detail.html', context)
+
+
+@login_required
+def profile_link(request, simulator_slug, profile_identifier):
+    """Link a profile to the current user"""
+    simulator = get_object_or_404(Simulator, slug=simulator_slug, is_active=True)
+    
+    # Try to find the profile by external_data_id first, then by profile_name
+    profile = None
+    try:
+        profile = SimProfile.objects.get(
+            simulator=simulator,
+            external_data_id=profile_identifier
+        )
+    except SimProfile.DoesNotExist:
+        # Fallback to profile_name if external_data_id doesn't match
+        try:
+            profile = SimProfile.objects.get(
+                simulator=simulator,
+                profile_name=profile_identifier
+            )
+        except SimProfile.DoesNotExist:
+            raise Http404("Profile not found")
+    
+    # Check if user can link this profile
+    if not profile.can_user_link(request.user):
+        messages.error(request, "This profile is already linked to another user.")
+        return redirect('drivers:profile_detail', 
+                       simulator_slug=simulator_slug, 
+                       profile_identifier=profile_identifier)
+    
+    if request.method == 'POST':
+        try:
+            profile.link_to_user(request.user, verified=False)
+            messages.success(
+                request, 
+                f"Successfully linked {profile.simulator.name} profile: {profile.profile_name}. "
+                "Please verify your ownership to complete the process."
+            )
+            return redirect('drivers:profile_detail', 
+                           simulator_slug=simulator_slug, 
+                           profile_identifier=profile_identifier)
+        except ValueError as e:
+            messages.error(request, str(e))
+    
+    context = {
+        'profile': profile,
+        'action': 'link',
+    }
+    
+    if request.htmx:
+        return render(request, 'sim/profiles/link_confirm_partial.html', context)
+    return render(request, 'sim/profiles/link_confirm.html', context)
+
+
+@login_required
+def profile_unlink(request, simulator_slug, profile_identifier):
+    """Unlink a profile from the current user"""
+    simulator = get_object_or_404(Simulator, slug=simulator_slug, is_active=True)
+    
+    # Try to find the profile by external_data_id first, then by profile_name
+    profile = None
+    try:
+        profile = SimProfile.objects.get(
+            simulator=simulator,
+            external_data_id=profile_identifier,
+            linked_user=request.user
+        )
+    except SimProfile.DoesNotExist:
+        # Fallback to profile_name if external_data_id doesn't match
+        try:
+            profile = SimProfile.objects.get(
+                simulator=simulator,
+                profile_name=profile_identifier,
+                linked_user=request.user
+            )
+        except SimProfile.DoesNotExist:
+            raise Http404("Profile not found or not linked to your account")
+    
+    if request.method == 'POST':
+        profile_name = profile.profile_name
+        simulator_name = profile.simulator.name
+        profile.unlink_from_user()
+        
+        messages.success(
+            request,
+            f"Successfully unlinked {simulator_name} profile: {profile_name}"
+        )
+        return redirect('drivers:profile_detail', 
+                       simulator_slug=simulator_slug, 
+                       profile_identifier=profile_identifier)
+    
+    context = {
+        'profile': profile,
+        'action': 'unlink',
+    }
+    
+    if request.htmx:
+        return render(request, 'sim/profiles/link_confirm_partial.html', context)
+    return render(request, 'sim/profiles/link_confirm.html', context)
+
+
+@login_required
+def profile_search_to_link(request):
+    """Search profiles that can be linked to user account"""
+    query = request.GET.get('q', '').strip()
+    simulator_slug = request.GET.get('simulator', '')
+    from_profile = request.GET.get('from_profile', '')
+    
+    profiles = SimProfile.objects.filter(
+        is_public=True,
+        linked_user__isnull=True  # Only show unlinked profiles
+    ).select_related('simulator').order_by('-last_active', '-created_at')
+    
+    # Filter by search query
+    if query:
+        profiles = profiles.filter(
+            Q(profile_name__icontains=query) |
+            Q(external_data_id__icontains=query)
+        )
+    
+    # Filter by simulator
+    if simulator_slug:
+        simulator = get_object_or_404(Simulator, slug=simulator_slug, is_active=True)
+        profiles = profiles.filter(simulator=simulator)
+    
+    # Pagination
+    paginator = Paginator(profiles, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'simulators': Simulator.objects.filter(is_active=True),
+        'query': query,
+        'selected_simulator': simulator_slug,
+        'from_profile': from_profile,
+    }
+    
+    # If this is from profile management area, always return partials
+    if from_profile or request.htmx:
+        # If the target is search-results-container, we're updating search results only
+        hx_target = request.headers.get('HX-Target', '')
+        if 'search-results' in hx_target:
+            return render(request, 'sim/profiles/search_results_partial.html', context)
+        else:
+            # Otherwise return the full partial template for profile management
+            return render(request, 'sim/profiles/search_to_link_partial.html', context)
+    
+    # Non-HTMX request - return full page
+    return render(request, 'sim/profiles/search_to_link.html', context)
 
 
 # Dashboard Views

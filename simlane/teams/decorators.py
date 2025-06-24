@@ -10,7 +10,7 @@ from .models import ClubEvent
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
-from .models import TeamAllocation
+# TeamAllocation import removed - model no longer exists
 
 
 def club_admin_required(view_func):
@@ -112,16 +112,7 @@ def club_manager_required(view_func):
                 except ClubEvent.DoesNotExist:
                     raise Http404("Event not found")
 
-            # Try from allocation_id
-            allocation_id = kwargs.get("allocation_id")
-            if allocation_id:
-                try:
-                    allocation = TeamAllocation.objects.select_related(
-                        "club_event__club",
-                    ).get(id=allocation_id)
-                    club = allocation.club_event.club
-                except TeamAllocation.DoesNotExist:
-                    raise Http404("Allocation not found")
+            # allocation_id lookup removed - TeamAllocation model no longer exists
 
         if not club:
             return HttpResponseForbidden("Club identifier required")
@@ -262,77 +253,8 @@ def event_signup_access(view_func):
     return wrapper
 
 
-def team_allocation_access(view_func):
-    """Decorator for team allocation permissions"""
-
-    @wraps(view_func)
-    @login_required
-    def wrapper(request, *args, **kwargs):
-        allocation_id = kwargs.get("allocation_id")
-        team_id = kwargs.get("team_id")
-
-        if allocation_id:
-            try:
-                allocation = TeamAllocation.objects.select_related(
-                    "team__club",
-                    "club_event__club",
-                ).get(id=allocation_id)
-                club = allocation.club_event.club
-                team = allocation.team
-            except TeamAllocation.DoesNotExist:
-                raise Http404("Allocation not found")
-        elif team_id:
-            try:
-                from .models import Team
-
-                team = Team.objects.select_related("club").get(id=team_id)
-                club = team.club
-                allocation = None
-            except Team.DoesNotExist:
-                raise Http404("Team not found")
-        else:
-            return HttpResponseForbidden("Team allocation ID required")
-
-        # Check if user is team member or club manager
-        try:
-            club_member = ClubMember.objects.get(
-                user=request.user,
-                club=club,
-            )
-
-            # For viewing, any club member can access
-            # For modifying, need to be manager or admin
-            if request.method == "POST":
-                if club_member.role not in [ClubRole.ADMIN, ClubRole.TEAMS_MANAGER]:
-                    # Check if user is part of the team
-                    from .models import TeamMember
-
-                    if (
-                        team
-                        and not TeamMember.objects.filter(
-                            team=team,
-                            user=request.user,
-                        ).exists()
-                    ):
-                        return HttpResponseForbidden(
-                            "You must be a team member or club manager to modify this allocation",
-                        )
-
-        except ClubMember.DoesNotExist:
-            return HttpResponseForbidden(
-                "You must be a club member to access this allocation",
-            )
-
-        request.club_member = club_member
-        request.club = club
-        if allocation:
-            request.allocation = allocation
-        if team:
-            request.team = team
-
-        return view_func(request, *args, **kwargs)
-
-    return wrapper
+# team_allocation_access decorator removed - TeamAllocation model no longer exists
+# Use club_member_required or club_manager_required decorators instead
 
 
 def club_exists(view_func):

@@ -32,9 +32,10 @@ from simlane.teams.models import Club
 from simlane.teams.models import ClubEvent
 from simlane.teams.models import ClubMember
 from simlane.teams.models import ClubRole
-from simlane.teams.models import EventSignup
+# EventSignup model removed - use EventParticipation instead
 from simlane.teams.models import Team
 from simlane.teams.models import TeamMember
+from simlane.teams.models import EventParticipation
 
 User = get_user_model()
 
@@ -100,7 +101,7 @@ class Command(BaseCommand):
         # Create club events
         club_events = self.create_club_events(clubs, events, users)
 
-        # Create event signups
+        # Create event participations
         self.create_event_signups(club_events, users, sim_cars, teams)
 
         self.stdout.write(
@@ -126,7 +127,7 @@ class Command(BaseCommand):
         """Clear existing data - BE CAREFUL!"""
         models_to_clear = [
             WeatherForecast,
-            EventSignup,
+            EventParticipation,  # Use EventParticipation instead of EventSignup
             ClubEvent,
             TeamMember,
             Team,
@@ -929,37 +930,25 @@ class Command(BaseCommand):
                 # Get sim profile
                 sim_profile = member.user.linked_sim_profiles.first()
 
-                # Select preferred cars
-                preferred_cars = random.sample(sim_cars, random.randint(2, 4))
-                backup_cars = random.sample(sim_cars, random.randint(1, 2))
+                # Select preferred cars (EventParticipation uses single car fields)
+                preferred_car = random.choice(sim_cars)
+                backup_car = random.choice([car for car in sim_cars if car != preferred_car])
 
-                # Select team if available
-                club_teams = list(teams)  # Use all teams for now
-                assigned_team = (
-                    random.choice(club_teams)
-                    if club_teams and random.choice([True, False])
-                    else None
-                )
-
-                event_signup, created = EventSignup.objects.get_or_create(
-                    club_event=club_event,
+                # Create EventParticipation using the enhanced system
+                participation, created = EventParticipation.objects.get_or_create(
+                    event=club_event,
                     user=member.user,
                     defaults={
-                        "can_drive": True,
-                        "can_spectate": random.choice([True, False]),
+                        "participation_type": "team_signup",
+                        "status": "signed_up",
+                        "preferred_car": preferred_car,
+                        "backup_car": backup_car,
                         "experience_level": random.choice(
                             ["beginner", "intermediate", "advanced"],
                         ),
-                        "primary_sim_profile": sim_profile,
-                        "availability_notes": "Available for full event",
                         "max_stint_duration": random.randint(60, 120),
                         "min_rest_duration": random.randint(15, 30),
-                        "assigned_team": assigned_team,
-                        "assignment_locked": random.choice([True, False]),
+                        "notes": "Available for full event",
+                        "club_event": club_event,
                     },
                 )
-
-                # Add preferred cars (Many-to-Many)
-                if created:
-                    event_signup.preferred_cars.set(preferred_cars)
-                    event_signup.backup_cars.set(backup_cars)

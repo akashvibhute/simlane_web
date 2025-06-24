@@ -192,7 +192,7 @@ class SimProfile(models.Model):
     def get_absolute_url(self):
         """Public URL for this profile"""
         from django.urls import reverse
-        return reverse('profiles:detail', kwargs={
+        return reverse('drivers:profile_detail', kwargs={
             'simulator_slug': self.simulator.slug,
             'profile_identifier': self.external_data_id
         })

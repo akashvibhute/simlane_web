@@ -42,7 +42,7 @@ def get_simulator(request: HttpRequest, simulator_id: int):
 @router.get("/profiles", response=list[SimProfileSchema])
 def list_user_profiles(request: HttpRequest):
     """List current user's sim profiles."""
-    profiles = SimProfile.objects.filter(user=request.auth)
+    profiles = SimProfile.objects.filter(linked_user=request.auth)
     return [SimProfileSchema.from_orm(profile) for profile in profiles]
 
 
@@ -220,7 +220,7 @@ def get_dashboard_stats(request: HttpRequest):
 
     best_lap_time = best_laptime_obj.lap_time if best_laptime_obj else None
 
-    user_profiles = SimProfile.objects.filter(user=request.auth).count()
+    user_profiles = SimProfile.objects.filter(linked_user=request.auth).count()
     verified_profiles = SimProfile.objects.filter(
         user=request.auth,
         is_verified=True,

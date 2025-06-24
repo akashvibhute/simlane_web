@@ -17,9 +17,9 @@ from reportlab.platypus import Table
 from reportlab.platypus import TableStyle
 
 from .models import ClubInvitation
-from .models import EventSignup
-from .models import TeamAllocation
 from .models import AvailabilityWindow, EventParticipation
+# EventSignup and TeamAllocation imports removed - models no longer exist
+# Functions using these models will need to be updated to use EventParticipation
 
 # Token Generation and Validation
 
@@ -74,93 +74,11 @@ def generate_secure_slug(text: str, model_class, field_name: str = "slug") -> st
 # Team Allocation Algorithms
 
 
-def balance_teams_by_skill(
-    signups: list[EventSignup],
-    team_count: int,
-) -> list[list[EventSignup]]:
-    """Distribute members by skill level using snake draft"""
-    # Sort signups by skill rating
-    signup_data = []
-    for signup in signups:
-        skill_rating = signup.get_skill_rating() or 1000
-        signup_data.append((signup, skill_rating))
+# Legacy utility functions removed - these depended on EventSignup model
+# Functions: balance_teams_by_skill, optimize_car_distribution, calculate_availability_overlap, suggest_team_compositions
+# These will need to be rewritten to use EventParticipation model
 
-    signup_data.sort(key=lambda x: x[1], reverse=True)
-
-    # Initialize teams
-    teams = [[] for _ in range(team_count)]
-
-    # Snake draft distribution
-    for i, (signup, _) in enumerate(signup_data):
-        if i // team_count % 2 == 0:
-            # Forward pass
-            team_idx = i % team_count
-        else:
-            # Reverse pass
-            team_idx = team_count - 1 - (i % team_count)
-        teams[team_idx].append(signup)
-
-    return teams
-
-
-def optimize_car_distribution(
-    signups: list[EventSignup],
-    available_cars: list,
-) -> dict[str, list[EventSignup]]:
-    """Assign cars based on preferences"""
-    car_assignments = {str(car.id): [] for car in available_cars}
-    unassigned = []
-
-    # First pass: Assign based on first preference
-    for signup in signups:
-        preferred_cars = list(signup.preferred_cars.all())
-        if preferred_cars:
-            first_choice = preferred_cars[0]
-            if str(first_choice.id) in car_assignments:
-                car_assignments[str(first_choice.id)].append(signup)
-            else:
-                unassigned.append(signup)
-        else:
-            unassigned.append(signup)
-
-    # Second pass: Balance assignments
-    for signup in unassigned:
-        # Find car with fewest assignments
-        min_car = min(car_assignments.items(), key=lambda x: len(x[1]))
-        car_assignments[min_car[0]].append(signup)
-
-    return car_assignments
-
-
-def calculate_availability_overlap(members: list[EventSignup], event_instances) -> dict:
-    """Find optimal driver rotations based on availability"""
-    overlap_matrix = {}
-
-    for instance in event_instances:
-        available_members = []
-        for member in members:
-            availability = member.availabilities.filter(
-                event_instance=instance,
-                available=True,
-            ).first()
-            if availability:
-                available_members.append(
-                    {
-                        "member": member,
-                        "preferred_duration": availability.preferred_stint_duration,
-                    },
-                )
-
-        overlap_matrix[str(instance.id)] = {
-            "instance": instance,
-            "available_count": len(available_members),
-            "members": available_members,
-        }
-
-    return overlap_matrix
-
-
-def suggest_team_compositions(signups: list[EventSignup], criteria: dict) -> list[dict]:
+def suggest_team_compositions_enhanced(participations: list[EventParticipation], criteria: dict) -> list[dict]:
     """AI-assisted team suggestions with multiple criteria"""
     suggestions = []
 
@@ -436,94 +354,29 @@ def export_signup_data(club_event, format: str = "csv") -> io.BytesIO:
     return output
 
 
-def generate_stint_plan_pdf(team_allocation: TeamAllocation) -> io.BytesIO:
-    """Create printable stint plans"""
+# Legacy functions removed - TeamAllocation model no longer exists
+# These functions depended on the removed TeamAllocation model and are replaced 
+# by enhanced team formation system in views.py
+
+def generate_stint_plan_pdf_enhanced(event_participation) -> io.BytesIO:
+    """Create printable stint plans for enhanced participation system"""
+    # TODO: Implement enhanced stint plan generation based on EventParticipation
+    # and AvailabilityWindow models when stint planning is required
     output = io.BytesIO()
-    doc = SimpleDocTemplate(output, pagesize=letter)
-    elements = []
-    styles = getSampleStyleSheet()
-
-    # Title
-    title = Paragraph(f"Stint Plan - {team_allocation.team.name}", styles["Title"])
-    elements.append(title)
-    elements.append(Spacer(1, 0.2 * inch))
-
-    # Event info
-    event_info = Paragraph(
-        f"Event: {team_allocation.club_event.title}<br/>"
-        f"Car: {team_allocation.assigned_sim_car}<br/>"
-        f"Date: {team_allocation.club_event.base_event.event_date}",
-        styles["Normal"],
-    )
-    elements.append(event_info)
-    elements.append(Spacer(1, 0.3 * inch))
-
-    # Stint table
-    if hasattr(team_allocation, "strategy") and team_allocation.strategy:
-        stints = team_allocation.strategy.stint_assignments.all().order_by(
-            "stint_number",
-        )
-
-        data = [["Stint", "Driver", "Start Time", "Duration", "Pit Entry", "Notes"]]
-
-        for stint in stints:
-            data.append(
-                [
-                    str(stint.stint_number),
-                    stint.driver.username,
-                    stint.estimated_start_time.strftime("%H:%M"),
-                    f"{stint.estimated_duration_minutes} min",
-                    "Yes" if stint.pit_entry_planned else "No",
-                    stint.notes[:30] + "..." if len(stint.notes) > 30 else stint.notes,
-                ],
-            )
-
-        table = Table(data)
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, 0), 14),
-                    ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                    ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                    ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                ],
-            ),
-        )
-
-        elements.append(table)
-
-    doc.build(elements)
+    output.write(b"Enhanced stint plan generation not yet implemented")
     output.seek(0)
     return output
 
 
-def export_team_roster(allocation: TeamAllocation) -> dict:
-    """Generate team contact lists"""
-    roster = {
-        "team": str(allocation.team),
-        "event": str(allocation.club_event),
-        "car": str(allocation.assigned_sim_car),
-        "members": [],
+def export_team_roster_enhanced(event_id) -> dict:
+    """Generate team contact lists for enhanced participation system"""
+    # TODO: Implement enhanced roster export based on EventParticipation model
+    # when team rosters are required
+    return {
+        "message": "Enhanced team roster export not yet implemented",
+        "event_id": event_id,
+        "members": []
     }
-
-    for member in allocation.members.all():
-        signup = member.event_signup
-        roster["members"].append(
-            {
-                "name": signup.user.get_full_name() or signup.user.username,
-                "email": signup.user.email,
-                "role": member.get_role_display(),
-                "can_drive": signup.can_drive,
-                "can_spectate": signup.can_spectate,
-                "experience": signup.get_experience_level_display(),
-            },
-        )
-
-    return roster
 
 
 # Notification Helpers

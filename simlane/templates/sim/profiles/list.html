@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
-{% block title %}Sim Racing Profiles - SimLane{% endblock %}
+{% block title %}Sim Racing Drivers - SimLane{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sim Racing Profiles</h1>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sim Racing Drivers</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 Discover sim racing drivers and their achievements
             </p>
@@ -19,7 +19,7 @@
         <form method="get" class="flex gap-4">
             <input type="text" 
                    name="q" 
-                   placeholder="Search profiles..." 
+                   placeholder="Search drivers..." 
                    value="{{ request.GET.q }}"
                    class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
             <select name="simulator" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
@@ -64,7 +64,7 @@
             </div>
         {% empty %}
             <div class="col-span-full text-center py-12">
-                <p class="text-gray-500 dark:text-gray-400">No profiles found.</p>
+                <p class="text-gray-500 dark:text-gray-400">No drivers found.</p>
             </div>
         {% endfor %}
     </div>

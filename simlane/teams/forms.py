@@ -15,11 +15,9 @@ from .models import ClubEvent
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
-from .models import EventSignup
-from .models import EventSignupAvailability
 from .models import Team
-from .models import TeamAllocation
-from .models import TeamAllocationMember
+# Removed imports: EventSignup, EventSignupAvailability, TeamAllocation, TeamAllocationMember
+# These models have been replaced by the enhanced participation system
 
 User = get_user_model()
 
@@ -223,11 +221,11 @@ class ClubEventCreateForm(forms.ModelForm):
     signup_deadline = forms.DateTimeField(
         widget=forms.DateTimeInput(
             attrs={
-                "class": "form-control datetimepicker",
-                "placeholder": "YYYY-MM-DD HH:MM",
+                "class": "form-control",
+                "type": "datetime-local",
             },
         ),
-        help_text="Deadline for members to sign up",
+        help_text="Deadline for event signups",
     )
 
     class Meta:
@@ -247,20 +245,21 @@ class ClubEventCreateForm(forms.ModelForm):
             "title": forms.TextInput(
                 attrs={
                     "class": "form-control",
-                    "placeholder": "Club event title",
+                    "placeholder": "Event signup title",
                 },
             ),
             "description": forms.Textarea(
                 attrs={
                     "class": "form-control",
                     "rows": 4,
-                    "placeholder": "Event description and rules...",
+                    "placeholder": "Event description and details...",
                 },
             ),
             "max_participants": forms.NumberInput(
                 attrs={
                     "class": "form-control",
                     "min": 1,
+                    "placeholder": "Maximum participants",
                 },
             ),
             "requires_team_assignment": forms.CheckboxInput(
@@ -277,14 +276,14 @@ class ClubEventCreateForm(forms.ModelForm):
                 attrs={
                     "class": "form-control",
                     "min": 1,
-                    "max": 10,
+                    "placeholder": "Minimum team size",
                 },
             ),
             "team_size_max": forms.NumberInput(
                 attrs={
                     "class": "form-control",
                     "min": 1,
-                    "max": 10,
+                    "placeholder": "Maximum team size",
                 },
             ),
         }
@@ -293,318 +292,41 @@ class ClubEventCreateForm(forms.ModelForm):
         self.club = kwargs.pop("club", None)
         super().__init__(*args, **kwargs)
 
-        # Filter events to those accessible by the club
+        # Filter available events
         if self.club:
-            # For now, show all events. Later can filter by simulator, date, etc.
             self.fields["base_event"].queryset = Event.objects.filter(
-                status__in=["SCHEDULED", "DRAFT"],
-            ).order_by("-event_date")
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        # Validate team sizes
-        team_size_min = cleaned_data.get("team_size_min")
-        team_size_max = cleaned_data.get("team_size_max")
-
-        if team_size_min and team_size_max and team_size_min > team_size_max:
-            raise ValidationError(
-                "Minimum team size cannot be greater than maximum team size.",
-            )
-
-        # Validate signup deadline
-        signup_deadline = cleaned_data.get("signup_deadline")
-        base_event = cleaned_data.get("base_event")
-
-        if signup_deadline and base_event and base_event.event_date:
-            if signup_deadline > base_event.event_date:
-                raise ValidationError("Signup deadline cannot be after the event date.")
-
-        return cleaned_data
-
-
-class EventSignupForm(forms.ModelForm):
-    """Form for members to sign up for events"""
-
-    preferred_cars = forms.ModelMultipleChoiceField(
-        queryset=SimCar.objects.none(),
-        widget=forms.CheckboxSelectMultiple(
-            attrs={
-                "class": "form-check-input",
-            },
-        ),
-        required=False,
-        help_text="Select your preferred cars (in order of preference)",
-    )
-
-    backup_cars = forms.ModelMultipleChoiceField(
-        queryset=SimCar.objects.none(),
-        widget=forms.CheckboxSelectMultiple(
-            attrs={
-                "class": "form-check-input",
-            },
-        ),
-        required=False,
-        help_text="Select backup car choices",
-    )
-
-    class Meta:
-        model = EventSignup
-        fields = [
-            "can_drive",
-            "can_spectate",
-            "experience_level",
-            "primary_sim_profile",
-            "availability_notes",
-            "max_stint_duration",
-            "min_rest_duration",
-            "notes",
-        ]
-        widgets = {
-            "can_drive": forms.CheckboxInput(
-                attrs={
-                    "class": "form-check-input",
-                },
-            ),
-            "can_spectate": forms.CheckboxInput(
-                attrs={
-                    "class": "form-check-input",
-                },
-            ),
-            "experience_level": forms.Select(
-                attrs={
-                    "class": "form-control",
-                },
-            ),
-            "primary_sim_profile": forms.Select(
-                attrs={
-                    "class": "form-control",
-                },
-            ),
-            "availability_notes": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Any specific availability constraints...",
-                },
-            ),
-            "max_stint_duration": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "min": 10,
-                    "max": 240,
-                    "placeholder": "Minutes",
-                },
-            ),
-            "min_rest_duration": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "min": 10,
-                    "max": 240,
-                    "placeholder": "Minutes",
-                },
-            ),
-            "notes": forms.Textarea(
-                attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": "Additional notes or preferences...",
-                },
-            ),
-        }
-
-    def __init__(self, *args, **kwargs):
-        self.club_event = kwargs.pop("club_event", None)
-        self.user = kwargs.pop("user", None)
-        super().__init__(*args, **kwargs)
-
-        # Filter available cars based on event
-        if self.club_event and self.club_event.base_event:
-            event = self.club_event.base_event
-            # Get cars allowed for this event
-            available_cars = SimCar.objects.filter(
-                simulator=event.simulator,
-                is_active=True,
-            )
-
-            # Further filter by event classes if specified
-            event_classes = event.classes.all()
-            if event_classes:
-                car_class_ids = event_classes.values_list("car_class_id", flat=True)
-                available_cars = available_cars.filter(
-                    car_model__car_class__in=car_class_ids,
-                )
-
-            self.fields["preferred_cars"].queryset = available_cars
-            self.fields["backup_cars"].queryset = available_cars
-
-        # Filter sim profiles for the user
-        if self.user:
-            self.fields["primary_sim_profile"].queryset = self.user.linked_sim_profiles.all()
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        # Ensure at least one role is selected
-        can_drive = cleaned_data.get("can_drive")
-        can_spectate = cleaned_data.get("can_spectate")
-
-        if not can_drive and not can_spectate:
-            raise ValidationError("You must be available to either drive or spectate.")
-
-        # Validate car selections don't overlap
-        preferred_cars = cleaned_data.get("preferred_cars", [])
-        backup_cars = cleaned_data.get("backup_cars", [])
-
-        overlap = set(preferred_cars) & set(backup_cars)
-        if overlap:
-            raise ValidationError(
-                f"Cars cannot be in both preferred and backup lists: {', '.join(str(car) for car in overlap)}",
-            )
-
-        return cleaned_data
-
-
-class EventSignupAvailabilityForm(forms.ModelForm):
-    """Form for specifying availability for specific event instances"""
-
-    class Meta:
-        model = EventSignupAvailability
-        fields = ["event_instance", "available", "preferred_stint_duration", "notes"]
-        widgets = {
-            "available": forms.CheckboxInput(
-                attrs={
-                    "class": "form-check-input",
-                },
-            ),
-            "preferred_stint_duration": forms.NumberInput(
-                attrs={
-                    "class": "form-control",
-                    "min": 10,
-                    "max": 240,
-                    "placeholder": "Minutes",
-                },
-            ),
-            "notes": forms.TextInput(
-                attrs={
-                    "class": "form-control",
-                    "placeholder": "Any notes for this time slot...",
-                },
-            ),
-        }
-
-
-# Formset for multiple event instance availabilities
-EventSignupAvailabilityFormSet = formset_factory(
-    EventSignupAvailabilityForm,
-    extra=0,
-    can_delete=False,
-)
-
-
-class TeamAllocationForm(forms.Form):
-    """Form for admins to create team allocations"""
-
-    team = forms.ModelChoiceField(
-        queryset=Team.objects.none(),
-        widget=forms.Select(
-            attrs={
-                "class": "form-control",
-            },
-        ),
-        help_text="Select the team for this allocation",
-    )
-
-    assigned_sim_car = forms.ModelChoiceField(
-        queryset=SimCar.objects.none(),
-        widget=forms.Select(
-            attrs={
-                "class": "form-control",
-            },
-        ),
-        help_text="Assign a car to this team",
-    )
-
-    selected_members = forms.ModelMultipleChoiceField(
-        queryset=EventSignup.objects.none(),
-        widget=forms.CheckboxSelectMultiple(
-            attrs={
-                "class": "form-check-input member-selector",
-            },
-        ),
-        help_text="Select members for this team",
-    )
-
-    def __init__(self, *args, **kwargs):
-        self.club_event = kwargs.pop("club_event", None)
-        self.club = kwargs.pop("club", None)
-        super().__init__(*args, **kwargs)
-
-        # Filter teams to those in the club
-        if self.club:
-            self.fields["team"].queryset = Team.objects.filter(
-                club=self.club,
-                is_active=True,
-            )
-
-        # Filter cars and members based on the event
-        if self.club_event:
-            # Available cars from the event
-            if self.club_event.base_event:
-                self.fields["assigned_sim_car"].queryset = SimCar.objects.filter(
-                    simulator=self.club_event.base_event.simulator,
-                    is_active=True,
-                )
-
-            # Available signups that haven't been assigned yet
-            self.fields["selected_members"].queryset = EventSignup.objects.filter(
-                club_event=self.club_event,
-                assigned_team__isnull=True,
-            )
+                start_time__gte=timezone.now(),
+            ).order_by("start_time")
 
     def clean(self):
         cleaned_data = super().clean()
 
         # Validate team size constraints
-        selected_members = cleaned_data.get("selected_members", [])
-        if self.club_event:
-            if len(selected_members) < self.club_event.team_size_min:
-                raise ValidationError(
-                    f"Team must have at least {self.club_event.team_size_min} members.",
-                )
-            if len(selected_members) > self.club_event.team_size_max:
-                raise ValidationError(
-                    f"Team cannot have more than {self.club_event.team_size_max} members.",
-                )
+        requires_teams = cleaned_data.get("requires_team_assignment", False)
+        team_size_min = cleaned_data.get("team_size_min")
+        team_size_max = cleaned_data.get("team_size_max")
+
+        if requires_teams:
+            if not team_size_min or team_size_min < 1:
+                raise ValidationError("Minimum team size is required for team events.")
+            if not team_size_max or team_size_max < team_size_min:
+                raise ValidationError("Maximum team size must be greater than minimum.")
+
+        # Validate signup deadline
+        signup_deadline = cleaned_data.get("signup_deadline")
+        base_event = cleaned_data.get("base_event")
+
+        if signup_deadline and base_event:
+            if signup_deadline >= base_event.start_time:
+                raise ValidationError("Signup deadline must be before event start time.")
 
         return cleaned_data
 
-    def save(self):
-        """Create the team allocation and assign members"""
-        team_allocation = TeamAllocation.objects.create(
-            club_event=self.club_event,
-            team=self.cleaned_data["team"],
-            assigned_sim_car=self.cleaned_data["assigned_sim_car"],
-            created_by=self.club.created_by,  # Would be passed from view
-        )
 
-        # Create team allocation members
-        for signup in self.cleaned_data["selected_members"]:
-            TeamAllocationMember.objects.create(
-                team_allocation=team_allocation,
-                event_signup=signup,
-                role="driver" if signup.can_drive else "spotter",
-            )
+# Legacy form classes removed (EventSignupForm, EventSignupAvailabilityForm, TeamAllocationForm)
+# These depended on removed models: EventSignup, EventSignupAvailability, TeamAllocation, TeamAllocationMember
+# Use EnhancedEventSignupForm for new participation system
 
-            # Update the signup with team assignment
-            signup.assigned_team = self.cleaned_data["team"]
-            signup.assigned_at = timezone.now()
-            signup.save()
-
-        return team_allocation
-
-
-# ===== ENHANCED FORMS FOR UNIFIED EVENT PARTICIPATION SYSTEM =====
 
 class EnhancedEventSignupForm(forms.Form):
     """Enhanced form for event participation with availability support"""
@@ -661,59 +383,57 @@ class EnhancedEventSignupForm(forms.Form):
         widget=forms.Textarea(attrs={
             'class': 'w-full rounded-md border-gray-300',
             'rows': 3,
-            'placeholder': 'Any additional notes about your availability or preferences...'
-        })
+            'placeholder': 'Any additional notes or preferences...'
+        }),
+        help_text="Optional notes about your participation"
     )
     
     def __init__(self, *args, **kwargs):
-        event = kwargs.pop('event', None)
-        user = kwargs.pop('user', None)
+        self.event = kwargs.pop('event', None)
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
-        if event:
-            # Filter cars based on event simulator
+        # Set up car choices based on event simulator
+        if self.event and self.event.simulator:
             available_cars = SimCar.objects.filter(
-                simulator=event.simulator,
+                simulator=self.event.simulator,
                 is_active=True
             )
             self.fields['preferred_car'].queryset = available_cars
             self.fields['backup_car'].queryset = available_cars
-        
+    
     def clean(self):
         cleaned_data = super().clean()
+        
+        # Ensure preferred and backup cars are different
         preferred_car = cleaned_data.get('preferred_car')
         backup_car = cleaned_data.get('backup_car')
-        max_stint = cleaned_data.get('max_stint_duration')
-        min_rest = cleaned_data.get('min_rest_duration')
         
-        # Validate car choices
         if preferred_car and backup_car and preferred_car == backup_car:
-            raise ValidationError("Backup car must be different from preferred car")
-        
-        # Validate stint durations
-        if max_stint and max_stint < 15:
-            raise ValidationError("Maximum stint duration must be at least 15 minutes")
-        
-        if min_rest and min_rest < 5:
-            raise ValidationError("Minimum rest duration must be at least 5 minutes")
+            raise ValidationError("Preferred and backup cars must be different")
         
         return cleaned_data
-
+    
     def save(self, event=None, user=None, commit=True):
-        """Create event participation - placeholder implementation"""
-        # This will be enhanced when the models are fully implemented
-        # For now, return a mock object
-        from types import SimpleNamespace
+        """Create EventParticipation instance"""
+        from .models import EventParticipation
         
-        participation = SimpleNamespace()
-        participation.event = event
-        participation.user = user
-        participation.preferred_car = self.cleaned_data['preferred_car']
-        participation.backup_car = self.cleaned_data['backup_car']
-        participation.experience_level = self.cleaned_data['experience_level']
-        participation.max_stint_duration = self.cleaned_data['max_stint_duration']
-        participation.min_rest_duration = self.cleaned_data['min_rest_duration']
-        participation.notes = self.cleaned_data['notes']
+        if not commit:
+            return None
+            
+        participation = EventParticipation.objects.create(
+            event=event or self.event,
+            user=user or self.user,
+            participation_type='team_signup',
+            status='signed_up',
+            preferred_car=self.cleaned_data['preferred_car'],
+            backup_car=self.cleaned_data.get('backup_car'),
+            experience_level=self.cleaned_data['experience_level'],
+            max_stint_duration=self.cleaned_data['max_stint_duration'],
+            min_rest_duration=self.cleaned_data['min_rest_duration'],
+            notes=self.cleaned_data.get('notes', ''),
+            signed_up_at=timezone.now()
+        )
         
         return participation
 
@@ -765,5 +485,5 @@ class TeamFormationSettingsForm(forms.Form):
         required=False,
         initial=True,
         widget=forms.CheckboxInput(attrs={'class': 'rounded border-gray-300'}),
-        help_text="Try to balance experience levels within teams"
+        help_text="Try to balance experience levels across teams"
     )

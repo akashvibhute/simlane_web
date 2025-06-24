@@ -10,14 +10,13 @@ from simlane.api.schemas.clubs import ClubEventCreate
 from simlane.api.schemas.clubs import ClubMember as ClubMemberSchema
 from simlane.api.schemas.clubs import ClubMemberUpdate
 from simlane.api.schemas.clubs import ClubUpdate
-from simlane.api.schemas.clubs import EventSignup as EventSignupSchema
-from simlane.api.schemas.clubs import EventSignupCreate
+# Legacy EventSignup schemas removed
 from simlane.api.schemas.clubs import Team as TeamSchema
 from simlane.api.schemas.clubs import TeamCreate
 from simlane.teams.models import Club
 from simlane.teams.models import ClubEvent
 from simlane.teams.models import ClubMember
-from simlane.teams.models import EventSignup
+# Legacy EventSignup model removed
 from simlane.teams.models import Team
 
 router = Router()
@@ -261,55 +260,4 @@ def create_club_event(request: HttpRequest, club_id: int, event_data: ClubEventC
     return ClubEventSchema.from_orm(event)
 
 
-# Event signup endpoints
-@router.get("/{club_id}/events/{event_id}/signups", response=list[EventSignupSchema])
-def list_event_signups(request: HttpRequest, club_id: int, event_id: int):
-    """List event signups."""
-    club = get_object_or_404(Club, id=club_id)
-    check_club_access(request.auth, club)
-
-    event = get_object_or_404(ClubEvent, id=event_id, club=club)
-    signups = EventSignup.objects.filter(event=event)
-
-    return [EventSignupSchema.from_orm(signup) for signup in signups]
-
-
-@router.post("/{club_id}/events/{event_id}/signup", response=EventSignupSchema)
-def signup_for_event(
-    request: HttpRequest,
-    club_id: int,
-    event_id: int,
-    signup_data: EventSignupCreate,
-):
-    """Sign up for an event."""
-    club = get_object_or_404(Club, id=club_id)
-    check_club_access(request.auth, club)
-
-    event = get_object_or_404(ClubEvent, id=event_id, club=club)
-
-    # Check if already signed up
-    if EventSignup.objects.filter(event=event, user=request.auth).exists():
-        raise HttpError(400, "Already signed up for this event")
-
-    # Check if signups are open
-    if not event.is_signup_open:
-        raise HttpError(400, "Signups are closed for this event")
-
-    # Get team if provided
-    team = None
-    if signup_data.team_id:
-        team = get_object_or_404(Team, id=signup_data.team_id, club=club)
-
-    signup = EventSignup.objects.create(
-        event=event,
-        user=request.auth,
-        team=team,
-        notes=signup_data.notes,
-        car_number=signup_data.car_number,
-        livery_url=signup_data.livery_url,
-        expected_lap_time=signup_data.expected_lap_time,
-        is_confirmed=True,  # Auto-confirm for now
-        is_reserve=False,
-    )
-
-    return EventSignupSchema.from_orm(signup)
+# Legacy event signup endpoints removed - replaced by enhanced participation system
