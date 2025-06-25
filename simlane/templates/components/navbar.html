@@ -32,11 +32,20 @@
       <div class="hidden md:flex items-center space-x-8">
         <!-- Public Navigation Links -->
         <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
-           href="{% url 'cars_list' %}">Cars</a>
+           href="{% url 'cars_list' %}"
+           hx-get="{% url 'cars_list' %}"
+           hx-target="#main-content"
+           hx-push-url="true">Cars</a>
         <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
-           href="{% url 'tracks_list' %}">Tracks</a>
+           href="{% url 'tracks_list' %}"
+           hx-get="{% url 'tracks_list' %}"
+           hx-target="#main-content"
+           hx-push-url="true">Tracks</a>
         <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
-                                           href="{% url 'drivers:profiles_list' %}">Drivers</a>
+           href="{% url 'drivers:profiles_list' %}"
+           hx-get="{% url 'drivers:profiles_list' %}"
+           hx-target="#main-content"
+           hx-push-url="true">Drivers</a>
         
         {% if request.user.is_authenticated %}
           <!-- Dashboard Link -->

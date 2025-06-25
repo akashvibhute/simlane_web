@@ -98,3 +98,10 @@ class JWTTokenStrategy(AbstractTokenStrategy):
             return None
         except (ValueError, User.DoesNotExist):
             return None
+
+    # Implement missing abstract methods as no-ops for websocket auth
+    def create_session_token(self, user):
+        return None
+
+    def lookup_session(self, token):
+        return None

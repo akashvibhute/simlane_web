@@ -129,8 +129,8 @@ class SolarScheduleAdmin(ModelAdmin):
 @admin.register(ClockedSchedule)
 class ClockedScheduleAdmin(ModelAdmin):
     form = ClockedScheduleForm
-    list_display = ['clocked_time', 'enabled']
-    list_filter = ['enabled', 'clocked_time']
+    list_display = ['clocked_time']
+    list_filter = [ 'clocked_time']
     search_fields = ['clocked_time']
 
 

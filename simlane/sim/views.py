@@ -10,15 +10,18 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
 from django.core.cache import cache
 from django.views.decorators.http import require_POST
+import logging
 
 from simlane.sim.models import (
     SimProfile, Simulator, CarModel, CarClass, 
-    TrackModel, SimCar, SimTrack, SimLayout
+    TrackModel, SimCar, SimTrack, SimLayout, SimProfileCarOwnership
 )
 from simlane.core.cache_utils import (
     cache_for_anonymous, CacheKeyManager, cache_query
 )
 from simlane.iracing.tasks import sync_iracing_owned_content
+
+logger = logging.getLogger(__name__)
 
 
 # Query-level caching helpers
@@ -210,6 +213,7 @@ def profile_link(request, simulator_slug, profile_identifier):
     if request.method == 'POST':
         try:
             profile.link_to_user(request.user, verified=False)
+            logger.info(f"[PROFILE LINK] Linking profile id: {profile.id} for user {request.user.id}")
             # Trigger iRacing owned content sync in the background
             sync_iracing_owned_content.delay(profile.id)
             messages.success(
@@ -445,6 +449,17 @@ def cars_list(request):
     paginator = Paginator(cars, 24)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # Annotate owned status
+    owned_car_ids = set()
+    if request.user.is_authenticated and hasattr(request.user, 'linked_sim_profiles') and request.user.linked_sim_profiles.exists():
+        sim_profile = request.user.linked_sim_profiles.first()
+        owned_car_ids = set(
+            SimProfileCarOwnership.objects.filter(sim_profile=sim_profile)
+            .values_list('sim_car__car_model_id', flat=True)
+        )
+    for car in page_obj:
+        car.is_owned = car.id in owned_car_ids
     
     context = {
         'page_obj': page_obj,

@@ -18,6 +18,11 @@
         document.documentElement.classList.remove('dark')
       }
     </script>
+    {% block head_scripts %}
+      <script>
+        window.isAuthenticated = {{ request.user.is_authenticated|yesno:"true,false" }};
+      </script>
+    {% endblock %}
   </head>
   <body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'
         class="{% block bodyclass %}bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col{% endblock bodyclass %}">

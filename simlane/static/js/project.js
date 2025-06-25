@@ -3,6 +3,7 @@ import '../sass/project.scss';
 
 // Import Alpine.js for reactive state management (useful globally)
 import Alpine from 'alpinejs';
+import wsClient from './ws';
 
 /* Project specific Javascript goes here. */
 
@@ -50,3 +51,19 @@ window.SimLane = {
         }
     }
 };
+
+window.wsClient = wsClient;
+
+if (wsClient) {
+  wsClient.on('sync_status', (data) => {
+    if (data.status === 'done' && data.profile_id) {
+      const statusEl = document.getElementById('refresh-status');
+      if (statusEl) {
+        statusEl.innerHTML = '<span class="inline-flex items-center text-sm text-green-600">' +
+          '<svg class="h-4 w-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+          '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />' +
+          '</svg>Refreshed!</span>';
+      }
+    }
+  });
+}

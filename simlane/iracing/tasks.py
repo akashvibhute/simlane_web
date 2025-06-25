@@ -7,10 +7,14 @@ from the iRacing API using Celery for asynchronous processing.
 
 import logging
 from typing import Any
+import time
 
 from celery import shared_task
 from django.utils import timezone
 from django.db import transaction
+from channels.layers import get_channel_layer
+import json
+from asgiref.sync import async_to_sync
 
 from simlane.iracing.services import IRacingServiceError
 from simlane.iracing.services import iracing_service
@@ -326,34 +330,48 @@ def fetch_series_search_results(
 def sync_iracing_owned_content(sim_profile_id):
     """
     Fetch owned cars and tracks for a SimProfile from the iRacing API and update ownership tables.
+    Sends a websocket event to the user group when done.
     """
     try:
         profile = SimProfile.objects.get(id=sim_profile_id)
-        # TODO: Replace with actual iRacing API call
-        # Example: api_owned_cars = iracing_api.get_owned_cars(profile.external_data_id)
-        # Example: api_owned_tracks = iracing_api.get_owned_tracks(profile.external_data_id)
-        api_owned_cars = []  # List of sim_api_ids
-        api_owned_tracks = []  # List of sim_api_ids
-
-        # Map sim_api_ids to SimCar/SimTrack objects
-        sim_cars = SimCar.objects.filter(sim_api_id__in=api_owned_cars, simulator=profile.simulator)
-        sim_tracks = SimTrack.objects.filter(sim_api_id__in=api_owned_tracks, simulator=profile.simulator)
+        member_info = iracing_service.get_member_info()
+        logger.info(f"[SYNC] iRacing member_info: cust_id={member_info.get('cust_id')}, name={member_info.get('display_name')}, car_packages={member_info.get('car_packages')}, track_packages={member_info.get('track_packages')}")
+        # Use package_id for ownership mapping
+        owned_car_ids = set(pkg['package_id'] for pkg in member_info.get('car_packages', []))
+        owned_track_ids = set(pkg['package_id'] for pkg in member_info.get('track_packages', []))
+        logger.info(f"[SYNC] owned_car_ids (package_id): {owned_car_ids}")
+        logger.info(f"[SYNC] owned_track_ids (package_id): {owned_track_ids}")
+        sim_cars = SimCar.objects.filter(sim_api_id__in=owned_car_ids, simulator=profile.simulator)
+        sim_tracks = SimTrack.objects.filter(sim_api_id__in=owned_track_ids, simulator=profile.simulator)
         car_map = {car.sim_api_id: car for car in sim_cars}
         track_map = {track.sim_api_id: track for track in sim_tracks}
-
+        logger.info(f"[SYNC] SimCars found: {len(sim_cars)}; SimTracks found: {len(sim_tracks)}")
         with transaction.atomic():
-            # Clear existing ownerships for this profile
             SimProfileCarOwnership.objects.filter(sim_profile=profile).delete()
             SimProfileTrackOwnership.objects.filter(sim_profile=profile).delete()
-            # Bulk create new ownerships
-            SimProfileCarOwnership.objects.bulk_create([
+            car_ownerships = [
                 SimProfileCarOwnership(sim_profile=profile, sim_car=car_map[api_id])
-                for api_id in api_owned_cars if api_id in car_map
-            ])
-            SimProfileTrackOwnership.objects.bulk_create([
+                for api_id in owned_car_ids if api_id in car_map
+            ]
+            track_ownerships = [
                 SimProfileTrackOwnership(sim_profile=profile, sim_track=track_map[api_id])
-                for api_id in api_owned_tracks if api_id in track_map
-            ])
+                for api_id in owned_track_ids if api_id in track_map
+            ]
+            SimProfileCarOwnership.objects.bulk_create(car_ownerships)
+            SimProfileTrackOwnership.objects.bulk_create(track_ownerships)
+        logger.info(f"[SYNC] Car ownerships created: {len(car_ownerships)}; Track ownerships created: {len(track_ownerships)}")
+        # Notify user via websocket
+        channel_layer = get_channel_layer()
+        group = f"user_{profile.linked_user.id}" if profile.linked_user else None
+        if channel_layer and group:
+            async_to_sync(channel_layer.group_send)(
+                group,
+                {
+                    "type": "sync_status",
+                    "status": "done",
+                    "profile_id": str(profile.id),
+                }
+            )
         logger.info(f"Synced iRacing owned content for SimProfile {profile.id}")
     except Exception as e:
         logger.error(f"Failed to sync iRacing owned content for SimProfile {sim_profile_id}: {e}")

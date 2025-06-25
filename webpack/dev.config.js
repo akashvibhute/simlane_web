@@ -8,6 +8,11 @@ module.exports = merge(commonConfig, {
     port: 3000,
     proxy: [
       {
+        context: ['/ws/app/'],
+        target: 'ws://django:8000',
+        ws: true,
+      },
+      {
         context: ['/'],
         target: 'http://django:8000',
       },

@@ -453,3 +453,18 @@ SEARCH_BACKEND = env("SEARCH_BACKEND", default="postgres")
 # Load Unfold admin configuration from separate file
 from .unfold import UNFOLD
 
+# Channels/ASGI
+# ------------------------------------------------------------------------------
+# Use Channels for ASGI support and websockets
+ASGI_APPLICATION = 'config.asgi.application'
+
+# Channel layer using Redis (migration-friendly: can be used by Phoenix/Elixir or other services later)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [env('REDIS_URL', default='redis://redis:6379/0')],
+        },
+    },
+}
+

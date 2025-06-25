@@ -258,6 +258,20 @@ class IRacingAPIService:
             msg = f"Failed to fetch subsession data for {subsession_id}"
             raise IRacingServiceError(msg) from e
 
+    def get_member_info(self) -> dict[str, Any]:
+        """
+        Get full member info for the authenticated user (including owned cars/tracks).
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+        try:
+            return self.client.member_info()
+        except Exception as e:
+            logger.exception("Error fetching member info")
+            msg = "Failed to fetch member info"
+            raise IRacingServiceError(msg) from e
+
 
 # Global service instance
 iracing_service = IRacingAPIService()

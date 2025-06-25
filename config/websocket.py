@@ -1,13 +1,13 @@
-async def websocket_application(scope, receive, send):
-    while True:
-        event = await receive()
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
+from django.urls import path
+from simlane.sim.consumers import AppConsumer
+from simlane.core.middleware import CombinedAuthMiddleware
 
-        if event["type"] == "websocket.connect":
-            await send({"type": "websocket.accept"})
-
-        if event["type"] == "websocket.disconnect":
-            break
-
-        if event["type"] == "websocket.receive":
-            if event["text"] == "ping":
-                await send({"type": "websocket.send", "text": "pong!"})
+websocket_application = ProtocolTypeRouter({
+    "websocket": CombinedAuthMiddleware(
+        URLRouter([
+            path("ws/app/", AppConsumer.as_asgi()),
+        ])
+    ),
+})

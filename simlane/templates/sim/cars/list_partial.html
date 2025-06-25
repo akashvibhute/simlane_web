@@ -85,7 +85,7 @@
     {% for car in page_obj %}
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
             {% if car.default_image_url %}
-                <img src="{{ car.default_image_url }}" alt="{{ car.manufacturer }} {{ car.name }}" class="w-full h-48 object-cover">
+                <img src="https://images-static.iracing.com/{{ car.default_image_url }}" alt="{{ car.manufacturer }} {{ car.name }}" class="w-full h-48 object-cover">
             {% else %}
                 <div class="w-full h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
                     <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,9 +96,12 @@
             {% endif %}
             
             <div class="p-4">
-                <h3 class="font-semibold text-lg text-gray-900 dark:text-white mb-1">
-                    {{ car.manufacturer }} {{ car.name }}
-                </h3>
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="font-semibold text-lg text-gray-900 dark:text-white">{{ car.manufacturer }} {{ car.name }}</h3>
+                    {% if car.is_owned %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 ml-2">Owned</span>
+                    {% endif %}
+                </div>
                 
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-sm text-gray-500 dark:text-gray-400">{{ car.car_class.name }}</span>
