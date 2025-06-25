@@ -201,3 +201,6 @@ Refer to `docs/design/DESIGN_LANGUAGE.md` for the official colour palette, typog
 Any further requests for creating documents should end up with documents created in appropriate within in docs folder. 
 
 We are still in development phase and not live on production so do not worry about production migrations etc. 
+
+
+We will be building a mobile app for ios/android for this website and all of its features, so always keep that in mind when suggesting things and discussing designs etc. 

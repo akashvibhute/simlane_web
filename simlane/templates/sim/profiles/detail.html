@@ -4,6 +4,37 @@
 
 {% block content %}
 <div class="space-y-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ profile.profile_name }}</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {{ profile.simulator.name }} Sim Profile
+            </p>
+        </div>
+        {% if request.user.is_authenticated and profile.linked_user == request.user %}
+        <div class="flex items-center space-x-2">
+            <form id="refresh-owned-form" method="POST"
+                  hx-post="{% url 'sim:refresh_iracing_owned' %}"
+                  hx-target="#refresh-status"
+                  hx-indicator="#refresh-indicator">
+                {% csrf_token %}
+                <input type="hidden" name="sim_profile_id" value="{{ profile.id }}">
+                <button type="submit"
+                  class="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 bg-white hover:bg-primary-50 dark:bg-gray-800 dark:hover:bg-primary-900/20 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer"
+                  style="min-width: 120px;">
+                    <span>Refresh Owned</span>
+                    <span id="refresh-indicator" class="ml-2 htmx-indicator">
+                        <svg class="animate-spin h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                        </svg>
+                    </span>
+                </button>
+            </form>
+            <div id="refresh-status"></div>
+        </div>
+        {% endif %}
+    </div>
     <!-- Profile Header -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
         <div class="flex items-center space-x-4">

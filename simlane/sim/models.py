@@ -1060,3 +1060,29 @@ class WeatherForecast(models.Model):
 
     def __str__(self):
         return f"{self.event_instance.event.name} - {self.time_offset} minutes"
+
+
+class SimProfileCarOwnership(models.Model):
+    sim_profile = models.ForeignKey('sim.SimProfile', on_delete=models.CASCADE, related_name='owned_cars')
+    sim_car = models.ForeignKey('sim.SimCar', on_delete=models.CASCADE, related_name='owners')
+    acquired_at = models.DateTimeField(auto_now_add=True)
+    is_favorite = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('sim_profile', 'sim_car')
+        verbose_name = 'Car Ownership'
+        verbose_name_plural = 'Car Ownerships'
+
+
+class SimProfileTrackOwnership(models.Model):
+    sim_profile = models.ForeignKey('sim.SimProfile', on_delete=models.CASCADE, related_name='owned_tracks')
+    sim_track = models.ForeignKey('sim.SimTrack', on_delete=models.CASCADE, related_name='owners')
+    acquired_at = models.DateTimeField(auto_now_add=True)
+    is_favorite = models.BooleanField(default=False)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('sim_profile', 'sim_track')
+        verbose_name = 'Track Ownership'
+        verbose_name_plural = 'Track Ownerships'

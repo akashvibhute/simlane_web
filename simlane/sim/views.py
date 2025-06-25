@@ -6,19 +6,38 @@ from django.core.paginator import Paginator
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import reverse
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
+from django.core.cache import cache
+from django.views.decorators.http import require_POST
 
 from simlane.sim.models import (
     SimProfile, Simulator, CarModel, CarClass, 
     TrackModel, SimCar, SimTrack, SimLayout
 )
+from simlane.core.cache_utils import (
+    cache_for_anonymous, CacheKeyManager, cache_query
+)
+from simlane.iracing.tasks import sync_iracing_owned_content
+
+
+# Query-level caching helpers
+@cache_query(timeout=600, cache_alias='query_cache')  # 10 minutes
+def get_public_profiles():
+    return list(SimProfile.objects.filter(
+        is_public=True
+    ).select_related('simulator', 'linked_user').order_by('-last_active', '-created_at'))
+
+@cache_query(timeout=1800, cache_alias='query_cache')  # 30 minutes
+def get_active_simulators():
+    return list(Simulator.objects.filter(is_active=True))
 
 
 # Public Profile Views
+@cache_for_anonymous(timeout=900)  # 15 minutes
 def profiles_list(request):
     """Public listing of all sim profiles"""
-    profiles = SimProfile.objects.filter(
-        is_public=True
-    ).select_related('simulator', 'linked_user').order_by('-last_active', '-created_at')
+    profiles = get_public_profiles()
     
     # Pagination
     paginator = Paginator(profiles, 24)
@@ -27,9 +46,11 @@ def profiles_list(request):
     
     context = {
         'page_obj': page_obj,
-        'simulators': Simulator.objects.filter(is_active=True),
+        'simulators': get_active_simulators(),
     }
     
+    if request.headers.get('HX-Request'):
+        return render(request, 'sim/profiles/list_partial.html', context)
     return render(request, 'sim/profiles/list.html', context)
 
 
@@ -95,6 +116,20 @@ def profile_detail(request, simulator_slug, profile_identifier):
     """View individual profile details"""
     simulator = get_object_or_404(Simulator, slug=simulator_slug, is_active=True)
     
+    # Generate cache key for public profiles
+    cache_key = None
+    if not request.user.is_authenticated:
+        cache_key = CacheKeyManager.get_view_cache_key(
+            'profile_detail',
+            simulator_slug=simulator_slug,
+            profile_identifier=profile_identifier
+        )
+        
+        # Try to get from cache
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+    
     # Try to find the profile by external_data_id first, then by profile_name
     profile = None
     try:
@@ -134,7 +169,13 @@ def profile_detail(request, simulator_slug, profile_identifier):
         'can_link': can_link,
     }
     
-    return render(request, 'sim/profiles/detail.html', context)
+    response = render(request, 'sim/profiles/detail.html', context)
+    
+    # Cache the response for anonymous users viewing public profiles
+    if cache_key and profile.is_public:
+        cache.set(cache_key, response, 300)  # 5 minutes
+    
+    return response
 
 
 @login_required
@@ -169,10 +210,12 @@ def profile_link(request, simulator_slug, profile_identifier):
     if request.method == 'POST':
         try:
             profile.link_to_user(request.user, verified=False)
+            # Trigger iRacing owned content sync in the background
+            sync_iracing_owned_content.delay(profile.id)
             messages.success(
                 request, 
                 f"Successfully linked {profile.simulator.name} profile: {profile.profile_name}. "
-                "Please verify your ownership to complete the process."
+                "Please verify your ownership to complete the process. Owned content is being synced."
             )
             return redirect('drivers:profile_detail', 
                            simulator_slug=simulator_slug, 
@@ -414,6 +457,8 @@ def cars_list(request):
         'search_query': search_query,
     }
     
+    if request.htmx:
+        return render(request, 'sim/cars/list_partial.html', context)
     return render(request, 'sim/cars/list.html', context)
 
 
@@ -508,6 +553,8 @@ def tracks_list(request):
         'search_query': search_query,
     }
     
+    if request.htmx:
+        return render(request, 'sim/tracks/list_partial.html', context)
     return render(request, 'sim/tracks/list.html', context)
 
 
@@ -617,6 +664,21 @@ def layout_detail(request, track_slug, layout_slug):
     }
     
     return render(request, 'sim/tracks/layout_detail.html', context)
+
+
+@require_POST
+@login_required
+def refresh_iracing_owned_content(request):
+    """HTMX endpoint to trigger iRacing owned content sync for the user's sim profile."""
+    sim_profile_id = request.POST.get('sim_profile_id')
+    if not sim_profile_id:
+        return JsonResponse({'error': 'No sim_profile_id provided.'}, status=400)
+    try:
+        profile = SimProfile.objects.get(id=sim_profile_id, linked_user=request.user)
+    except SimProfile.DoesNotExist:
+        return JsonResponse({'error': 'SimProfile not found or not linked to user.'}, status=404)
+    sync_iracing_owned_content.delay(profile.id)
+    return render(request, 'sim/components/refresh_status.html', {'status': 'syncing'})
 
 
 

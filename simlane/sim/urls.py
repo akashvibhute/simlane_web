@@ -7,6 +7,7 @@ app_name = "sim"
 # Main sim app URLs (for any remaining sim-specific functionality)
 urlpatterns = [
     # Currently empty - profiles and dashboard moved to root level
+    path('refresh-iracing-owned/', views.refresh_iracing_owned_content, name='refresh_iracing_owned'),
 ]
 
 # Profiles patterns - to be included at top level

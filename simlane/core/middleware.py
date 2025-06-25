@@ -28,6 +28,7 @@ class AuthenticationRequiredMiddleware(MiddlewareMixin):
             "/terms/",
             "/contact/",
             "/contact/success/",
+            "/drivers/",
         ]
 
         # Check if current path matches any public path

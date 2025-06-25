@@ -10,9 +10,11 @@ from typing import Any
 
 from celery import shared_task
 from django.utils import timezone
+from django.db import transaction
 
 from simlane.iracing.services import IRacingServiceError
 from simlane.iracing.services import iracing_service
+from simlane.sim.models import SimProfile, SimProfileCarOwnership, SimProfileTrackOwnership, SimCar, SimTrack
 
 logger = logging.getLogger(__name__)
 
@@ -318,3 +320,41 @@ def fetch_series_search_results(
             "season_quarter": season_quarter,
             "search_params": kwargs,
         }
+
+
+@shared_task
+def sync_iracing_owned_content(sim_profile_id):
+    """
+    Fetch owned cars and tracks for a SimProfile from the iRacing API and update ownership tables.
+    """
+    try:
+        profile = SimProfile.objects.get(id=sim_profile_id)
+        # TODO: Replace with actual iRacing API call
+        # Example: api_owned_cars = iracing_api.get_owned_cars(profile.external_data_id)
+        # Example: api_owned_tracks = iracing_api.get_owned_tracks(profile.external_data_id)
+        api_owned_cars = []  # List of sim_api_ids
+        api_owned_tracks = []  # List of sim_api_ids
+
+        # Map sim_api_ids to SimCar/SimTrack objects
+        sim_cars = SimCar.objects.filter(sim_api_id__in=api_owned_cars, simulator=profile.simulator)
+        sim_tracks = SimTrack.objects.filter(sim_api_id__in=api_owned_tracks, simulator=profile.simulator)
+        car_map = {car.sim_api_id: car for car in sim_cars}
+        track_map = {track.sim_api_id: track for track in sim_tracks}
+
+        with transaction.atomic():
+            # Clear existing ownerships for this profile
+            SimProfileCarOwnership.objects.filter(sim_profile=profile).delete()
+            SimProfileTrackOwnership.objects.filter(sim_profile=profile).delete()
+            # Bulk create new ownerships
+            SimProfileCarOwnership.objects.bulk_create([
+                SimProfileCarOwnership(sim_profile=profile, sim_car=car_map[api_id])
+                for api_id in api_owned_cars if api_id in car_map
+            ])
+            SimProfileTrackOwnership.objects.bulk_create([
+                SimProfileTrackOwnership(sim_profile=profile, sim_track=track_map[api_id])
+                for api_id in api_owned_tracks if api_id in track_map
+            ])
+        logger.info(f"Synced iRacing owned content for SimProfile {profile.id}")
+    except Exception as e:
+        logger.error(f"Failed to sync iRacing owned content for SimProfile {sim_profile_id}: {e}")
+        raise

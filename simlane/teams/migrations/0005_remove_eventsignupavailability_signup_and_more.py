@@ -10,6 +10,28 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # First, remove all unique_together constraints before removing fields
+        migrations.AlterUniqueTogether(
+            name='eventsignupavailability',
+            unique_together=None,
+        ),
+        migrations.AlterUniqueTogether(
+            name='stintassignment',
+            unique_together=None,
+        ),
+        migrations.AlterUniqueTogether(
+            name='teamallocation',
+            unique_together=None,
+        ),
+        migrations.AlterUniqueTogether(
+            name='teamallocationmember',
+            unique_together=None,
+        ),
+        migrations.AlterUniqueTogether(
+            name='teameventstrategy',
+            unique_together=None,
+        ),
+        # Then remove fields
         migrations.RemoveField(
             model_name='eventsignupavailability',
             name='signup',
@@ -18,17 +40,9 @@ class Migration(migrations.Migration):
             model_name='teamallocationmember',
             name='event_signup',
         ),
-        migrations.AlterUniqueTogether(
-            name='eventsignupavailability',
-            unique_together=None,
-        ),
         migrations.RemoveField(
             model_name='eventsignupavailability',
             name='event_instance',
-        ),
-        migrations.AlterUniqueTogether(
-            name='stintassignment',
-            unique_together=None,
         ),
         migrations.RemoveField(
             model_name='stintassignment',
@@ -41,10 +55,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='stintassignment',
             name='team_strategy',
-        ),
-        migrations.AlterUniqueTogether(
-            name='teamallocation',
-            unique_together=None,
         ),
         migrations.RemoveField(
             model_name='teamallocation',
@@ -74,14 +84,6 @@ class Migration(migrations.Migration):
             model_name='teamallocationmember',
             name='team_allocation',
         ),
-        migrations.AlterUniqueTogether(
-            name='teamallocationmember',
-            unique_together=None,
-        ),
-        migrations.AlterUniqueTogether(
-            name='teameventstrategy',
-            unique_together=None,
-        ),
         migrations.RemoveField(
             model_name='teameventstrategy',
             name='club_event',
@@ -106,6 +108,7 @@ class Migration(migrations.Migration):
             model_name='teameventstrategy',
             name='team',
         ),
+        # Finally, delete the models
         migrations.DeleteModel(
             name='EventSignup',
         ),

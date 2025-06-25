@@ -21,6 +21,7 @@ from .models import SimTrack
 from .models import Simulator
 from .models import TrackModel
 from .models import WeatherForecast
+from .models import SimProfileCarOwnership, SimProfileTrackOwnership
 
 
 @admin.register(Simulator)
@@ -221,3 +222,19 @@ class WeatherForecastAdmin(ModelAdmin):
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["event_instance"]
     date_hierarchy = "timestamp"
+
+
+@admin.register(SimProfileCarOwnership)
+class SimProfileCarOwnershipAdmin(admin.ModelAdmin):
+    list_display = ('sim_profile', 'sim_car', 'is_favorite', 'acquired_at')
+    search_fields = ('sim_profile__external_data_id', 'sim_profile__profile_name', 'sim_car__car_model__name', 'sim_car__simulator__name')
+    list_filter = ('is_favorite', 'sim_car__simulator')
+    autocomplete_fields = ['sim_profile', 'sim_car']
+
+
+@admin.register(SimProfileTrackOwnership)
+class SimProfileTrackOwnershipAdmin(admin.ModelAdmin):
+    list_display = ('sim_profile', 'sim_track', 'is_favorite', 'acquired_at')
+    search_fields = ('sim_profile__external_data_id', 'sim_profile__profile_name', 'sim_track__track_model__name', 'sim_track__simulator__name')
+    list_filter = ('is_favorite', 'sim_track__simulator')
+    autocomplete_fields = ['sim_profile', 'sim_track']

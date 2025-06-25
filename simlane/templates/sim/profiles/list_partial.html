@@ -1,0 +1,98 @@
+{% comment %} HTMX partial for driver search UI, grid, and pagination {% endcomment %}
+<div class="space-y-4">
+<!-- Header -->
+<div class="flex items-center justify-between">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sim Racing Drivers</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Discover sim racing drivers and their achievements
+        </p>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+    <form method="get" class="flex gap-4">
+        <input type="text" 
+               name="q" 
+               placeholder="Search drivers..." 
+               value="{{ request.GET.q }}"
+               class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+        <select name="simulator" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <option value="">All Simulators</option>
+            {% for simulator in simulators %}
+                <option value="{{ simulator.slug }}" {% if request.GET.simulator == simulator.slug %}selected{% endif %}>
+                    {{ simulator.name }}
+                </option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn-primary">Search</button>
+    </form>
+</div>
+
+<!-- Profiles Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {% for profile in page_obj %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition-shadow">
+            <div class="flex items-center space-x-3 mb-3">
+                {% if profile.simulator.icon %}
+                    <img src="{{ profile.simulator.icon.url }}" alt="{{ profile.simulator.name }}" class="w-8 h-8 rounded">
+                {% else %}
+                    <div class="w-8 h-8 bg-primary-500 rounded flex items-center justify-center">
+                        <span class="text-sm font-bold text-white">{{ profile.simulator.name|first }}</span>
+                    </div>
+                {% endif %}
+                <div class="flex-1">
+                    <h3 class="font-medium text-gray-900 dark:text-white">{{ profile.profile_name }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ profile.simulator.name }}</p>
+                </div>
+            </div>
+            
+            {% if profile.linked_user %}
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    {{ profile.linked_user.get_full_name|default:profile.linked_user.username }}
+                </p>
+            {% endif %}
+            
+            <a href="{{ profile.get_absolute_url }}" class="btn-primary btn-sm w-full">
+                View Profile
+            </a>
+        </div>
+    {% empty %}
+        <div class="col-span-full text-center py-12">
+            <p class="text-gray-500 dark:text-gray-400">No drivers found.</p>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+    <div class="flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.simulator %}&simulator={{ request.GET.simulator }}{% endif %}"
+                   hx-get="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.simulator %}&simulator={{ request.GET.simulator }}{% endif %}"
+                   hx-target="#main-content"
+                   hx-push-url="true"
+                   class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    Previous
+                </a>
+            {% endif %}
+            
+            <span class="px-3 py-2 rounded-md bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.simulator %}&simulator={{ request.GET.simulator }}{% endif %}"
+                   hx-get="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.simulator %}&simulator={{ request.GET.simulator }}{% endif %}"
+                   hx-target="#main-content"
+                   hx-push-url="true"
+                   class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    Next
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+{% endif %} 
+</div>

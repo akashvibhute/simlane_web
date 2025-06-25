@@ -6,6 +6,11 @@ from pathlib import Path
 
 import environ
 
+from django.templatetags.static import static
+from django.urls import reverse_lazy
+from django.utils.translation import gettext_lazy as _
+
+
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # simlane/
 APPS_DIR = BASE_DIR / "simlane"
@@ -51,7 +56,20 @@ DATABASES["default"]["ATOMIC_REQUESTS"] = True
 # https://docs.djangoproject.com/en/stable/ref/settings/#std:setting-DEFAULT_AUTO_FIELD
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# URLS
+# CACHES
+# ------------------------------------------------------------------------------
+# Default cache configuration (will be overridden in environment-specific settings)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "",
+    }
+}
+
+# Session configuration 
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 2 weeks
+
+# URLs
 # ------------------------------------------------------------------------------
 # https://docs.djangoproject.com/en/dev/ref/settings/#root-urlconf
 ROOT_URLCONF = "config.urls"
@@ -282,6 +300,8 @@ LOGGING = {
     "root": {"level": "INFO", "handlers": ["console"]},
 }
 
+# Redis Configuration (for Celery)
+# ------------------------------------------------------------------------------
 REDIS_URL = env("REDIS_URL", default="redis://redis:6379/0")
 REDIS_SSL = REDIS_URL.startswith("rediss://")
 
@@ -428,3 +448,8 @@ JWT_REFRESH_TOKEN_LIFETIME = 86400 * 7  # 7 days in seconds
 # ------------------------------------------------------------------------------
 # Search backend: 'postgres' (default), 'meilisearch', 'elasticsearch'
 SEARCH_BACKEND = env("SEARCH_BACKEND", default="postgres")
+
+# Unfold Configuration
+# Load Unfold admin configuration from separate file
+from .unfold import UNFOLD
+

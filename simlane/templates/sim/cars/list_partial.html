@@ -1,0 +1,172 @@
+{% comment %} HTMX partial for cars search UI, grid, and pagination {% endcomment %}
+<div class="space-y-4">
+<!-- Header -->
+<div class="flex items-center justify-between">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Cars Database</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Browse all available cars across simulators
+        </p>
+    </div>
+    {% if request.user.is_authenticated and request.user.linked_sim_profiles.exists %}
+    <div class="flex items-center space-x-2">
+        <form id="refresh-owned-form" method="POST"
+              hx-post="{% url 'sim:refresh_iracing_owned' %}"
+              hx-target="#refresh-status"
+              hx-indicator="#refresh-indicator">
+            {% csrf_token %}
+            <input type="hidden" name="sim_profile_id" value="{{ request.user.linked_sim_profiles.first.id }}">
+            <button type="submit"
+              class="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 bg-white hover:bg-primary-50 dark:bg-gray-800 dark:hover:bg-primary-900/20 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer"
+              style="min-width: 120px;">
+                <span>Refresh Owned</span>
+                <span id="refresh-indicator" class="ml-2 htmx-indicator">
+                    <svg class="animate-spin h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                    </svg>
+                </span>
+            </button>
+        </form>
+        <div id="refresh-status"></div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Search and Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+    <form method="get" class="space-y-4">
+        <!-- Search Bar -->
+        <div class="flex gap-4">
+            <input type="text" 
+                   name="q" 
+                   placeholder="Search cars..." 
+                   value="{{ search_query }}"
+                   class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <button type="submit" class="btn-primary">Search</button>
+        </div>
+        
+        <!-- Filters Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <select name="simulator" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <option value="">All Simulators</option>
+                {% for simulator in simulators %}
+                    <option value="{{ simulator.slug }}" {% if selected_simulator == simulator.slug %}selected{% endif %}>
+                        {{ simulator.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <select name="class" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <option value="">All Classes</option>
+                {% for car_class in car_classes %}
+                    <option value="{{ car_class.slug }}" {% if selected_class == car_class.slug %}selected{% endif %}>
+                        {{ car_class.name }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <select name="manufacturer" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <option value="">All Manufacturers</option>
+                {% for manufacturer in manufacturers %}
+                    <option value="{{ manufacturer }}" {% if selected_manufacturer == manufacturer %}selected{% endif %}>
+                        {{ manufacturer }}
+                    </option>
+                {% endfor %}
+            </select>
+            
+            <a href="{% url 'cars_list' %}" class="btn-secondary text-center">Clear Filters</a>
+        </div>
+    </form>
+</div>
+
+<!-- Cars Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    {% for car in page_obj %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
+            {% if car.default_image_url %}
+                <img src="{{ car.default_image_url }}" alt="{{ car.manufacturer }} {{ car.name }}" class="w-full h-48 object-cover">
+            {% else %}
+                <div class="w-full h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
+                    </svg>
+                </div>
+            {% endif %}
+            
+            <div class="p-4">
+                <h3 class="font-semibold text-lg text-gray-900 dark:text-white mb-1">
+                    {{ car.manufacturer }} {{ car.name }}
+                </h3>
+                
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ car.car_class.name }}</span>
+                    {% if car.release_year %}
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ car.release_year }}</span>
+                    {% endif %}
+                </div>
+                
+                <!-- Simulator Badges -->
+                <div class="flex flex-wrap gap-1 mb-3">
+                    {% for sim_car in car.sim_cars.all|slice:":4" %}
+                        {% if sim_car.simulator.icon %}
+                            <img src="{{ sim_car.simulator.icon.url }}" 
+                                 alt="{{ sim_car.simulator.name }}" 
+                                 title="{{ sim_car.simulator.name }}"
+                                 class="w-6 h-6 rounded">
+                        {% else %}
+                            <div class="w-6 h-6 bg-primary-500 rounded flex items-center justify-center" 
+                                 title="{{ sim_car.simulator.name }}">
+                                <span class="text-xs font-bold text-white">{{ sim_car.simulator.name|first }}</span>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    {% if car.simulator_count > 4 %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400 ml-1">+{{ car.simulator_count|add:"-4" }}</span>
+                    {% endif %}
+                </div>
+                
+                <a href="{% url 'car_detail' car.slug %}" class="btn-primary btn-sm w-full">
+                    View Details
+                </a>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-span-full text-center py-12">
+            <p class="text-gray-500 dark:text-gray-400">No cars found matching your criteria.</p>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+    <div class="flex justify-center">
+        <nav class="flex space-x-2">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}{% if selected_class %}&class={{ selected_class }}{% endif %}{% if selected_manufacturer %}&manufacturer={{ selected_manufacturer }}{% endif %}"
+                   hx-get="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}{% if selected_class %}&class={{ selected_class }}{% endif %}{% if selected_manufacturer %}&manufacturer={{ selected_manufacturer }}{% endif %}"
+                   hx-target="#main-content"
+                   hx-push-url="true"
+                   class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+                    Previous
+                </a>
+            {% endif %}
+            
+            <span class="px-3 py-2 rounded-md bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}{% if selected_class %}&class={{ selected_class }}{% endif %}{% if selected_manufacturer %}&manufacturer={{ selected_manufacturer }}{% endif %}"
+                   hx-get="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}{% if selected_class %}&class={{ selected_class }}{% endif %}{% if selected_manufacturer %}&manufacturer={{ selected_manufacturer }}{% endif %}"
+                   hx-target="#main-content"
+                   hx-push-url="true"
+                   class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600">
+                    Next
+                </a>
+            {% endif %}
+        </nav>
+    </div>
+{% endif %}
+</div>
