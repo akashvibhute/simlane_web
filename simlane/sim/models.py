@@ -135,10 +135,10 @@ class SimProfile(models.Model):
         on_delete=models.CASCADE,
         related_name="sim_profiles",
     )
-    external_data_id = models.CharField(
+    sim_api_id = models.CharField(
         max_length=255, 
         blank=True,
-        help_text="Platform-specific unique ID (e.g., iRacing customer ID)"
+        help_text="Platform-specific unique ID (e.g., customer ID, driver ID)"
     )
     profile_name = models.CharField(
         max_length=255, 
@@ -187,9 +187,9 @@ class SimProfile(models.Model):
     )
 
     class Meta:
-        unique_together = ['simulator', 'external_data_id']
+        unique_together = ['simulator', 'sim_api_id']
         indexes = [
-            models.Index(fields=['simulator', 'external_data_id']),
+            models.Index(fields=['simulator', 'sim_api_id']),
             models.Index(fields=['linked_user']),
             models.Index(fields=['is_public']),
             models.Index(fields=['profile_name']),
@@ -203,7 +203,7 @@ class SimProfile(models.Model):
         from django.urls import reverse
         return reverse('drivers:profile_detail', kwargs={
             'simulator_slug': self.simulator.slug,
-            'profile_identifier': self.external_data_id
+            'profile_identifier': self.sim_api_id
         })
 
     def get_user_management_url(self):
@@ -379,32 +379,17 @@ class CarModel(models.Model):
         return self._get_best_image('large_image', simulator_preference)
     
     def _get_best_image(self, image_field, simulator_preference=None):
-        """
-        Get the best available image from associated SimCars.
-        
-        Args:
-            image_field: Name of the image field ('logo', 'small_image', 'large_image')
-            simulator_preference: Preferred simulator name (e.g., 'iRacing')
-        
-        Returns:
-            ImageField or None
-        """
-        sim_cars = self.sim_cars.filter(is_active=True)
-        
-        # If a simulator preference is specified, try that first
+        sim_cars = [sc for sc in list(getattr(self, 'sim_cars').all()) if sc.is_active]
         if simulator_preference:
-            preferred_sim_cars = sim_cars.filter(simulator__name__icontains=simulator_preference)
+            preferred_sim_cars = [sc for sc in sim_cars if simulator_preference.lower() in sc.simulator.name.lower()]
             for sim_car in preferred_sim_cars:
                 image = getattr(sim_car, image_field, None)
                 if image:
                     return image
-        
-        # Fall back to any available image
         for sim_car in sim_cars:
             image = getattr(sim_car, image_field, None)
             if image:
                 return image
-        
         return None
     
     def get_gallery_images(self, gallery_type='screenshots', simulator_preference=None):
@@ -424,13 +409,14 @@ class CarModel(models.Model):
             return gallery_images
         
         # Fall back to gallery images from associated SimCars
-        sim_car_ct = ContentType.objects.get_for_model(self.sim_cars.model)
-        sim_car_ids = list(self.sim_cars.filter(is_active=True).values_list('id', flat=True))
+        sim_cars_manager = getattr(self, 'sim_cars')
+        sim_car_ct = ContentType.objects.get_for_model(sim_cars_manager.model)
+        sim_car_ids = list(sim_cars_manager.filter(is_active=True).values_list('id', flat=True))
         
         if simulator_preference:
             # Try preferred simulator first
             preferred_sim_car_ids = list(
-                self.sim_cars.filter(
+                sim_cars_manager.filter(
                     is_active=True,
                     simulator__name__icontains=simulator_preference
                 ).values_list('id', flat=True)
@@ -514,8 +500,7 @@ class SimCar(models.Model):
 
     class Meta:
         unique_together = [
-            ["simulator", "sim_api_id"], 
-            ["simulator", "package_id"]
+            ["simulator", "sim_api_id"]
         ]
         indexes = [
             models.Index(fields=["car_model"]),
@@ -569,6 +554,32 @@ class TrackModel(models.Model):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
+
+    def get_logo(self, simulator_preference=None):
+        """Get the best available logo from associated SimTracks."""
+        return self._get_best_image('logo', simulator_preference)
+
+    def get_small_image(self, simulator_preference=None):
+        """Get the best available small image from associated SimTracks."""
+        return self._get_best_image('small_image', simulator_preference)
+
+    def get_large_image(self, simulator_preference=None):
+        """Get the best available large image from associated SimTracks."""
+        return self._get_best_image('large_image', simulator_preference)
+
+    def _get_best_image(self, image_field, simulator_preference=None):
+        sim_tracks = [st for st in list(getattr(self, 'sim_tracks').all()) if st.is_active]
+        if simulator_preference:
+            preferred = [st for st in sim_tracks if simulator_preference.lower() in st.simulator.name.lower()]
+            for sim_track in preferred:
+                image = getattr(sim_track, image_field, None)
+                if image:
+                    return image
+        for sim_track in sim_tracks:
+            image = getattr(sim_track, image_field, None)
+            if image:
+                return image
+        return None
 
 
 class SimTrack(models.Model):
@@ -733,6 +744,31 @@ class Series(models.Model):
     description = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)
     website = models.URLField(blank=True)
+    
+    # Enhanced simulator-specific fields
+    external_series_id = models.IntegerField(unique=True, null=True, blank=True, help_text="Series ID from simulator API")
+    simulator = models.ForeignKey(
+        Simulator,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="series",
+        help_text="Simulator this series belongs to (if simulator-specific)"
+    )
+    category = models.CharField(max_length=50, blank=True, help_text="Track category: 'oval', 'road', etc.")
+    license_group = models.IntegerField(null=True, blank=True, help_text="Required license group")
+    is_official = models.BooleanField(default=True, help_text="Official series")
+    multiclass = models.BooleanField(default=False, help_text="Multi-class racing")
+    cross_license = models.BooleanField(default=False, help_text="Cross-license allowed")
+    
+    # Series-wide settings
+    car_switching = models.BooleanField(default=False, help_text="Car switching allowed")
+    fixed_setup = models.BooleanField(default=False, help_text="Fixed setup series")
+    incident_limit = models.IntegerField(null=True, blank=True, help_text="Incident limit per race")
+    max_team_drivers = models.IntegerField(default=1, help_text="Maximum drivers per team")
+    region_competition = models.BooleanField(default=True, help_text="Region-based competition")
+    
+    # Existing fields
     is_team_event = models.BooleanField(default=False)
     min_drivers_per_entry = models.IntegerField(null=True, blank=True)
     max_drivers_per_entry = models.IntegerField(null=True, blank=True)
@@ -745,6 +781,10 @@ class Series(models.Model):
         verbose_name_plural = "Series"
         indexes = [
             models.Index(fields=["slug"]),
+            models.Index(fields=["external_series_id"]),
+            models.Index(fields=["simulator"]),
+            models.Index(fields=["category"]),
+            models.Index(fields=["is_official"]),
         ]
 
     def __str__(self):
@@ -760,6 +800,151 @@ class Series(models.Model):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
+
+
+class Season(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    series = models.ForeignKey(Series, on_delete=models.CASCADE, related_name="seasons")
+    
+    # Core season identification
+    external_season_id = models.IntegerField(unique=True, help_text="Season ID from simulator API")
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=300, blank=True)
+    
+    # Season timing
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    current_race_week = models.IntegerField(default=0)
+    max_weeks = models.IntegerField(default=12)
+    
+    # Season status
+    active = models.BooleanField(default=True)
+    complete = models.BooleanField(default=False)
+    
+    # Season-specific settings (can override series defaults)
+    drops = models.IntegerField(default=0, help_text="Number of dropped weeks")
+    race_week_to_make_divisions = models.IntegerField(default=0)
+    
+    # Additional metadata
+    schedule_description = models.TextField(blank=True)
+    season_settings = models.JSONField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=["series"]),
+            models.Index(fields=["external_season_id"]),
+            models.Index(fields=["active"]),
+            models.Index(fields=["start_date", "end_date"]),
+            models.Index(fields=["slug"]),
+        ]
+    
+    def __str__(self):
+        return f"{self.series.name} - {self.name}"
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(f"{self.series.name} {self.name}")
+            # Ensure uniqueness
+            counter = 1
+            original_slug = self.slug
+            while Season.objects.filter(slug=self.slug).exists():
+                self.slug = f"{original_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
+
+
+class RaceWeek(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    season = models.ForeignKey(Season, on_delete=models.CASCADE, related_name="race_weeks")
+    sim_layout = models.ForeignKey(SimLayout, on_delete=models.CASCADE, related_name="race_weeks")
+    
+    # Week identification
+    week_number = models.IntegerField()
+    schedule_name = models.CharField(max_length=255, blank=True)
+    
+    # Week timing
+    start_date = models.DateField()
+    end_date = models.DateTimeField()
+    
+    # Track-specific settings
+    category = models.CharField(max_length=20, blank=True)  # "oval", "road"
+    enable_pitlane_collisions = models.BooleanField(default=False)
+    full_course_cautions = models.BooleanField(default=True)
+    
+    # Store the recurring schedule pattern from iRacing API
+    time_pattern = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="race_time_descriptors from API - e.g., {'first_session_time': '00:45:00', 'repeat_minutes': 120}"
+    )
+    
+    # Weather configuration and forecast URLs
+    weather_config = models.JSONField(
+        null=True, 
+        blank=True,
+        help_text="Full weather configuration from iRacing API including forecast_options, weather_summary, etc."
+    )
+    weather_forecast_url = models.URLField(
+        max_length=500, 
+        blank=True, 
+        help_text="iRacing weather forecast URL for this race week"
+    )
+    weather_forecast_data = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Cached weather forecast data from iRacing API"
+    )
+    weather_forecast_version = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Weather forecast API version (1=Forecast/hourly, 3=Timeline/15min)"
+    )
+    
+    # Track state
+    track_state = models.JSONField(null=True, blank=True)  # leave_marbles, etc.
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['season', 'week_number']
+        indexes = [
+            models.Index(fields=['season', 'week_number']),
+            models.Index(fields=['start_date', 'end_date']),
+            models.Index(fields=['sim_layout']),
+        ]
+    
+    def __str__(self):
+        return f"{self.season.series.name} - Week {self.week_number}"
+
+
+class CarRestriction(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    race_week = models.ForeignKey(RaceWeek, on_delete=models.CASCADE, related_name="car_restrictions")
+    sim_car = models.ForeignKey(SimCar, on_delete=models.CASCADE, related_name="race_week_restrictions")
+    
+    # BOP restrictions per car per week (from iRacing car_restrictions data)
+    max_dry_tire_sets = models.IntegerField(default=0, help_text="Maximum dry tire sets allowed")
+    max_pct_fuel_fill = models.IntegerField(default=100, help_text="Maximum fuel fill percentage")
+    power_adjust_pct = models.IntegerField(default=0, help_text="Power adjustment percentage")
+    weight_penalty_kg = models.IntegerField(default=0, help_text="Weight penalty in kilograms")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['race_week', 'sim_car']
+        indexes = [
+            models.Index(fields=['race_week']),
+            models.Index(fields=['sim_car']),
+        ]
+    
+    def __str__(self):
+        return f"{self.race_week} - {self.sim_car.display_name}"
+
 
 
 class Event(models.Model):
@@ -1113,6 +1298,33 @@ class EventInstance(models.Model):
     end_time = models.DateTimeField()
     registration_open = models.DateTimeField()
     registration_ends = models.DateTimeField()
+    
+    # Simulator API identifiers (populated after race occurs)
+    external_subsession_id = models.BigIntegerField(
+        null=True, blank=True, unique=True,
+        help_text="Actual subsession/race ID from simulator API"
+    )
+    external_session_id = models.BigIntegerField(
+        null=True, blank=True,
+        help_text="Session ID from simulator API (if different from subsession)"
+    )
+    
+    # Matching status
+    is_predicted = models.BooleanField(
+        default=True,
+        help_text="True if generated from time pattern, False if from actual results"
+    )
+    is_matched = models.BooleanField(
+        default=False,
+        help_text="True if matched to actual simulator subsession"
+    )
+    
+    # Allow time adjustments when matching
+    predicted_start_time = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Original predicted time (before matching to actual)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -1124,6 +1336,11 @@ class EventInstance(models.Model):
             models.Index(fields=["registration_open"]),
             models.Index(fields=["registration_ends"]),
             models.Index(fields=["event", "slug"]),
+            # New indexes for simulator data
+            models.Index(fields=["external_subsession_id"]),
+            models.Index(fields=["external_session_id"]),
+            models.Index(fields=["is_predicted", "is_matched"]),
+            models.Index(fields=["start_time", "event"]),  # For time-based matching
         ]
 
     def __str__(self):
@@ -1251,37 +1468,67 @@ class WeatherForecast(models.Model):
         on_delete=models.CASCADE,
         related_name="weather_forecasts",
     )
-    time_offset = models.IntegerField()  # Minutes from event start
-    timestamp = models.DateTimeField()
-    is_sun_up = models.BooleanField()
-    affects_session = models.BooleanField()
+    time_offset = models.IntegerField(help_text="Minutes from event start")
+    timestamp = models.DateTimeField(help_text="Absolute timestamp for this forecast point")
+    is_sun_up = models.BooleanField(help_text="True if sun is up at this time")
+    affects_session = models.BooleanField(help_text="True if a session is running at this time")
 
     # Temperature and Pressure
-    air_temperature = models.FloatField()  # Celsius
-    pressure = models.FloatField()  # Hectopascals (hPa)
+    air_temperature = models.FloatField(
+        help_text="Air temperature in Celsius (convert from simulator-specific units)"
+    )
+    pressure = models.FloatField(
+        help_text="Atmospheric pressure in hectopascals/hPa (convert from simulator-specific units)"
+    )
 
     # Wind
-    wind_speed = models.FloatField()  # Meters per second
-    wind_direction = models.IntegerField()  # Degrees (0-359)
+    wind_speed = models.FloatField(
+        help_text="Wind speed in meters per second (convert from simulator-specific units)"
+    )
+    wind_direction = models.IntegerField(
+        help_text="Wind direction in degrees 0-359"
+    )
 
     # Precipitation
-    precipitation_chance = models.IntegerField()  # Percentage (0-100)
-    precipitation_amount = models.FloatField()  # mm/hour
-    allow_precipitation = models.BooleanField()
+    precipitation_chance = models.IntegerField(
+        help_text="Chance of precipitation as percentage 0-100"
+    )
+    precipitation_amount = models.FloatField(
+        help_text="Precipitation rate in mm/hour (convert from simulator-specific units)"
+    )
+    allow_precipitation = models.BooleanField(
+        help_text="Whether precipitation is allowed during this period"
+    )
 
     # Cloud and Humidity
-    cloud_cover = models.IntegerField()  # Percentage (0-100)
-    relative_humidity = models.IntegerField()  # Percentage (0-100)
+    cloud_cover = models.IntegerField(
+        help_text="Cloud cover as percentage 0-100"
+    )
+    relative_humidity = models.IntegerField(
+        help_text="Relative humidity as percentage 0-100"
+    )
 
     # Metadata
-    forecast_version = (
-        models.IntegerField()
-    )  # 1 for Forecast (hourly), 3 for Timeline (15-min intervals)
-    valid_stats = models.BooleanField()  # Whether rain statistics are available
+    forecast_version = models.IntegerField(
+        help_text="Weather forecast API version from simulator"
+    )
+    valid_stats = models.BooleanField(
+        help_text="Whether rain statistics are available for this period"
+    )
+    
+    # Unit conversion reference
+    units_info = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Store unit conversion factors and original units for reference",
+        default=dict
+    )
+    
     raw_data = models.JSONField(
         null=True,
         blank=True,
-    )  # Complete API response for future use
+        help_text="Complete API response for future use and reference"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -1320,3 +1567,473 @@ class SimProfileTrackOwnership(models.Model):
         unique_together = ('sim_profile', 'sim_track')
         verbose_name = 'Track Ownership'
         verbose_name_plural = 'Track Ownerships'
+
+
+class EventResult(models.Model):
+    """
+    Stores the overall result data for an EventInstance (race).
+    Generic model that works across all simulators.
+    """
+    event_instance = models.OneToOneField(
+        EventInstance, 
+        on_delete=models.CASCADE,
+        related_name='result'
+    )
+    
+    # Core identifiers (simulator agnostic)
+    subsession_id = models.BigIntegerField(unique=True, help_text="Simulator subsession ID")
+    session_id = models.BigIntegerField(null=True, blank=True, help_text="Simulator session ID")
+    
+    # Event summary statistics (universal)
+    num_drivers = models.IntegerField(help_text="Number of participants in the event")
+    event_best_lap_time = models.IntegerField(
+        help_text="Best lap time in milliseconds",
+        null=True, 
+        blank=True
+    )
+    event_average_lap = models.IntegerField(
+        help_text="Average lap time in milliseconds",
+        null=True, 
+        blank=True
+    )
+    
+    # Timing (universal)
+    start_time = models.DateTimeField(help_text="Race start time")
+    end_time = models.DateTimeField(help_text="Race end time")
+    
+    # Weather and track conditions (stored as JSON for flexibility)
+    weather_data = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Complete weather conditions data"
+    )
+    track_state = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Track rubber/marble state data"
+    )
+    track_data = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Track information data"
+    )
+    
+    # Processing status
+    results_fetched_at = models.DateTimeField(auto_now_add=True, help_text="When results were fetched")
+    is_processed = models.BooleanField(default=False, help_text="Whether results have been processed")
+    
+    # Raw data backup (includes simulator-specific fields)
+    raw_api_data = models.JSONField(
+        null=True, 
+        blank=True, 
+        help_text="Complete raw API response data"
+    )
+    
+    class Meta:
+        verbose_name = "Event Result"
+        verbose_name_plural = "Event Results"
+        indexes = [
+            models.Index(fields=['subsession_id']),
+            models.Index(fields=['event_instance']),
+            models.Index(fields=['start_time']),
+            models.Index(fields=['is_processed']),
+        ]
+    
+    def __str__(self):
+        return f"Event Result: {self.event_instance} (Session: {self.subsession_id})"
+    
+    @property
+    def duration(self):
+        """Calculate race duration in seconds"""
+        if self.start_time and self.end_time:
+            return (self.end_time - self.start_time).total_seconds()
+        return None
+    
+    @property
+    def simulator(self):
+        """Get simulator from event chain"""
+        return self.event_instance.event.race_week.season.series.simulator
+    
+    # Simulator-specific data access methods
+    @property
+    def iracing_strength_of_field(self):
+        """Get iRacing strength of field from raw data"""
+        if self.raw_api_data and self.simulator == 'iracing':
+            return self.raw_api_data.get('event_strength_of_field')
+        return None
+    
+    @property
+    def iracing_cautions(self):
+        """Get iRacing caution data from raw data"""
+        if self.raw_api_data and self.simulator == 'iracing':
+            return {
+                'num_cautions': self.raw_api_data.get('num_cautions', 0),
+                'num_caution_laps': self.raw_api_data.get('num_caution_laps', 0),
+                'num_lead_changes': self.raw_api_data.get('num_lead_changes', 0),
+            }
+        return None
+    
+    @property
+    def is_team_event(self):
+        """Check if this is a team event based on raw data structure"""
+        if self.raw_api_data and self.simulator == 'iracing':
+            session_results = self.raw_api_data.get('session_results', [])
+            if session_results and 'results' in session_results[0]:
+                results = session_results[0]['results']
+                # Check if first result has team_id and driver_results
+                if results and 'team_id' in results[0] and 'driver_results' in results[0]:
+                    return True
+        return False
+
+
+class TeamResult(models.Model):
+    """
+    Stores team result data for team events.
+    Links to EventResult and existing Team model.
+    """
+    event_result = models.ForeignKey(
+        EventResult, 
+        on_delete=models.CASCADE, 
+        related_name='team_results'
+    )
+    team = models.ForeignKey(
+        'teams.Team', 
+        on_delete=models.CASCADE,
+        related_name='race_results'
+    )
+    
+    # Team identification (backup from API)
+    team_display_name = models.CharField(
+        max_length=100, 
+        blank=True,
+        help_text="Team name from API (backup)"
+    )
+    
+    # Position data
+    finish_position = models.IntegerField(help_text="Team's final position")
+    finish_position_in_class = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Team's position in class"
+    )
+    
+    # Performance data
+    laps_complete = models.IntegerField(help_text="Total laps completed by team")
+    laps_lead = models.IntegerField(default=0, help_text="Total laps led by team")
+    incidents = models.IntegerField(default=0, help_text="Total incidents by team")
+    
+    # Lap times (in milliseconds)
+    best_lap_time = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Team's best lap time"
+    )
+    best_lap_num = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Lap number of team's best lap"
+    )
+    average_lap = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Team's average lap time"
+    )
+    
+    # Points and race outcome
+    champ_points = models.IntegerField(default=0, help_text="Championship points earned")
+    reason_out = models.CharField(
+        max_length=50, 
+        blank=True,
+        help_text="Reason for DNF"
+    )
+    reason_out_id = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="DNF reason code"
+    )
+    drop_race = models.BooleanField(default=False, help_text="Whether race is dropped")
+    
+    # Car and class info
+    car_id = models.IntegerField(null=True, blank=True, help_text="Car identifier")
+    car_class_id = models.IntegerField(null=True, blank=True, help_text="Car class identifier")
+    car_class_name = models.CharField(max_length=100, blank=True, help_text="Car class name")
+    car_name = models.CharField(max_length=100, blank=True, help_text="Car name")
+    
+    # Additional data
+    country_code = models.CharField(max_length=3, blank=True, help_text="Team country")
+    division = models.IntegerField(null=True, blank=True, help_text="Team division")
+    
+    # Raw team data
+    raw_team_data = models.JSONField(
+        null=True, 
+        blank=True,
+        help_text="Raw team data from API"
+    )
+    
+    class Meta:
+        verbose_name = "Team Result"
+        verbose_name_plural = "Team Results"
+        unique_together = [['event_result', 'team']]
+        indexes = [
+            models.Index(fields=['event_result', 'finish_position']),
+            models.Index(fields=['team', 'finish_position']),
+            models.Index(fields=['car_class_id', 'finish_position_in_class']),
+        ]
+    
+    def __str__(self):
+        return f"Team Result: {self.team} - {self.event_result} (Position: {self.finish_position})"
+    
+    @property
+    def simulator(self):
+        """Get simulator from event chain"""
+        return self.event_result.simulator
+    
+    @property
+    def duration(self):
+        """Get race duration from event result"""
+        return self.event_result.duration
+    
+    @property
+    def is_dnf(self):
+        """Check if team DNF'd"""
+        return bool(self.reason_out)
+    
+    @property
+    def best_lap_time_seconds(self):
+        """Convert best lap time to seconds"""
+        if self.best_lap_time:
+            return self.best_lap_time / 1000.0
+        return None
+    
+    @property
+    def average_lap_time_seconds(self):
+        """Convert average lap time to seconds"""
+        if self.average_lap:
+            return self.average_lap / 1000.0
+        return None
+
+
+class ParticipantResult(models.Model):
+    """
+    Stores individual driver result data for both solo and team events.
+    Links to SimProfile and either EventResult (solo) or TeamResult (team events).
+    """
+    # Core relationships
+    sim_profile = models.ForeignKey(
+        'sim.SimProfile', 
+        on_delete=models.CASCADE,
+        related_name='race_results'
+    )
+    
+    # For team events: link to TeamResult
+    team_result = models.ForeignKey(
+        TeamResult, 
+        null=True, 
+        blank=True,
+        on_delete=models.CASCADE, 
+        related_name='participants'
+    )
+    
+    # For solo events: link directly to EventResult
+    event_result = models.ForeignKey(
+        EventResult, 
+        null=True, 
+        blank=True,
+        on_delete=models.CASCADE, 
+        related_name='participants'
+    )
+    
+    # Driver identification (backup from API)
+    driver_display_name = models.CharField(
+        max_length=100, 
+        blank=True,
+        help_text="Driver name from API (backup)"
+    )
+    
+    # Position data
+    finish_position = models.IntegerField(help_text="Driver's final position")
+    finish_position_in_class = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Driver's position in class"
+    )
+    starting_position = models.IntegerField(help_text="Starting grid position")
+    starting_position_in_class = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Starting position in class"
+    )
+    
+    # Performance data
+    laps_complete = models.IntegerField(help_text="Laps completed by driver")
+    laps_lead = models.IntegerField(default=0, help_text="Laps led by driver")
+    incidents = models.IntegerField(default=0, help_text="Incidents by driver")
+    
+    # Lap times (in milliseconds)
+    best_lap_time = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Driver's best lap time"
+    )
+    best_lap_num = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Lap number of driver's best lap"
+    )
+    average_lap = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Driver's average lap time"
+    )
+    
+    # Points and ratings
+    champ_points = models.IntegerField(default=0, help_text="Championship points earned")
+    oldi_rating = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="iRating before race"
+    )
+    newi_rating = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="iRating after race"
+    )
+    old_license_level = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="License level before race"
+    )
+    new_license_level = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="License level after race"
+    )
+    old_sub_level = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Sub-level before race"
+    )
+    new_sub_level = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Sub-level after race"
+    )
+    
+    # Race outcome
+    reason_out = models.CharField(
+        max_length=50, 
+        blank=True,
+        help_text="Reason for DNF"
+    )
+    reason_out_id = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="DNF reason code"
+    )
+    drop_race = models.BooleanField(default=False, help_text="Whether race is dropped")
+    
+    # Car and class info
+    car_id = models.IntegerField(null=True, blank=True, help_text="Car identifier")
+    car_class_id = models.IntegerField(null=True, blank=True, help_text="Car class identifier")
+    car_class_name = models.CharField(max_length=100, blank=True, help_text="Car class name")
+    car_name = models.CharField(max_length=100, blank=True, help_text="Car name")
+    
+    # Additional data
+    country_code = models.CharField(max_length=3, blank=True, help_text="Driver country")
+    division = models.IntegerField(null=True, blank=True, help_text="Driver division")
+    
+    # Raw participant data
+    raw_participant_data = models.JSONField(
+        null=True, 
+        blank=True,
+        help_text="Raw participant data from API"
+    )
+    
+    class Meta:
+        verbose_name = "Participant Result"
+        verbose_name_plural = "Participant Results"
+        unique_together = [
+            ['event_result', 'sim_profile'],  # For solo events
+            ['team_result', 'sim_profile'],   # For team events
+        ]
+        indexes = [
+            models.Index(fields=['event_result', 'finish_position']),
+            models.Index(fields=['team_result', 'finish_position']),
+            models.Index(fields=['sim_profile', 'finish_position']),
+            models.Index(fields=['oldi_rating', 'newi_rating']),
+            models.Index(fields=['car_class_id', 'finish_position_in_class']),
+        ]
+    
+    def __str__(self):
+        if self.team_result:
+            return f"Participant: {self.sim_profile} - Team: {self.team_result.team} (Position: {self.finish_position})"
+        else:
+            return f"Participant: {self.sim_profile} - Solo (Position: {self.finish_position})"
+    
+    def clean(self):
+        """Validate that either team_result or event_result is set, but not both"""
+        from django.core.exceptions import ValidationError
+        
+        if bool(self.team_result) == bool(self.event_result):
+            raise ValidationError("Must have either team_result (team event) or event_result (solo event), but not both")
+    
+    @property
+    def is_team_event(self):
+        """Check if this is from a team event"""
+        return bool(self.team_result)
+    
+    @property
+    def event_result_actual(self):
+        """Get the actual event result (either direct or via team)"""
+        if self.event_result:
+            return self.event_result
+        elif self.team_result:
+            return self.team_result.event_result
+        return None
+    
+    @property
+    def simulator(self):
+        """Get simulator from event chain"""
+        if self.event_result_actual:
+            return self.event_result_actual.simulator
+        return None
+    
+    @property
+    def team(self):
+        """Get team for team events"""
+        if self.team_result:
+            return self.team_result.team
+        return None
+    
+    @property
+    def is_dnf(self):
+        """Check if driver DNF'd"""
+        return bool(self.reason_out)
+    
+    @property
+    def i_rating_change(self):
+        """Calculate iRating change"""
+        if self.oldi_rating is not None and self.newi_rating is not None:
+            return self.newi_rating - self.oldi_rating
+        return None
+    
+    @property
+    def license_change(self):
+        """Calculate license level change"""
+        if self.old_license_level is not None and self.new_license_level is not None:
+            return self.new_license_level - self.old_license_level
+        return None
+    
+    @property
+    def best_lap_time_seconds(self):
+        """Convert best lap time to seconds"""
+        if self.best_lap_time:
+            return self.best_lap_time / 1000.0
+        return None
+    
+    @property
+    def average_lap_time_seconds(self):
+        """Convert average lap time to seconds"""
+        if self.average_lap:
+            return self.average_lap / 1000.0
+        return None

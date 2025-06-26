@@ -13,11 +13,11 @@ Currently, all API calls use a single shared account (system credentials). In th
 ## Current Architecture
 
 ```python
-# Current implementation
-from iracingdataapi.client import irDataClient
+# Current implementation (now refactored)
+from simlane.iracing.iracing_api_client import IRacingAPIClient
 
-client = irDataClient(username=SYSTEM_USERNAME, password=SYSTEM_PASSWORD)
-# Session lost on process restart, requires re-authentication
+client = IRacingAPIClient.from_system_cache()
+# Session is restored from cache if available, otherwise authenticates and caches
 ```
 
 ## Future Architecture Requirements
@@ -28,20 +28,23 @@ client = irDataClient(username=SYSTEM_USERNAME, password=SYSTEM_PASSWORD)
 4. **Graceful fallback**: Use system account when user tokens are invalid
 5. **Gradual migration**: Support both auth methods during transition
 
-## Recommended Solution: Multi-User Session Manager
+## Solution: Subclassed Session Client (IRacingAPIClient)
 
 ### Architecture Overview
 
 ```python
-class IRacingSessionManager:
-    def get_system_client(self):
-        """Returns cached client with system credentials"""
-        
-    def get_client_for_user(self, user):
-        """Returns user-specific client or falls back to system"""
-        
-    def get_client_for_request(self, request=None):
-        """Smart client selection based on request context"""
+class IRacingAPIClient(irDataClient):
+    @classmethod
+    def from_system_cache(cls):
+        # Returns a client with persistent system session (caching cookies)
+
+    @classmethod
+    def from_user_oauth(cls, user):
+        # (Future) Returns a client authenticated with user's OAuth2 tokens
+        # Handles token refresh, session restoration, and fallback
+
+    def save_to_cache(self):
+        # Saves current session cookies to cache
 ```
 
 ### Session Storage Strategy
@@ -61,20 +64,19 @@ iracing_session_oauth_{user_id}          # Alternative OAuth2 key format
 
 ## Implementation Phases
 
-### Phase 1: System Session Caching (Immediate)
+### Phase 1: System Session Caching (Complete)
 **Goal**: Solve current dev server restart issue
 
 **Implementation**:
 ```python
-class IRacingSessionManager:
-    def get_system_client(self):
+class IRacingAPIClient(irDataClient):
+    @classmethod
+    def from_system_cache(cls):
         # Check cache for existing session
-        # If found, restore cookies to client
+        # If found, restore cookies and set authenticated
+        # Validate session with a lightweight API call
         # If not found or expired, authenticate and cache
         # Return client with persistent session
-    
-    def clear_system_cache(self):
-        # For testing/troubleshooting
 ```
 
 **Benefits**:
@@ -88,16 +90,14 @@ class IRacingSessionManager:
 
 **Implementation**:
 ```python
-class IRacingSessionManager:
-    def get_client_for_request(self, request=None):
-        # For now, always return system client
-        # Later: check if user has OAuth2 tokens
-        return self.get_system_client()
-    
-    def get_client_for_user(self, user):
-        # Placeholder for future OAuth2 implementation
-        # For now, return system client
-        return self.get_system_client()
+class IRacingAPIClient(irDataClient):
+    @classmethod
+    def from_user_oauth(cls, user):
+        # (Future) Check if user has valid OAuth2 tokens in allauth
+        # If valid, restore session from cache or tokens
+        # Handle token refresh automatically
+        # If invalid, fallback to system account
+        # Return client
 ```
 
 **Benefits**:
@@ -110,37 +110,26 @@ class IRacingSessionManager:
 
 **Implementation**:
 ```python
-class IRacingSessionManager:
-    def get_client_for_user(self, user):
-        # Check if user has valid OAuth2 tokens in allauth
-        if self._user_has_valid_tokens(user):
-            return self._get_or_create_oauth_client(user)
-        else:
-            # Fallback to system account
-            return self.get_system_client()
-    
+class IRacingAPIClient(irDataClient):
+    @classmethod
+    def from_user_oauth(cls, user):
+        # Retrieve OAuth2 tokens from allauth
+        # Restore session from cache if available and valid
+        # If session invalid or not cached, use tokens to authenticate
+        # Handle token refresh via allauth
+        # On failure, fallback to system account
+        # Cache session cookies and token metadata
+        # Return client
+
     def _refresh_user_tokens(self, user):
         # Integrate with allauth token refresh mechanism
-        
-    def _get_or_create_oauth_client(self, user):
-        # Check cache for user's session
-        # Create OAuth2-authenticated client if needed
-        # Handle token refresh automatically
 ```
 
 **OAuth2 Client Implementation**:
-```python
-class OAuth2IRacingClient(irDataClient):
-    def __init__(self, access_token, refresh_token, user):
-        # Custom initialization for OAuth2
-        # Override authentication methods
-        
-    def _login(self):
-        # Use OAuth2 tokens instead of username/password
-        
-    def _refresh_tokens_if_needed(self):
-        # Automatic token refresh via allauth
-```
+- Extend IRacingAPIClient to accept and use OAuth2 tokens for authentication
+- Override authentication methods to use tokens instead of username/password
+- Integrate with allauth for token refresh and storage
+- Cache user sessions and handle expiry
 
 ### Phase 4: Migration and Optimization (Future)
 **Goal**: Optimize performance and user experience
@@ -170,7 +159,7 @@ IRACING_SESSION_CACHE_PREFIX = 'iracing_session'
 
 ### Error Handling Strategy
 ```python
-class IRacingSessionManager:
+class IRacingAPIClient(irDataClient):
     def _handle_auth_failure(self, client_type, user_id=None):
         # Clear relevant cache entries
         # Log authentication failure
@@ -182,13 +171,11 @@ class IRacingSessionManager:
 
 #### With Existing Service
 ```python
-# Current usage
+# Usage
+from simlane.iracing.iracing_api_client import IRacingAPIClient
 service = IRacingAPIService()
 data = service.get_member_summary()
-
-# Future usage (backward compatible)
-service = IRacingAPIService()
-data = service.get_member_summary(request=request)  # Auto-detects user context
+# Service uses IRacingAPIClient.from_system_cache() internally
 ```
 
 #### With allauth (Future)
@@ -232,13 +219,14 @@ def get_user_iracing_tokens(user):
 ### Management Commands
 ```bash
 # Check session cache status
-python manage.py manage_iracing_sessions --status
+python manage.py test_iracing_session
+# (Future) python manage.py manage_iracing_sessions --status
 
 # Clear cached sessions
-python manage.py manage_iracing_sessions --clear-cache
+# (Future) python manage.py manage_iracing_sessions --clear-cache
 
 # Test session persistence
-python manage.py manage_iracing_sessions --test-persistence
+python manage.py test_iracing_session
 ```
 
 ## Monitoring and Observability
@@ -267,15 +255,14 @@ logger.warning("iRacing session expired, re-authenticating", extra={
 ## Migration Timeline
 
 ### Immediate (Phase 1)
-- [ ] Implement system session caching
-- [ ] Add cache management commands
-- [ ] Test with development environment
-- [ ] Deploy to production
+- [x] Implement system session caching via IRacingAPIClient
+- [x] Add test management command
+- [x] Test with development environment
+- [x] Deploy to production
 
 ### Short-term (Phase 2)
-- [ ] Refactor service to use session manager
-- [ ] Add multi-user architecture foundation
-- [ ] Update existing API calls to use new manager
+- [ ] Add multi-user architecture foundation to IRacingAPIClient
+- [ ] Update existing API calls to use new client
 - [ ] Add comprehensive testing
 
 ### Long-term (Phase 3+)

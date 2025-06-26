@@ -752,7 +752,7 @@ class Command(BaseCommand):
                 simulator=simulator,
                 profile_name=f"{user.username}_iracing",
                 defaults={
-                    "external_data_id": f"{random.randint(100000, 999999)}",
+                    "sim_api_id": f"{random.randint(100000, 999999)}",
                     "is_verified": random.choice([True, False]),
                     "last_active": timezone.now()
                     - timedelta(days=random.randint(0, 30)),

@@ -110,7 +110,7 @@ class Command(BaseCommand):
             for profile in popular_profiles:
                 try:
                     # This will cache the profile detail view
-                    cache_key = f"profile:{profile.simulator.slug}:{profile.external_data_id}"
+                    cache_key = f"profile:{profile.simulator.slug}:{profile.sim_api_id}"
                     # Pre-compute profile data that would be expensive
                     profile_data = {
                         'id': profile.id,

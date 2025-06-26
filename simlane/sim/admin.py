@@ -22,6 +22,7 @@ from .models import Simulator
 from .models import TrackModel
 from .models import WeatherForecast
 from .models import SimProfileCarOwnership, SimProfileTrackOwnership
+from .models import EventResult, TeamResult, ParticipantResult
 
 
 @admin.register(Simulator)
@@ -36,7 +37,7 @@ class SimulatorAdmin(ModelAdmin):
 class SimProfileAdmin(ModelAdmin):
     list_display = ["profile_name", "linked_user", "simulator", "is_verified", "is_public", "last_active"]
     list_filter = ["simulator", "is_verified", "is_public", "created_at"]
-    search_fields = ["profile_name", "linked_user__username", "linked_user__email", "external_data_id"]
+    search_fields = ["profile_name", "linked_user__username", "linked_user__email", "sim_api_id"]
     readonly_fields = ["created_at", "updated_at", "linked_at"]
     raw_id_fields = ["linked_user", "simulator"]
     
@@ -227,7 +228,7 @@ class WeatherForecastAdmin(ModelAdmin):
 @admin.register(SimProfileCarOwnership)
 class SimProfileCarOwnershipAdmin(admin.ModelAdmin):
     list_display = ('sim_profile', 'sim_car', 'is_favorite', 'acquired_at')
-    search_fields = ('sim_profile__external_data_id', 'sim_profile__profile_name', 'sim_car__car_model__name', 'sim_car__simulator__name')
+    search_fields = ('sim_profile__sim_api_id', 'sim_profile__profile_name', 'sim_car__car_model__name', 'sim_car__simulator__name')
     list_filter = ('is_favorite', 'sim_car__simulator')
     autocomplete_fields = ['sim_profile', 'sim_car']
 
@@ -235,6 +236,34 @@ class SimProfileCarOwnershipAdmin(admin.ModelAdmin):
 @admin.register(SimProfileTrackOwnership)
 class SimProfileTrackOwnershipAdmin(admin.ModelAdmin):
     list_display = ('sim_profile', 'sim_track', 'is_favorite', 'acquired_at')
-    search_fields = ('sim_profile__external_data_id', 'sim_profile__profile_name', 'sim_track__track_model__name', 'sim_track__simulator__name')
+    search_fields = ('sim_profile__sim_api_id', 'sim_profile__profile_name', 'sim_track__track_model__name', 'sim_track__simulator__name')
     list_filter = ('is_favorite', 'sim_track__simulator')
     autocomplete_fields = ['sim_profile', 'sim_track']
+
+
+@admin.register(EventResult)
+class EventResultAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'event_instance', 'subsession_id', 'num_drivers', 'start_time', 'end_time', 'is_processed'
+    )
+    search_fields = ('subsession_id', 'event_instance__id')
+    list_filter = ('is_processed', 'start_time')
+    readonly_fields = ('results_fetched_at',)
+
+
+@admin.register(TeamResult)
+class TeamResultAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'event_result', 'team', 'finish_position', 'car_class_name', 'champ_points', 'is_dnf'
+    )
+    search_fields = ('team__name', 'event_result__subsession_id')
+    list_filter = ('car_class_name', 'finish_position')
+
+
+@admin.register(ParticipantResult)
+class ParticipantResultAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'sim_profile', 'event_result', 'team_result', 'finish_position', 'car_class_name', 'champ_points', 'is_dnf'
+    )
+    search_fields = ('sim_profile__user__username', 'event_result__subsession_id', 'team_result__team__name')
+    list_filter = ('car_class_name', 'finish_position')

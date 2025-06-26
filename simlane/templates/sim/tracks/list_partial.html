@@ -108,15 +108,28 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for track in page_obj %}
         <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
-            {% if track.default_image_url %}
-                <img src="{{ track.default_image_url }}" alt="{{ track.name }}" class="w-full h-48 object-cover">
-            {% else %}
-                <div class="w-full h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                    </svg>
-                </div>
-            {% endif %}
+            {# Efficient: track.get_logo is now fast due to prefetch_related/only in the view #}
+            {% with fallback_image=track.get_logo %}
+            <div class="w-full h-48 flex items-center justify-center bg-gray-100 dark:bg-gray-800 relative">
+                {% if track.default_image_url %}
+                    <img src="{{ track.default_image_url }}"
+                         alt="{{ track.name }}"
+                         class="max-h-40 max-w-full object-contain p-4 drop-shadow-md dark:bg-gray-800 dark:brightness-125"
+                         style="background: none;" />
+                {% elif fallback_image %}
+                    <img src="{{ fallback_image.url }}"
+                         alt="{{ track.name }}"
+                         class="max-h-40 max-w-full object-contain p-4 drop-shadow-md dark:bg-gray-800 dark:brightness-125"
+                         style="background: none;" />
+                {% else %}
+                    <div class="w-full h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-1.342l7.106-3.553a1 1 0 01.894 0l7.106 3.553A1 1 0 0121 5.618v10.764a1 1 0 01-.553.894L15 20a1 1 0 01-1 0z" />
+                        </svg>
+                    </div>
+                {% endif %}
+            </div>
+            {% endwith %}
             
             <div class="p-4">
                 <h3 class="font-semibold text-lg text-gray-900 dark:text-white mb-1">
@@ -136,7 +149,7 @@
                 
                 <!-- Simulator Badges -->
                 <div class="flex flex-wrap gap-1 mb-3">
-                    {% for sim_track in track.sim_tracks.all|slice:":4" %}
+                    {% for sim_track in track.active_sim_tracks|slice:":4" %}
                         <div class="relative group">
                             {% if sim_track.simulator.icon %}
                                 <img src="{{ sim_track.simulator.icon.url }}" 

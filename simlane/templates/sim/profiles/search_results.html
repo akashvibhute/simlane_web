@@ -55,8 +55,8 @@
                     </div>
                 </div>
                 
-                {% if profile.external_data_id %}
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">ID: {{ profile.external_data_id }}</p>
+                {% if profile.sim_api_id %}
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">ID: {{ profile.sim_api_id }}</p>
                 {% endif %}
                 
                 <div class="flex space-x-2">
@@ -65,7 +65,7 @@
                     </a>
                     {% if user.is_authenticated and not profile.linked_user %}
                         <!-- Show link button for unlinked profiles when user is authenticated -->
-                        <a href="{% url 'drivers:profile_link' profile.simulator.slug profile.external_data_id|default:profile.profile_name %}" 
+                        <a href="{% url 'drivers:profile_link' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}" 
                            class="btn btn-sm border border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
                            hx-boost="true"
                            hx-target="body"

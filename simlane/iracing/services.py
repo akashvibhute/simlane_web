@@ -10,7 +10,7 @@ import logging
 from typing import Any
 
 from django.conf import settings
-from iracingdataapi.client import irDataClient
+from .iracing_api_client import IRacingAPIClient
 
 logger = logging.getLogger(__name__)
 
@@ -39,11 +39,8 @@ class IRacingAPIService:
                 logger.warning("iRacing credentials not configured in settings")
                 return
 
-            self.client = irDataClient(
-                username=settings.IRACING_USERNAME,
-                password=settings.IRACING_PASSWORD,
-            )
-            logger.info("iRacing API client initialized successfully")
+            self.client = IRacingAPIClient.from_system_cache()
+            logger.info("iRacing API client initialized successfully (via session manager)")
         except Exception:
             logger.exception("Failed to initialize iRacing API client")
             self.client = None
@@ -271,6 +268,259 @@ class IRacingAPIService:
             logger.exception("Error fetching member info")
             msg = "Failed to fetch member info"
             raise IRacingServiceError(msg) from e
+
+    # Events and Season Methods
+    def get_season_list(self, season_year: int, season_quarter: int) -> dict[str, Any]:
+        """
+        Get official seasons for a specific year and quarter.
+
+        Args:
+            season_year: Season year (e.g., 2024)
+            season_quarter: Season quarter (1-4)
+
+        Returns:
+            Dict containing official seasons data
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+
+        try:
+            return self.client.season_list(
+                season_year=season_year,
+                season_quarter=season_quarter,
+            )
+        except Exception as e:
+            logger.exception(
+                "Error fetching season list for %s Q%s",
+                season_year,
+                season_quarter,
+            )
+            msg = f"Failed to fetch season list for {season_year} Q{season_quarter}"
+            raise IRacingServiceError(msg) from e
+
+    def get_season_race_guide(
+        self,
+        start_from: str | None = None,
+        include_end_after_from: bool | None = None,
+    ) -> dict[str, Any]:
+        """
+        Get the season schedule race guide with upcoming events.
+
+        Args:
+            start_from: ISO-8601 offset format timestamp. Defaults to current time.
+            include_end_after_from: Include sessions that start before 'from' but end after.
+
+        Returns:
+            Dict containing race guide data with upcoming events
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+
+        try:
+            kwargs = {}
+            if start_from is not None:
+                kwargs["start_from"] = start_from
+            if include_end_after_from is not None:
+                kwargs["include_end_after_from"] = include_end_after_from
+
+            return self.client.season_race_guide(**kwargs)
+        except Exception as e:
+            logger.exception("Error fetching season race guide")
+            msg = "Failed to fetch season race guide"
+            raise IRacingServiceError(msg) from e
+
+    def get_spectator_subsession_ids(
+        self,
+        event_types: list[int] | None = None,
+    ) -> list[int]:
+        """
+        Get current list of subsession IDs for given event types.
+
+        Args:
+            event_types: List of event type IDs (2: Practice, 3: Qualify, 4: Time Trial, 5: Race)
+
+        Returns:
+            List of subsession IDs
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+
+        try:
+            if event_types is None:
+                event_types = [2, 3, 4, 5]  # Default: all event types
+
+            return self.client.season_spectator_subsessionids(event_types=event_types)
+        except Exception as e:
+            logger.exception("Error fetching spectator subsession IDs")
+            msg = "Failed to fetch spectator subsession IDs"
+            raise IRacingServiceError(msg) from e
+
+    def get_series_seasons(
+        self,
+        series_ids: list[int] | None = None,
+        include_series: bool = True
+    ) -> dict[str, Any]:
+        """
+        Get series seasons data with optional series filtering.
+        
+        Args:
+            series_ids: List of series IDs to filter (optional)
+            include_series: Whether to include detailed series data (schedules, tracks, etc.)
+        
+        Returns:
+            Dict containing series seasons data with track/layout information.
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+        try:
+            return self.client.series_seasons(
+                series_ids=series_ids,
+                include_series=include_series
+            )
+        except Exception as e:
+            logger.exception("Error fetching series seasons")
+            msg = f"Failed to fetch series seasons: {str(e)}"
+            raise IRacingServiceError(msg) from e
+
+    def get_series_past_seasons(self, series_id: int) -> dict[str, Any]:
+        """
+        Get all past seasons for a specific series.
+
+        Args:
+            series_id: iRacing series ID
+
+        Returns:
+            Dict containing series information and list of seasons
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+
+        try:
+            return self.client.series_past_seasons(series_id=series_id)
+        except Exception as e:
+            logger.exception("Error fetching past seasons for series %s", series_id)
+            msg = f"Failed to fetch past seasons for series {series_id}"
+            raise IRacingServiceError(msg) from e
+
+    def get_constants_event_types(self) -> list[dict[str, Any]]:
+        """
+        Get list of event types (Practice, Qualify, Time Trial, Race).
+
+        Returns:
+            List of event types with IDs and descriptions
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+
+        try:
+            return self.client.constants_event_types()
+        except Exception as e:
+            logger.exception("Error fetching event types")
+            msg = "Failed to fetch event types"
+            raise IRacingServiceError(msg) from e
+
+    def member_recent_races(self, cust_id: int, category_id: int | None = None) -> dict[str, Any]:
+        """
+        Get recent races for a member.
+        
+        Args:
+            cust_id: Customer ID of the member
+            category_id: Optional category filter
+        
+        Returns:
+            Dict containing recent races data.
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+        try:
+            return self.client.stats_member_recent_races(cust_id=cust_id)
+        except Exception as e:
+            logger.exception("Error fetching member recent races for cust_id %s", cust_id)
+            msg = f"Failed to fetch member recent races: {str(e)}"
+            raise IRacingServiceError(msg) from e
+
+    def results_get(self, subsession_id: int, include_licenses: bool = False) -> dict[str, Any]:
+        """
+        Get detailed results for a specific subsession.
+        
+        Args:
+            subsession_id: Subsession ID to get results for
+            include_licenses: Whether to include license information
+        
+        Returns:
+            Dict containing detailed subsession results.
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+        try:
+            return self.client.result(subsession_id=subsession_id, include_licenses=include_licenses)
+        except Exception as e:
+            logger.exception("Error fetching results for subsession %s", subsession_id)
+            msg = f"Failed to fetch results for subsession {subsession_id}: {str(e)}"
+            raise IRacingServiceError(msg) from e
+
+    def season_results(
+        self, 
+        season_id: int, 
+        event_type: int | None = None, 
+        race_week_num: int | None = None
+    ) -> dict[str, Any]:
+        """
+        Get season results.
+        
+        Args:
+            season_id: Season ID to get results for
+            event_type: Optional event type filter
+            race_week_num: Optional race week filter
+        
+        Returns:
+            Dict containing season results.
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+        try:
+            return self.client.season_results(
+                season_id=season_id,
+                event_type=event_type,
+                race_week_num=race_week_num
+            )
+        except Exception as e:
+            logger.exception("Error fetching season results for season %s", season_id)
+            msg = f"Failed to fetch season results: {str(e)}"
+            raise IRacingServiceError(msg) from e
+
+    def get_season_by_series_year_quarter(self, series_id: int, season_year: int, season_quarter: int) -> dict[str, Any] | None:
+        """
+        Fetch a season for a given series_id, year, and quarter using the series_seasons API.
+        Returns the season dict if found, else None.
+        """
+        try:
+            data = self.get_series_seasons(series_ids=[series_id], include_series=True)
+            # The structure is typically { 'seasons': [ ... ] }
+            seasons = data.get('seasons', [])
+            for season in seasons:
+                if (
+                    season.get('series_id') == series_id and
+                    season.get('season_year') == season_year and
+                    season.get('season_quarter') == season_quarter
+                ):
+                    return season
+            return None
+        except Exception as e:
+            logger.error(
+                "Failed to fetch season for series_id=%s, year=%s, quarter=%s: %s",
+                series_id, season_year, season_quarter, str(e)
+            )
+            return None
 
 
 # Global service instance

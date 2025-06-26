@@ -82,7 +82,7 @@ class SimProfileForm(forms.ModelForm):
 
     class Meta:
         model = SimProfile
-        fields = ["simulator", "profile_name", "external_data_id"]
+        fields = ["simulator", "profile_name", "sim_api_id"]
         widgets = {
             "simulator": forms.Select(
                 attrs={
@@ -101,7 +101,7 @@ class SimProfileForm(forms.ModelForm):
                     "placeholder": "Enter your profile name",
                 },
             ),
-            "external_data_id": forms.TextInput(
+            "sim_api_id": forms.TextInput(
                 attrs={
                     "class": (
                         "mt-1 block w-full rounded-md border-gray-300 shadow-sm "
@@ -114,11 +114,11 @@ class SimProfileForm(forms.ModelForm):
         labels = {
             "simulator": "Simulator",
             "profile_name": "Profile Name",
-            "external_data_id": "External Data ID",
+            "sim_api_id": "External Data ID",
         }
         help_texts = {
             "profile_name": "Your username or display name in the simulator",
-            "external_data_id": (
+            "sim_api_id": (
                 "Optional: Your customer/user ID in the simulator "
                 "(e.g., iRacing customer ID)"
             ),

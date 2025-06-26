@@ -35,6 +35,37 @@ def get_public_profiles():
 def get_active_simulators():
     return list(Simulator.objects.filter(is_active=True))
 
+@cache_query(timeout=600, cache_alias='query_cache')
+def get_all_cars_queryset():
+    return CarModel.objects.select_related('car_class').prefetch_related(
+        Prefetch(
+            'sim_cars',
+            queryset=SimCar.objects.select_related('simulator').only(
+                'id', 'car_model', 'logo', 'small_image', 'large_image', 'is_active', 'simulator__icon', 'simulator__name', 'simulator__id'
+            ),
+        )
+    ).only(
+        'id', 'name', 'manufacturer', 'slug', 'car_class', 'default_image_url', 'release_year'
+    ).annotate(
+        simulator_count=Count('sim_cars__simulator', distinct=True)
+    ).order_by('manufacturer', 'name')
+
+@cache_query(timeout=600, cache_alias='query_cache')
+def get_all_tracks_queryset():
+    return TrackModel.objects.prefetch_related(
+        Prefetch(
+            'sim_tracks',
+            queryset=SimTrack.objects.select_related('simulator').only(
+                'id', 'track_model', 'logo', 'small_image', 'large_image', 'is_active', 'simulator__icon', 'simulator__name', 'simulator__id'
+            ).prefetch_related('layouts'),
+        )
+    ).only(
+        'id', 'name', 'slug', 'country', 'location'
+    ).annotate(
+        simulator_count=Count('sim_tracks__simulator', distinct=True),
+        layout_count=Count('sim_tracks__layouts', distinct=True)
+    ).order_by('name')
+
 
 # Public Profile Views
 @cache_for_anonymous(timeout=900)  # 15 minutes
@@ -133,16 +164,16 @@ def profile_detail(request, simulator_slug, profile_identifier):
         if cached_response:
             return cached_response
     
-    # Try to find the profile by external_data_id first, then by profile_name
+    # Try to find the profile by sim_api_id first, then by profile_name
     profile = None
     try:
         profile = SimProfile.objects.select_related('simulator', 'linked_user').get(
             simulator=simulator,
-            external_data_id=profile_identifier,
+            sim_api_id=profile_identifier,
             is_public=True
         )
     except SimProfile.DoesNotExist:
-        # Fallback to profile_name if external_data_id doesn't match
+        # Fallback to profile_name if sim_api_id doesn't match
         try:
             profile = SimProfile.objects.select_related('simulator', 'linked_user').get(
                 simulator=simulator,
@@ -186,15 +217,15 @@ def profile_link(request, simulator_slug, profile_identifier):
     """Link a profile to the current user"""
     simulator = get_object_or_404(Simulator, slug=simulator_slug, is_active=True)
     
-    # Try to find the profile by external_data_id first, then by profile_name
+    # Try to find the profile by sim_api_id first, then by profile_name
     profile = None
     try:
         profile = SimProfile.objects.get(
             simulator=simulator,
-            external_data_id=profile_identifier
+            sim_api_id=profile_identifier
         )
     except SimProfile.DoesNotExist:
-        # Fallback to profile_name if external_data_id doesn't match
+        # Fallback to profile_name if sim_api_id doesn't match
         try:
             profile = SimProfile.objects.get(
                 simulator=simulator,
@@ -242,16 +273,16 @@ def profile_unlink(request, simulator_slug, profile_identifier):
     """Unlink a profile from the current user"""
     simulator = get_object_or_404(Simulator, slug=simulator_slug, is_active=True)
     
-    # Try to find the profile by external_data_id first, then by profile_name
+    # Try to find the profile by sim_api_id first, then by profile_name
     profile = None
     try:
         profile = SimProfile.objects.get(
             simulator=simulator,
-            external_data_id=profile_identifier,
+            sim_api_id=profile_identifier,
             linked_user=request.user
         )
     except SimProfile.DoesNotExist:
-        # Fallback to profile_name if external_data_id doesn't match
+        # Fallback to profile_name if sim_api_id doesn't match
         try:
             profile = SimProfile.objects.get(
                 simulator=simulator,
@@ -300,7 +331,7 @@ def profile_search_to_link(request):
     if query:
         profiles = profiles.filter(
             Q(profile_name__icontains=query) |
-            Q(external_data_id__icontains=query)
+            Q(sim_api_id__icontains=query)
         )
     
     # Filter by simulator
@@ -408,15 +439,8 @@ def simulator_dashboard_section(request, simulator_slug, section="overview"):
 # Cars Views
 def cars_list(request):
     """Public listing of all cars"""
-    # Base queryset with optimizations
-    cars = CarModel.objects.select_related('car_class').prefetch_related(
-        Prefetch(
-            'sim_cars',
-            queryset=SimCar.objects.select_related('simulator').filter(is_active=True),
-        )
-    ).annotate(
-        simulator_count=Count('sim_cars__simulator', distinct=True)
-    ).order_by('manufacturer', 'name')
+    # Use cached queryset
+    cars = get_all_cars_queryset()
     
     # Filtering
     simulator_slug = request.GET.get('simulator')
@@ -460,6 +484,7 @@ def cars_list(request):
         )
     for car in page_obj:
         car.is_owned = car.id in owned_car_ids
+        car.active_sim_cars = [sc for sc in list(getattr(car, 'sim_cars').all()) if sc.is_active]
     
     context = {
         'page_obj': page_obj,
@@ -509,16 +534,8 @@ def car_detail(request, car_slug):
 # Tracks Views
 def tracks_list(request):
     """Public listing of all tracks"""
-    # Base queryset with optimizations
-    tracks = TrackModel.objects.prefetch_related(
-        Prefetch(
-            'sim_tracks',
-            queryset=SimTrack.objects.select_related('simulator').filter(is_active=True).prefetch_related('layouts'),
-        )
-    ).annotate(
-        simulator_count=Count('sim_tracks__simulator', distinct=True),
-        layout_count=Count('sim_tracks__layouts', distinct=True)
-    ).order_by('name')
+    # Use cached queryset
+    tracks = get_all_tracks_queryset()
     
     # Filtering
     simulator_slug = request.GET.get('simulator')
@@ -555,6 +572,32 @@ def tracks_list(request):
     paginator = Paginator(tracks, 24)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # Annotate owned status (if needed)
+    owned_track_ids = set()
+    if request.user.is_authenticated and hasattr(request.user, 'linked_sim_profiles') and request.user.linked_sim_profiles.exists():
+        sim_profile = request.user.linked_sim_profiles.first()
+        owned_track_ids = set(
+            SimProfileCarOwnership.objects.filter(sim_profile=sim_profile)
+            .values_list('sim_car__car_model_id', flat=True)
+        )
+
+    # Prefetch sim_tracks and their simulators in a single query for all tracks on the page, with caching
+    track_ids = tuple(sorted(t.id for t in page_obj))
+    cache_key = f"tracksimtracks:{'-'.join(str(tid) for tid in track_ids)}"
+    sim_track_map = cache.get(cache_key)
+    if sim_track_map is None:
+        sim_track_map = {}
+        sim_track_qs = SimTrack.objects.filter(track_model__in=track_ids).select_related('simulator')
+        for st in sim_track_qs:
+            sim_track_map.setdefault(st.track_model_id, []).append(st)
+        cache.set(cache_key, sim_track_map, 600)  # 10 minutes
+
+    for track in page_obj:
+        track.is_owned = track.id in owned_track_ids
+        prefetched_sim_tracks = sim_track_map.get(track.id, [])
+        track._prefetched_sim_tracks = prefetched_sim_tracks
+        track.active_sim_tracks = [st for st in prefetched_sim_tracks if st.is_active]
     
     context = {
         'page_obj': page_obj,

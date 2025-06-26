@@ -70,17 +70,20 @@
         </div>
         <!-- External Data ID Field -->
         <div>
-          <label for="{{ form.external_data_id.id_for_label }}"
-                 class="block text-sm font-medium text-gray-700">{{ form.external_data_id.label }}</label>
+          <label for="{{ form.sim_api_id.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700">{{ form.sim_api_id.label }}</label>
           <div class="mt-1">
-            {% render_field form.external_data_id class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" %}
+            <input type="text" name="{{ form.sim_api_id.name }}" id="{{ form.sim_api_id.id_for_label }}"
+                   value="{{ form.sim_api_id.value|default:'' }}"
+                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                   placeholder="{{ form.sim_api_id.field.widget.attrs.placeholder }}">
           </div>
-          {% if form.external_data_id.help_text %}
-            <p class="mt-1 text-sm text-gray-500">{{ form.external_data_id.help_text }}</p>
+          {% if form.sim_api_id.help_text %}
+            <p class="mt-1 text-sm text-gray-500">{{ form.sim_api_id.help_text }}</p>
           {% endif %}
-          {% if form.external_data_id.errors %}
+          {% if form.sim_api_id.errors %}
             <div class="mt-1">
-              {% for error in form.external_data_id.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
+              {% for error in form.sim_api_id.errors %}<p class="text-sm text-red-600">{{ error }}</p>{% endfor %}
             </div>
           {% endif %}
         </div>

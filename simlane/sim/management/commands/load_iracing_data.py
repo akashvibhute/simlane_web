@@ -4,6 +4,7 @@ This replaces the car/track loading functionality from create_base_seed_data.
 """
 
 import logging
+import os
 import requests
 from typing import Any
 from urllib.parse import urljoin
@@ -278,8 +279,8 @@ class Command(BaseCommand):
                 if model_created:
                     created_car_models += 1
 
-                # Create or get sim car with all new fields
-                # Use sim_api_id as primary key since that's unique per car in the API
+                # Set is_active based on API's retired field
+                is_active = not car.get('retired', False)
                 sim_car_defaults = {
                     'car_model': car_model,
                     'package_id': car.get('package_id', 0),
@@ -291,7 +292,7 @@ class Command(BaseCommand):
                     'max_power_adjust_pct': car.get('max_power_adjust_pct', 0),
                     'min_power_adjust_pct': car.get('min_power_adjust_pct', 0),
                     'max_weight_penalty_kg': car.get('max_weight_penalty_kg', 0),
-                    'is_active': True,
+                    'is_active': is_active,
                 }
                 
                 # Prepare image URLs for downloading
@@ -327,53 +328,30 @@ class Command(BaseCommand):
                         updated_sim_cars += 1
                         
                 except SimCar.DoesNotExist:
-                    # Check if package_id already exists (handle duplicates gracefully)
-                    try:
-                        existing_sim_car = SimCar.objects.get(
-                            simulator=simulator,
-                            package_id=car.get('package_id', 0)
-                        )
-                        # If package_id exists but different sim_api_id, update the existing one
-                        self.stdout.write(
-                            self.style.WARNING(
-                                f"Found existing car with package_id {car.get('package_id')}: "
-                                f"{existing_sim_car.display_name}. Updating instead of creating new."
-                            )
-                        )
-                        sim_car = existing_sim_car
-                        for field, value in sim_car_defaults.items():
-                            setattr(sim_car, field, value)
-                        
-                        # Handle image downloads separately
-                        for field, url in image_urls.items():
-                            current_value = getattr(sim_car, field)
-                            if url and self._should_update_image(current_value, url):
-                                image_file = self._download_and_save_image(url, field, sim_car.display_name, car_folder)
-                                if image_file:
-                                    setattr(sim_car, field, image_file)
-                        
-                        sim_car.save()
-                        updated_sim_cars += 1
-                        sim_created = False
-                    except SimCar.DoesNotExist:
-                        # Safe to create new sim car
-                        sim_car = SimCar(
-                            simulator=simulator,
-                            sim_api_id=str(car['car_id']),
-                            **sim_car_defaults
-                        )
-                        sim_car.save()  # Save first to get the object saved
-                        
-                        # Download and save images
-                        for field, url in image_urls.items():
-                            if url:
-                                image_file = self._download_and_save_image(url, field, sim_car.display_name, car_folder)
-                                if image_file:
-                                    setattr(sim_car, field, image_file)
-                        
-                        sim_car.save()  # Save again with images
-                        sim_created = True
-                        created_sim_cars += 1
+                    sim_car = SimCar(
+                        simulator=simulator,
+                        sim_api_id=str(car['car_id']),
+                        **sim_car_defaults
+                    )
+                    sim_car.save()  # Save first to get the object saved
+                    
+                    # Download and save images
+                    for field, url in image_urls.items():
+                        if url:
+                            image_file = self._download_and_save_image(url, field, sim_car.display_name, car_folder)
+                            if image_file:
+                                setattr(sim_car, field, image_file)
+                    
+                    sim_car.save()  # Save again with images
+                    sim_created = True
+                    created_sim_cars += 1
+
+                # If this car is active, mark all other cars with the same package_id as inactive
+                if is_active:
+                    SimCar.objects.filter(
+                        simulator=simulator,
+                        package_id=car.get('package_id', 0)
+                    ).exclude(sim_api_id=str(car['car_id'])).update(is_active=False)
 
             except Exception as e:
                 logger.error(f"Error processing car {car.get('car_name', 'Unknown')}: {e}")
@@ -417,6 +395,9 @@ class Command(BaseCommand):
                 # Use the first config to get basic track info
                 base_track = track_configs[0]
                 
+                # Determine basic track category (road vs oval) from configurations
+                track_category = self._determine_track_category(track_configs)
+                
                 # Create or get track model (one per unique track name)
                 track_model_defaults = {
                     'slug': slugify(track_name),
@@ -425,7 +406,8 @@ class Command(BaseCommand):
                     'latitude': base_track.get('latitude'),
                     'longitude': base_track.get('longitude'),
                     'description': f"Track from iRacing: {track_name}",
-                    'default_image_url': base_track.get('logo', ''),
+                    'category': track_category,
+                    'time_zone': base_track.get('time_zone', ''),
                 }
                 
                 track_model, model_created = TrackModel.objects.get_or_create(
@@ -453,11 +435,21 @@ class Command(BaseCommand):
                 }
 
                 # Create or get sim track (one per track name in this simulator)
+                # Use the first track config's track_id as the base API ID for the track
+                base_track_id = str(base_track.get('track_id', ''))
+                package_id = str(base_track.get('package_id', ''))
+                
                 sim_track_defaults = {
-                    'sim_api_id': f"track_{slugify(track_name)}",  # Use track name as base ID
+                    'sim_api_id': base_track_id,  # Use actual track_id from API
+                    'package_id': package_id,     # Critical for ownership tracking
                     'display_name': track_name,
                     'slug': slugify(f"iracing-{track_name}"),
                     'is_laser_scanned': any(config.get('tech_track', False) for config in track_configs),
+                    'rain_enabled': any(config.get('rain_enabled', False) for config in track_configs),
+                    'price': base_track.get('price'),  # May be None
+                    'is_free': base_track.get('free_with_subscription', False),
+                    'is_purchasable': base_track.get('is_ps_purchasable', True),
+                    'search_filters': self._build_track_search_filters(track_name, track_configs),
                     'is_active': True,
                 }
                 
@@ -504,7 +496,20 @@ class Command(BaseCommand):
                         'name': config_name,
                         'slug': slugify(f"{track_name}-{config_name}"),
                         'type': track_type,
+                        'layout_type': track_type,  # Set both fields for compatibility
                         'length_km': config.get('track_config_length', 0) / 1000 if config.get('track_config_length') else 0,
+                        'image_url': config.get('track_map_image', ''),
+                        'retired': config.get('retired', False),
+                        # Technical specifications from API
+                        'max_cars': config.get('max_cars'),
+                        'grid_stalls': config.get('grid_stalls'), 
+                        'number_pitstalls': config.get('pit_stalls'),
+                        'corners_per_lap': config.get('corners_per_lap'),
+                        'qualify_laps': config.get('qualify_laps'),
+                        'allow_rolling_start': config.get('rolling_start', True),
+                        'pit_road_speed_limit': config.get('pit_road_speed_limit'),
+                        'night_lighting': config.get('night_lighting', False),
+                        'fully_lit': config.get('fully_lit', False),
                     }
                     
                     layout, layout_created = SimLayout.objects.get_or_create(
@@ -582,6 +587,43 @@ class Command(BaseCommand):
         parts = [part.strip() for part in location.split(',')]
         return parts[-1] if parts else ''
 
+    def _determine_track_category(self, track_configs: list) -> str:
+        """Determine overall track category (road vs oval) from track configurations"""
+        oval_count = 0
+        road_count = 0
+        
+        for config in track_configs:
+            config_name = config.get('config_name', '').lower()
+            if 'oval' in config_name:
+                oval_count += 1
+            else:
+                road_count += 1
+        
+        # If more configurations are oval, consider it an oval track
+        return 'oval' if oval_count > road_count else 'road'
+
+    def _build_track_search_filters(self, track_name: str, track_configs: list) -> str:
+        """Build search filters string for track"""
+        filters = [track_name.lower()]
+        
+        # Add configuration names
+        for config in track_configs:
+            config_name = config.get('config_name', '')
+            if config_name:
+                filters.append(config_name.lower())
+        
+        # Add track types
+        track_types = set()
+        for config in track_configs:
+            track_type = self._determine_track_type(config.get('config_name', ''))
+            track_types.add(track_type.lower())
+        
+        filters.extend(list(track_types))
+        
+        # Remove duplicates and join
+        unique_filters = list(set(filters))
+        return ' '.join(unique_filters)
+
     def _should_update_image(self, current_image, new_url: str) -> bool:
         """
         Determine if an image should be updated.
@@ -604,7 +646,6 @@ class Command(BaseCommand):
         # If current image exists as a file, don't re-download
         try:
             if current_image and hasattr(current_image, 'path') and current_image.path:
-                import os
                 if os.path.exists(current_image.path):
                     return False  # File exists, no need to re-download
         except (ValueError, OSError):

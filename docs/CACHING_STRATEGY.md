@@ -370,7 +370,7 @@ def invalidate_club_cache(sender, instance, **kwargs):
 def invalidate_profile_cache(sender, instance, **kwargs):
     # Invalidate profile-related cache entries
     cache.delete_many([
-        f"profile_detail:{instance.simulator.slug}:{instance.external_data_id}",
+        f"profile_detail:{instance.simulator.slug}:{instance.sim_api_id}",
         "profiles_list",
     ])
 ```

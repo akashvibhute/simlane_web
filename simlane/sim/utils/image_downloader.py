@@ -279,7 +279,7 @@ def save_track_svg_maps(sim_layout, track_data: dict) -> dict:
     }
     
     # Check if track has SVG maps
-    if not track_data.get('has_svg_map', False):
+    if not track_data.get('has_svg_maps', False):
         return results
     
     base_url = track_data.get('track_map', '')

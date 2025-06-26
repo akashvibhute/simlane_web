@@ -152,8 +152,8 @@ class Team(models.Model):
     description = models.TextField(blank=True)
     logo_url = models.URLField(blank=True)
     
-    # Simulator integration - if external_team_id exists, team is imported
-    external_team_id = models.CharField(
+    # Simulator integration - if sim_api_id exists, team is imported
+    sim_api_id = models.CharField(
         max_length=255, 
         blank=True,
         null=True,
@@ -194,7 +194,7 @@ class Team(models.Model):
             models.Index(fields=["owner_sim_profile"]),
             models.Index(fields=["club"]),
             models.Index(fields=["slug"]),
-            models.Index(fields=["external_team_id", "source_simulator"]),
+            models.Index(fields=["sim_api_id", "source_simulator"]),
         ]
         constraints = [
             models.CheckConstraint(
@@ -268,7 +268,7 @@ class Team(models.Model):
     @property
     def is_imported(self):
         """Check if this team was imported from a simulator"""
-        return bool(self.external_team_id)
+        return bool(self.sim_api_id)
     
     @property
     def is_claimable(self):
