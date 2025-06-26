@@ -26,7 +26,7 @@
   </div>
 
   <!-- Search and Filters -->
-  <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-6">
+  <div class="search-container mb-6">
     <form method="get" 
           hx-get="{% url 'drivers:profile_search_to_link' %}"
           hx-target="#search-results-container"
@@ -34,13 +34,15 @@
           hx-swap="innerHTML"
           class="flex flex-col sm:flex-row gap-4">
       <input type="hidden" name="from_profile" value="1">
-      <input type="text" 
-             name="q" 
-             placeholder="Search by profile name or ID..." 
-             value="{{ query }}"
-             class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500">
+      <div class="flex-1">
+        <input type="text" 
+               name="q" 
+               placeholder="Search by profile name or ID..." 
+               value="{{ query }}"
+               class="form-input w-full">
+      </div>
       <select name="simulator" 
-              class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-primary-500 focus:ring-primary-500">
+              class="form-select">
         <option value="">All Simulators</option>
         {% for simulator in simulators %}
           <option value="{{ simulator.slug }}" {% if selected_simulator == simulator.slug %}selected{% endif %}>
@@ -49,7 +51,7 @@
         {% endfor %}
       </select>
       <button type="submit" 
-              class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+              class="btn-primary">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
         </svg>

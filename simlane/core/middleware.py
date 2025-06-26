@@ -32,20 +32,30 @@ class AuthenticationRequiredMiddleware(MiddlewareMixin):
             "/about/",
             "/privacy/",
             "/terms/",
-            "/contact/",
-            "/contact/success/",
-            "/drivers/",
         ]
 
         # Check if current path matches any public path
         if request.path in public_paths:
             return None
 
-        # Skip authentication for allauth and headless URLs (login, signup, password reset, etc.)
-        if request.path.startswith("/accounts/") or request.path.startswith("/auth/"):
-            return None
-
-        if request.path.startswith("/__debug__/"):
+        # Public paths that don't require authentication
+        public_prefixes = [
+            "/search/",
+            "/drivers/",
+            "/cars/",
+            "/tracks/",
+            "/api/",
+            "/accounts/",
+            "/auth/",
+            "/__debug__/",
+            "/404/",
+            "/500/",
+            "/robots.txt",
+            "/favicon.ico",
+            "/contact/",
+        ]
+        
+        if any(request.path.startswith(prefix) for prefix in public_prefixes):
             return None
 
         # Redirect unauthenticated users to login page

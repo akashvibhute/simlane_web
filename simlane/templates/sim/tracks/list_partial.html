@@ -35,21 +35,28 @@
 </div>
 
 <!-- Search and Filters -->
-<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+<div class="search-container">
     <form method="get" class="space-y-4">
         <!-- Search Bar -->
         <div class="flex gap-4">
-            <input type="text" 
-                   name="q" 
-                   placeholder="Search tracks..." 
-                   value="{{ search_query }}"
-                   class="flex-1 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-            <button type="submit" class="btn-primary">Search</button>
+            <div class="flex-1">
+                <input type="text" 
+                       name="q" 
+                       placeholder="Search tracks..." 
+                       value="{{ search_query }}"
+                       class="form-input w-full">
+            </div>
+            <button type="submit" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                Search
+            </button>
         </div>
         
         <!-- Filters Grid -->
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <select name="simulator" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <select name="simulator" class="form-select">
                 <option value="">All Simulators</option>
                 {% for simulator in simulators %}
                     <option value="{{ simulator.slug }}" {% if selected_simulator == simulator.slug %}selected{% endif %}>
@@ -58,7 +65,7 @@
                 {% endfor %}
             </select>
             
-            <select name="country" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <select name="country" class="form-select">
                 <option value="">All Countries</option>
                 {% for country in countries %}
                     {% if country %}
@@ -69,7 +76,7 @@
                 {% endfor %}
             </select>
             
-            <select name="type" class="rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            <select name="type" class="form-select">
                 <option value="">All Types</option>
                 {% for type_value, type_label in track_types %}
                     <option value="{{ type_value }}" {% if selected_type == type_value %}selected{% endif %}>
@@ -78,16 +85,21 @@
                 {% endfor %}
             </select>
             
-            <label class="flex items-center">
+            <label class="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-600">
                 <input type="checkbox" 
                        name="laser_scanned" 
                        value="true" 
                        {% if laser_scanned_only %}checked{% endif %}
-                       class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500">
-                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Laser Scanned Only</span>
+                       class="form-checkbox">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 font-medium">Laser Scanned Only</span>
             </label>
             
-            <a href="{% url 'tracks_list' %}" class="btn-secondary text-center">Clear Filters</a>
+            <a href="{% url 'tracks_list' %}" class="clear-filters">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+                Clear Filters
+            </a>
         </div>
     </form>
 </div>

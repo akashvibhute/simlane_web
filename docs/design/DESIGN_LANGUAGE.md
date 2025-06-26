@@ -1,6 +1,6 @@
 # SimLane Design Language
 
-_Last updated: {{DATE}}
+_Last updated: December 2024_
 
 ## Purpose
 
@@ -64,18 +64,28 @@ Breakpoints follow Tailwind defaults (`sm` 640 px, `md` 768 px, `lg` 1024 px, `x
 
 ## 5. Components
 
-1. **Buttons**  
-   - Primary: `bg-brand-primary text-white hover:bg-opacity-90`  
-   - Secondary: `border border-brand-primary text-brand-primary hover:bg-brand-primary/10`  
-   - Disabled: `opacity-50 cursor-not-allowed`
-2. **Card**  
-   - Wrapper: `bg-white shadow-sm rounded-lg p-6`  
-   - Use for dashboard panels.
-3. **Alert**  
-   - Success / Warning / Error variants defined via background + icon utilities.
-4. **Form Field**  
-   - Input: `block w-full rounded-md border-gray-300 focus:border-brand-primary focus:ring-brand-primary`  
-   - Error state adds `border-error`.
+### Buttons
+- **Primary**: `btn-primary` - Primary action button with brand colors
+- **Secondary**: `btn-secondary` - Secondary action button with border style
+- **Small variant**: Add `btn-sm` class for compact buttons
+- **Disabled**: Automatically handled with `disabled:opacity-50 disabled:cursor-not-allowed`
+
+### Form Elements
+- **Input**: `form-input` - Text input with consistent styling and focus states
+- **Select**: `form-select` - Dropdown select with matching input styling
+- **Checkbox**: `form-checkbox` - Checkbox with brand color theming
+- All form elements include proper dark mode support
+
+### Search Components
+- **Search Container**: `search-container` - Wrapper for search sections with consistent padding and styling
+- **Clear Filters**: `clear-filters` - Link-style button for clearing filters with icon support
+
+### Card
+- Wrapper: `bg-white shadow-sm rounded-lg p-6`  
+- Use for dashboard panels.
+
+### Alert
+- Success / Warning / Error variants defined via background + icon utilities.
 
 Partial templates live in `templates/components/` and should be reused.
 
@@ -93,10 +103,32 @@ Partial templates live in `templates/components/` and should be reused.
 
 • Prefer Heroicons (`@heroicons/outline` + `@heroicons/solid`) already included.  
 • SVGs should inherit `currentColor` for stroke/fill to align with text colour.
+• Search icons consistently use the magnifying glass icon
+• Clear/close actions use the X icon
 
 ---
 
-## 8. Assets & Naming
+## 8. Search UI Standards
+
+### Layout
+- Search sections use the `search-container` class for consistent styling
+- Search inputs are wrapped in flex containers with proper spacing
+- Filters are organized in responsive grids (2-5 columns based on content)
+
+### Interactive Elements
+- Search buttons include magnifying glass icons
+- Clear filter buttons include X icons
+- All buttons have proper hover and focus states
+- Form elements maintain consistent styling across light/dark modes
+
+### Accessibility
+- Proper focus management with visible focus rings
+- Screen reader labels for icon-only buttons
+- Consistent color contrast ratios in both themes
+
+---
+
+## 9. Assets & Naming
 
 | Asset Type | Location | Naming Convention |
 |------------|----------|-------------------|
@@ -106,34 +138,59 @@ Partial templates live in `templates/components/` and should be reused.
 
 ---
 
-## 9. Accessibility Checklist
+## 10. Accessibility Checklist
 
 - [ ] Text/background contrast ≥ 4.5:1 (body) or 3:1 (large text).
 - [ ] All interactive elements are focusable & reachable via keyboard.
 - [ ] `aria-label`, `aria-describedby` set for custom controls.
 - [ ] Language attribute set on `<html>`.
+- [ ] Form inputs have proper labels and error states.
+- [ ] Search functionality works without JavaScript.
 
 ---
 
-## 10. Code Snippets
+## 11. Code Snippets
 
 ```html
+<!-- Primary Button -->
 <button class="btn-primary">Save changes</button>
 
-<!-- tailwind.css -->
-@layer components {
-  .btn-primary {
-    @apply inline-flex items-center justify-center rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white shadow hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2;
-  }
-}
+<!-- Secondary Button -->
+<button class="btn-secondary">Cancel</button>
+
+<!-- Form Input -->
+<input type="text" class="form-input" placeholder="Enter text...">
+
+<!-- Form Select -->
+<select class="form-select">
+  <option>Choose option</option>
+</select>
+
+<!-- Search Container -->
+<div class="search-container">
+  <form class="space-y-4">
+    <div class="flex gap-4">
+      <div class="flex-1">
+        <input type="text" class="form-input w-full" placeholder="Search...">
+      </div>
+      <button type="submit" class="btn-primary">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        Search
+      </button>
+    </div>
+  </form>
+</div>
 ```
 
 ---
 
-## 11. Changelog
+## 12. Changelog
 
 | Date | Author | Note |
 |------|--------|------|
+| 2024-12-?? | Assistant | Added component classes for buttons, forms, and search UI |
 | 2024-07-?? | _You_ | Initial draft |
 
 ---

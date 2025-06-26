@@ -39,3 +39,66 @@
   --color-primary-900: #14532d;
   --color-primary-950: #052e16;
 }
+
+/* Component Styles */
+@layer components {
+  /* Button Components */
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .btn-primary.btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-md border border-primary-600 bg-white px-4 py-2 text-sm font-medium text-primary-600 shadow-sm hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  
+  .dark .btn-secondary {
+    @apply bg-gray-800 hover:bg-primary-900/20 border-primary-500 text-primary-400;
+  }
+  
+  .btn-secondary.btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+  
+  /* Form Input Components */
+  .form-input {
+    @apply block w-full rounded-md border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder-gray-500 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors;
+  }
+  
+  .dark .form-input {
+    @apply border-gray-600 bg-gray-700 text-white placeholder-gray-400 focus:border-primary-400 focus:ring-primary-400;
+  }
+  
+  .form-select {
+    @apply block w-full rounded-md border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors;
+  }
+  
+  .dark .form-select {
+    @apply border-gray-600 bg-gray-700 text-white focus:border-primary-400 focus:ring-primary-400;
+  }
+  
+  .form-checkbox {
+    @apply rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500 focus:ring-offset-0;
+  }
+  
+  .dark .form-checkbox {
+    @apply border-gray-600 bg-gray-700 focus:ring-primary-400;
+  }
+  
+  /* Search Container */
+  .search-container {
+    @apply bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm;
+  }
+  
+  /* Clear Filters Link */
+  .clear-filters {
+    @apply inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors;
+  }
+  
+  .dark .clear-filters {
+    @apply border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 focus:ring-gray-400;
+  }
+}

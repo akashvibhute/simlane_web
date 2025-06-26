@@ -1,5 +1,6 @@
 import uuid
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.text import slugify
 
@@ -47,6 +48,8 @@ class TrackType(models.TextChoices):
     STREET = "STREET", "Street"
     RALLY = "RALLY", "Rally"
     DRAG = "DRAG", "Drag"
+    DIRT_ROAD = "DIRT_ROAD", "Dirt Road"
+    DIRT_OVAL = "DIRT_OVAL", "Dirt Oval"
     OTHER = "OTHER", "Other"
 
 
@@ -83,6 +86,12 @@ class EventVisibility(models.TextChoices):
     CLUB_ONLY = "CLUB_ONLY", "Club Only - Only club members"
     INVITE_ONLY = "INVITE_ONLY", "Invite Only - By invitation"
     PRIVATE = "PRIVATE", "Private - Specific users only"
+
+
+class CarCategory(models.TextChoices):
+    FORMULA_CAR = "formula_car", "Formula Car"
+    OVAL = "oval", "Oval"
+    SPORTS_CAR = "sports_car", "Sports Car"
 
 
 class Simulator(models.Model):
@@ -288,9 +297,45 @@ class CarClass(models.Model):
 
 class CarModel(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=255)
+    
+    # GROUP 1: Core Identification
+    name = models.CharField(max_length=255)  # Extracted model name (e.g., "Solstice")
     slug = models.SlugField(max_length=280, blank=True)
-    manufacturer = models.CharField(max_length=255)
+    manufacturer = models.CharField(max_length=255)  # car_make (e.g., "Pontiac")
+    full_name = models.CharField(max_length=255, blank=True)  # car_name from API (e.g., "Pontiac Solstice")
+    abbreviated_name = models.CharField(max_length=20, blank=True)  # car_name_abbreviated (e.g., "SOL")
+    
+    # GROUP 2: Categorization
+    category = models.CharField(
+        max_length=20,
+        choices=CarCategory.choices,
+        default=CarCategory.SPORTS_CAR,
+        help_text="Primary car category from iRacing API"
+    )
+    car_types = ArrayField(
+        models.CharField(max_length=50),
+        blank=True,
+        default=list,
+        help_text="Array of car types for searching (cleaned from API car_types)"
+    )
+    search_filters = models.CharField(
+        max_length=500, 
+        blank=True,
+        help_text="Search filters from iRacing API for advanced searching"
+    )
+    
+    # GROUP 3: Technical Specifications (Base Car Properties)
+    horsepower = models.IntegerField(null=True, blank=True, help_text="HP from iRacing API")
+    weight_lbs = models.IntegerField(null=True, blank=True, help_text="Car weight in pounds")
+    has_headlights = models.BooleanField(default=False, help_text="Whether car has headlights")
+    has_multiple_dry_tire_types = models.BooleanField(default=False, help_text="Multiple dry tire compounds available")
+    has_rain_capable_tire_types = models.BooleanField(default=False, help_text="Rain tires available")
+    rain_enabled = models.BooleanField(default=False, help_text="Can race in rain conditions")
+    ai_enabled = models.BooleanField(default=True, help_text="AI can drive this car")
+    
+
+    
+    # Existing fields
     car_class = models.ForeignKey(
         CarClass,
         on_delete=models.CASCADE,
@@ -305,10 +350,106 @@ class CarModel(models.Model):
         indexes = [
             models.Index(fields=["car_class"]),
             models.Index(fields=["slug"]),
+            models.Index(fields=["manufacturer"]),
+            models.Index(fields=["category"]),
+            models.Index(fields=["full_name"]),
+            # Technical specs for filtering
+            models.Index(fields=["horsepower"]),
+            models.Index(fields=["weight_lbs"]),
+            models.Index(fields=["rain_enabled"]),
+            models.Index(fields=["has_headlights"]),
+            # GIN index for car_types array field for fast searching
+            models.Index(fields=["car_types"], name="car_model_types_gin"),
         ]
 
     def __str__(self):
         return f"{self.manufacturer} {self.name}"
+
+    # Helper methods to get images from associated SimCars
+    def get_logo(self, simulator_preference=None):
+        """Get the best available logo from associated SimCars."""
+        return self._get_best_image('logo', simulator_preference)
+    
+    def get_small_image(self, simulator_preference=None):
+        """Get the best available small image from associated SimCars."""
+        return self._get_best_image('small_image', simulator_preference)
+    
+    def get_large_image(self, simulator_preference=None):
+        """Get the best available large image from associated SimCars."""
+        return self._get_best_image('large_image', simulator_preference)
+    
+    def _get_best_image(self, image_field, simulator_preference=None):
+        """
+        Get the best available image from associated SimCars.
+        
+        Args:
+            image_field: Name of the image field ('logo', 'small_image', 'large_image')
+            simulator_preference: Preferred simulator name (e.g., 'iRacing')
+        
+        Returns:
+            ImageField or None
+        """
+        sim_cars = self.sim_cars.filter(is_active=True)
+        
+        # If a simulator preference is specified, try that first
+        if simulator_preference:
+            preferred_sim_cars = sim_cars.filter(simulator__name__icontains=simulator_preference)
+            for sim_car in preferred_sim_cars:
+                image = getattr(sim_car, image_field, None)
+                if image:
+                    return image
+        
+        # Fall back to any available image
+        for sim_car in sim_cars:
+            image = getattr(sim_car, image_field, None)
+            if image:
+                return image
+        
+        return None
+    
+    def get_gallery_images(self, gallery_type='screenshots', simulator_preference=None):
+        """Get gallery images from MediaGallery for this car model or its SimCars."""
+        from simlane.core.models import MediaGallery
+        from django.contrib.contenttypes.models import ContentType
+        
+        # First try to get gallery images directly linked to this CarModel
+        car_model_ct = ContentType.objects.get_for_model(self)
+        gallery_images = MediaGallery.objects.filter(
+            content_type=car_model_ct,
+            object_id=str(self.id),
+            gallery_type=gallery_type
+        ).order_by('order')
+        
+        if gallery_images.exists():
+            return gallery_images
+        
+        # Fall back to gallery images from associated SimCars
+        sim_car_ct = ContentType.objects.get_for_model(self.sim_cars.model)
+        sim_car_ids = list(self.sim_cars.filter(is_active=True).values_list('id', flat=True))
+        
+        if simulator_preference:
+            # Try preferred simulator first
+            preferred_sim_car_ids = list(
+                self.sim_cars.filter(
+                    is_active=True,
+                    simulator__name__icontains=simulator_preference
+                ).values_list('id', flat=True)
+            )
+            if preferred_sim_car_ids:
+                gallery_images = MediaGallery.objects.filter(
+                    content_type=sim_car_ct,
+                    object_id__in=[str(id) for id in preferred_sim_car_ids],
+                    gallery_type=gallery_type
+                ).order_by('order')
+                if gallery_images.exists():
+                    return gallery_images
+        
+        # Fall back to any SimCar gallery images
+        return MediaGallery.objects.filter(
+            content_type=sim_car_ct,
+            object_id__in=[str(id) for id in sim_car_ids],
+            gallery_type=gallery_type
+        ).order_by('order')
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -324,6 +465,8 @@ class CarModel(models.Model):
 
 class SimCar(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    
+    # Relationships
     simulator = models.ForeignKey(
         Simulator,
         on_delete=models.CASCADE,
@@ -334,10 +477,31 @@ class SimCar(models.Model):
         on_delete=models.CASCADE,
         related_name="sim_cars",
     )
-    sim_api_id = models.CharField(max_length=255)
+    
+    # GROUP 1: API IDs - CRITICAL for ownership tracking
+    sim_api_id = models.CharField(max_length=255, help_text="car_id from iRacing API for API calls")
+    package_id = models.IntegerField(help_text="package_id from iRacing API for ownership tracking")
+    
+    # Display and configuration
+    display_name = models.CharField(max_length=255, blank=True, help_text="Full display name from car_name field")
     bop_version = models.CharField(max_length=50, blank=True)
-    image_url = models.URLField(blank=True)
     is_active = models.BooleanField(default=True)
+    
+    # GROUP 3: BOP (Balance of Performance) Adjustments - Simulator Specific
+    max_power_adjust_pct = models.IntegerField(default=0, help_text="Maximum power adjustment percentage")
+    min_power_adjust_pct = models.IntegerField(default=0, help_text="Minimum power adjustment percentage") 
+    max_weight_penalty_kg = models.IntegerField(default=0, help_text="Maximum weight penalty in kg")
+    
+    # GROUP 4: Pricing & Ownership - Simulator Specific
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Price in USD")
+    price_display = models.CharField(max_length=50, blank=True, help_text="Formatted price string")
+    free_with_subscription = models.BooleanField(default=False, help_text="Free with base subscription")
+    is_purchasable = models.BooleanField(default=True, help_text="Can be purchased (is_ps_purchasable)")
+    
+    # GROUP 6: Media Fields - Simulator Specific Images
+    logo = models.ImageField(upload_to="cars/logos/", blank=True, null=True, help_text="Car/manufacturer logo")
+    small_image = models.ImageField(upload_to="cars/thumbnails/", blank=True, null=True, help_text="Thumbnail image")
+    large_image = models.ImageField(upload_to="cars/images/", blank=True, null=True, help_text="Main/hero image")
     pit_data = models.OneToOneField(
         PitData,
         on_delete=models.SET_NULL,
@@ -349,13 +513,24 @@ class SimCar(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = [["simulator", "sim_api_id"], ["simulator", "car_model"]]
+        unique_together = [
+            ["simulator", "sim_api_id"], 
+            ["simulator", "package_id"]
+        ]
         indexes = [
             models.Index(fields=["car_model"]),
+            models.Index(fields=["simulator", "sim_api_id"]),
+            models.Index(fields=["simulator", "package_id"]),
+            models.Index(fields=["package_id"]),  # For ownership queries
+            models.Index(fields=["is_active"]),
+            # Pricing and filtering indexes
+            models.Index(fields=["free_with_subscription"]),
+            models.Index(fields=["is_purchasable"]),
+            models.Index(fields=["price"]),
         ]
 
     def __str__(self):
-        return f"{self.simulator.name} - {self.car_model.name}"
+        return f"{self.simulator.name}: {self.display_name or self.car_model.full_name or self.car_model.name}"
 
 
 class TrackModel(models.Model):
@@ -366,8 +541,11 @@ class TrackModel(models.Model):
     location = models.CharField(max_length=255, blank=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
-    default_image_url = models.URLField(blank=True)
     description = models.TextField(blank=True)
+    
+    # Basic track categorization - universal across simulators
+    category = models.CharField(max_length=20, blank=True, help_text="Track category: 'road' or 'oval'")
+    time_zone = models.CharField(max_length=50, blank=True, help_text="Track time zone (e.g., 'America/New_York')")
 
     class Meta:
         unique_together = ["name", "country", "slug"]
@@ -409,7 +587,20 @@ class SimTrack(models.Model):
     sim_api_id = models.CharField(max_length=255)
     display_name = models.CharField(max_length=255)
     is_laser_scanned = models.BooleanField(null=True, blank=True)
-    image_url = models.URLField(blank=True)
+    
+    # Ownership & Pricing - simulator-specific
+    package_id = models.CharField(max_length=50, blank=True, help_text="Package ID from API for ownership tracking")
+    price = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, help_text="Track price in USD")
+    is_free = models.BooleanField(default=False, help_text="Free with subscription")
+    is_purchasable = models.BooleanField(default=True, help_text="Can be purchased")
+    rain_enabled = models.BooleanField(default=False, help_text="Rain weather supported")
+    search_filters = models.CharField(max_length=500, blank=True, help_text="Search filters from API for optimization")
+    
+    # Media Fields
+    logo = models.ImageField(upload_to="tracks/logos/", blank=True, null=True, help_text="Track logo")
+    small_image = models.ImageField(upload_to="tracks/thumbnails/", blank=True, null=True, help_text="Thumbnail image")
+    large_image = models.ImageField(upload_to="tracks/images/", blank=True, null=True, help_text="Main/hero image")
+    
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -455,8 +646,35 @@ class SimLayout(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=280, blank=True)
     type = models.CharField(max_length=20, choices=TrackType)
-    length_km = models.FloatField()
+    length_km = models.FloatField(help_text="Track configuration length in kilometers")
     image_url = models.URLField(blank=True)
+    
+
+    
+    # Layout-specific properties
+    layout_type = models.CharField(
+        max_length=20, 
+        choices=TrackType.choices,
+        default=TrackType.ROAD,
+        help_text="Specific layout type (road, oval, dirt_road, dirt_oval, etc.)"
+    )
+    retired = models.BooleanField(default=False, help_text="Layout is retired/deprecated")
+    
+    # Technical specifications - layout-specific
+    max_cars = models.IntegerField(null=True, blank=True, help_text="Maximum cars supported on this layout")
+    grid_stalls = models.IntegerField(null=True, blank=True, help_text="Number of grid starting positions")
+    number_pitstalls = models.IntegerField(null=True, blank=True, help_text="Number of pit stalls available")
+    corners_per_lap = models.IntegerField(null=True, blank=True, help_text="Number of corners per lap")
+    
+    # Session configuration - layout-specific
+    qualify_laps = models.IntegerField(null=True, blank=True, help_text="Number of qualifying laps")
+    allow_rolling_start = models.BooleanField(default=True, help_text="Whether rolling starts are allowed")
+    pit_road_speed_limit = models.IntegerField(null=True, blank=True, help_text="Pit road speed limit (mph/kph)")
+    
+    # Lighting capabilities - layout-specific
+    night_lighting = models.BooleanField(default=False, help_text="Track has night lighting capabilities")
+    fully_lit = models.BooleanField(default=False, help_text="Track is fully lit for night racing")
+    
     pit_data = models.OneToOneField(
         PitData,
         on_delete=models.SET_NULL,
@@ -490,6 +708,22 @@ class SimLayout(models.Model):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
+    
+    def get_svg_map_layers(self):
+        """Get SVG track map layers from MediaGallery."""
+        from simlane.core.models import MediaGallery
+        from django.contrib.contenttypes.models import ContentType
+        
+        content_type = ContentType.objects.get_for_model(self)
+        return MediaGallery.objects.filter(
+            content_type=content_type,
+            object_id=str(self.id),
+            gallery_type='track_maps'
+        ).order_by('order')
+    
+    def has_svg_maps(self):
+        """Check if this layout has SVG track maps available."""
+        return self.get_svg_map_layers().exists()
 
 
 class Series(models.Model):

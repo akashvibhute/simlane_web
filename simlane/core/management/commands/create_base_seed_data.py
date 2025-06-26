@@ -28,33 +28,20 @@ class Command(BaseCommand):
     help = "Creates base seed data including simulators and iRacing content from API"
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--skip-iracing",
-            action="store_true",
-            help="Skip iRacing API data fetching (useful when API is unavailable)",
-        )
-        parser.add_argument(
-            "--force-update",
-            action="store_true",
-            help="Force update existing data from API",
-        )
+        pass  # No arguments needed for basic simulator creation
 
     def handle(self, *args, **options):
-        self.stdout.write("Creating base seed data...")
+        self.stdout.write("Creating base simulators...")
 
         with transaction.atomic():
-            # Create simulators
+            # Create simulators only
             simulators = self.create_simulators()
-            
-            # Get iRacing simulator
-            iracing_simulator = simulators.get("iracing")
-            
-            if not options["skip_iracing"] and iracing_simulator:
-                # Create iRacing data from API
-                self.create_iracing_data(iracing_simulator, options["force_update"])
 
         self.stdout.write(
-            self.style.SUCCESS("Successfully created base seed data!")
+            self.style.SUCCESS(
+                f"Successfully created {len(simulators)} simulators!\n"
+                "To load cars and tracks data, run: python manage.py load_iracing_data"
+            )
         )
 
     def create_simulators(self) -> dict[str, Simulator]:
@@ -147,67 +134,183 @@ class Command(BaseCommand):
 
         for car in cars:
             try:
-                # Create or get car class
+                # Extract and clean car category (single value, not array)
                 categories = car.get('categories', [])
                 if categories and isinstance(categories, list) and len(categories) > 0:
                     first_category = categories[0]
                     if isinstance(first_category, dict):
-                        car_class_name = first_category.get('category', 'Unknown')
+                        car_category = first_category.get('category', 'unknown')
                     else:
-                        car_class_name = str(first_category)
+                        car_category = str(first_category).lower()
                 else:
-                    car_class_name = 'Unknown'
+                    car_category = 'unknown'
                 
-                if not car_class_name or car_class_name == 'Unknown':
-                    car_class_name = 'Uncategorized'
+                # Normalize category values to match our choices
+                category_mapping = {
+                    'formula_car': 'formula_car',
+                    'sports_car': 'sports_car', 
+                    'oval': 'oval',
+                    'unknown': 'unknown',
+                }
+                normalized_category = category_mapping.get(car_category, 'unknown')
 
+                # Extract and clean car types array
+                car_types_raw = car.get('car_types', [])
+                if isinstance(car_types_raw, list):
+                    # Clean and deduplicate car types
+                    cleaned_types = []
+                    seen_types = set()
+                    
+                    for car_type in car_types_raw:
+                        if isinstance(car_type, dict):
+                            type_name = car_type.get('car_type', '').lower().strip()
+                        else:
+                            type_name = str(car_type).lower().strip()
+                        
+                        # Skip empty or duplicate types
+                        if not type_name or type_name in seen_types:
+                            continue
+                            
+                        # Normalize similar types (e.g., f1/formula1/formulaone -> formula1)
+                        if type_name in ['f1', 'formulaone']:
+                            type_name = 'formula1'
+                        elif type_name in ['stockcar']:
+                            type_name = 'stock_car'
+                        
+                        cleaned_types.append(type_name)
+                        seen_types.add(type_name)
+                else:
+                    cleaned_types = []
+
+                # Extract manufacturer and model names properly
+                car_make = car.get('car_make', '').strip()
+                car_model_name = car.get('car_model', '').strip()
+                car_full_name = car.get('car_name', '').strip()
+                
+                # If car_model is empty, extract from car_name
+                if not car_model_name and car_full_name:
+                    if car_make and car_make in car_full_name:
+                        # Remove manufacturer from full name to get model
+                        car_model_name = car_full_name.replace(car_make, '').strip()
+                        car_model_name = car_model_name.lstrip(' -').rstrip(' -')
+                    else:
+                        car_model_name = car_full_name
+                
+                # If car_make is empty, try to extract from car_name
+                if not car_make and car_full_name:
+                    car_make = self._extract_manufacturer(car_full_name)
+                
+                # Fallback values
+                if not car_make:
+                    car_make = 'Unknown'
+                if not car_model_name:
+                    car_model_name = car_full_name or 'Unknown'
+
+                # Create or get car class (keeping for backward compatibility)
                 car_class, class_created = CarClass.objects.get_or_create(
-                    name=car_class_name,
+                    name=normalized_category.replace('_', ' ').title(),
                     defaults={
-                        'slug': slugify(car_class_name),
-                        'description': f'Car class from iRacing: {car_class_name}',
+                        'slug': slugify(normalized_category),
+                        'description': f'Car class from iRacing: {normalized_category}',
                     }
                 )
                 if class_created:
                     created_car_classes += 1
 
-                # Create or get car model
-                car_model, model_created = CarModel.objects.get_or_create(
-                    name=car['car_name'],
-                    manufacturer=car.get('car_make', 'Unknown'),
-                    car_class=car_class,
-                    defaults={
-                        'slug': slugify(f"{car.get('car_make', 'unknown')}-{car['car_name']}"),
-                        'base_specs': {
-                            'hp': car.get('hp', 0),
-                            'weight': car.get('weight', 0),
-                            'displacement': car.get('displacement', 0),
-                            'cylinders': car.get('cylinders', 0),
-                            'fuel_capacity': car.get('fuel_capacity', 0),
-                        }
+                # Prepare search filters for easier searching
+                search_filters = [
+                    car_make.lower(),
+                    car_model_name.lower(),
+                    normalized_category,
+                ] + cleaned_types
+
+                # Create or get car model with all new fields
+                car_model_defaults = {
+                    'slug': slugify(f"{car_make}-{car_model_name}"),
+                    'full_name': car_full_name,
+                    'abbreviated_name': car.get('car_name_abbreviated', ''),
+                    'category': normalized_category,
+                    'car_types': cleaned_types,
+                    'horsepower': car.get('hp', 0),
+                    'weight_lbs': car.get('car_weight', 0),
+                    'has_headlights': car.get('has_headlights', False),
+                    'has_multiple_dry_tire_types': car.get('has_multiple_dry_tire_types', False),
+                    'has_rain_capable_tire_types': car.get('has_rain_capable_tire_types', False),
+                    'rain_enabled': car.get('rain_enabled', False),
+                    'ai_enabled': car.get('ai_enabled', False),
+                    'search_filters': search_filters,
+                    'base_specs': {
+                        'hp': car.get('hp', 0),
+                        'weight': car.get('car_weight', 0),
+                        'displacement': car.get('displacement', 0),
+                        'cylinders': car.get('cylinders', 0),
+                        'fuel_capacity': car.get('fuel_capacity', 0),
+                        'power_curve': car.get('power_curve', []),
+                        'torque_curve': car.get('torque_curve', []),
                     }
+                }
+
+                car_model, model_created = CarModel.objects.get_or_create(
+                    name=car_model_name,
+                    manufacturer=car_make,
+                    car_class=car_class,
+                    defaults=car_model_defaults
                 )
+                
+                if not model_created and force_update:
+                    # Update existing car model with new data
+                    for field, value in car_model_defaults.items():
+                        if field != 'slug':  # Don't update slug to avoid URL changes
+                            setattr(car_model, field, value)
+                    car_model.save()
+                
                 if model_created:
                     created_car_models += 1
 
-                # Create or get sim car
-                sim_car, sim_created = SimCar.objects.get_or_create(
-                    simulator=simulator,
-                    sim_api_id=str(car['car_id']),
-                    defaults={
-                        'car_model': car_model,
-                        'image_url': car.get('logo', ''),
-                        'is_active': True,
-                    }
-                )
-                
-                if sim_created:
-                    created_sim_cars += 1
-                elif force_update:
-                    # Update existing sim car
-                    sim_car.car_model = car_model
-                    sim_car.image_url = car.get('logo', '')
+                # Create or get sim car with all new fields
+                # Use sim_api_id as primary key since that's unique per car in the API
+                sim_car_defaults = {
+                    'car_model': car_model,
+                    'package_id': car.get('package_id', 0),
+                    'display_name': car_full_name,
+                    'price': car.get('price', 0),
+                    'price_display': car.get('price_display', ''),
+                    'free_with_subscription': car.get('free_with_subscription', False),
+                    'is_purchasable': car.get('is_ps_purchasable', True),
+                    'max_power_adjust_pct': car.get('max_power_adjust_pct', 0),
+                    'min_power_adjust_pct': car.get('min_power_adjust_pct', 0),
+                    'max_weight_penalty_kg': car.get('max_weight_penalty_kg', 0),
+                    'logo': car.get('logo', ''),
+                    'small_image': car.get('small_image', ''),
+                    'large_image': car.get('large_image', ''),
+                    'image_url': car.get('logo', ''),  # Keep for backward compatibility
+                    'is_active': True,
+                }
+
+                # Get or create by sim_api_id only (most reliable unique identifier)
+                try:
+                    sim_car = SimCar.objects.get(
+                        simulator=simulator,
+                        sim_api_id=str(car['car_id'])
+                    )
+                    sim_created = False
+                    
+                    if force_update:
+                        # Update existing sim car with new data
+                        for field, value in sim_car_defaults.items():
+                            setattr(sim_car, field, value)
+                        sim_car.save()
+                        
+                except SimCar.DoesNotExist:
+                    # Create new sim car
+                    sim_car = SimCar(
+                        simulator=simulator,
+                        sim_api_id=str(car['car_id']),
+                        **sim_car_defaults
+                    )
                     sim_car.save()
+                    sim_created = True
+                    created_sim_cars += 1
 
             except Exception as e:
                 logger.error(f"Error processing car {car.get('car_name', 'Unknown')}: {e}")
@@ -220,6 +323,28 @@ class Command(BaseCommand):
                 f"{created_sim_cars} sim cars"
             )
         )
+
+    def _extract_manufacturer(self, car_name: str) -> str:
+        """Extract manufacturer from car_name when car_make is not available"""
+        if not car_name:
+            return 'Unknown'
+        
+        # Common manufacturer patterns in iRacing
+        manufacturers = [
+            'Acura', 'Audi', 'BMW', 'Chevrolet', 'Ferrari', 'Ford', 'Honda',
+            'Lamborghini', 'McLaren', 'Mercedes', 'Mercedes-AMG', 'Porsche',
+            'Toyota', 'Volkswagen', 'Nissan', 'Hyundai', 'Pontiac', 'Dallara',
+            'Skip Barber', 'Modified', 'NASCAR', 'IndyCar', 'Formula', 'Lotus',
+            'Mazda', 'Radical', 'Cadillac', 'Renault', 'Williams', 'Red Bull'
+        ]
+        
+        car_name_upper = car_name.upper()
+        for manufacturer in manufacturers:
+            if manufacturer.upper() in car_name_upper:
+                return manufacturer
+        
+        # If no manufacturer found, use first word
+        return car_name.split()[0] if car_name else 'Unknown'
 
     def process_iracing_tracks(self, simulator: Simulator, tracks_data: Any, force_update: bool):
         """Process tracks data from iRacing API"""
