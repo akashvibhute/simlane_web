@@ -6,7 +6,7 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 
 from .models import Club
-from .models import ClubEvent
+# ClubEvent removed - using sim.Event.organizing_club instead
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
@@ -41,16 +41,9 @@ def club_admin_required(view_func):
 
         # Try to get from related objects if still not found
         if not club:
-            # Try from signup_id
-            signup_id = kwargs.get("signup_id")
-            if signup_id:
-                try:
-                    club_event = ClubEvent.objects.select_related("club").get(
-                        id=signup_id,
-                    )
-                    club = club_event.club
-                except ClubEvent.DoesNotExist:
-                    raise Http404("Event not found")
+            # ClubEvent lookups removed - using sim.Event.organizing_club instead
+            # TODO: Update to use Event.organizing_club when needed
+            pass
 
         if not club:
             return HttpResponseForbidden("Club identifier required")
@@ -101,18 +94,9 @@ def club_manager_required(view_func):
 
         # Try to get from related objects if still not found
         if not club:
-            # Try from signup_id or event_id
-            signup_id = kwargs.get("signup_id") or kwargs.get("event_id")
-            if signup_id:
-                try:
-                    club_event = ClubEvent.objects.select_related("club").get(
-                        id=signup_id,
-                    )
-                    club = club_event.club
-                except ClubEvent.DoesNotExist:
-                    raise Http404("Event not found")
-
-            # allocation_id lookup removed - TeamAllocation model no longer exists
+            # ClubEvent lookups removed - using sim.Event.organizing_club instead
+            # TODO: Update to use Event.organizing_club when needed
+            pass
 
         if not club:
             return HttpResponseForbidden("Club identifier required")
@@ -180,16 +164,9 @@ def club_member_required(view_func):
 
         # Try to get from related objects if still not found
         if not club:
-            # Try from signup_id or event_id
-            signup_id = kwargs.get("signup_id") or kwargs.get("event_id")
-            if signup_id:
-                try:
-                    club_event = ClubEvent.objects.select_related("club").get(
-                        id=signup_id,
-                    )
-                    club = club_event.club
-                except ClubEvent.DoesNotExist:
-                    raise Http404("Event not found")
+            # ClubEvent lookups removed - using sim.Event.organizing_club instead
+            # TODO: Update to use Event.organizing_club when needed
+            pass
 
         if not club:
             return HttpResponseForbidden("Club identifier required")
@@ -212,45 +189,8 @@ def club_member_required(view_func):
     return wrapper
 
 
-def event_signup_access(view_func):
-    """Decorator for event signup permissions"""
-
-    @wraps(view_func)
-    @login_required
-    def wrapper(request, *args, **kwargs):
-        signup_id = kwargs.get("signup_id") or kwargs.get("event_id")
-
-        if not signup_id:
-            return HttpResponseForbidden("Event ID required")
-
-        try:
-            club_event = ClubEvent.objects.select_related("club").get(id=signup_id)
-        except ClubEvent.DoesNotExist:
-            raise Http404("Event not found")
-
-        # Check if user is club member
-        try:
-            club_member = ClubMember.objects.get(
-                user=request.user,
-                club=club_event.club,
-            )
-        except ClubMember.DoesNotExist:
-            return HttpResponseForbidden(
-                "You must be a club member to access this event",
-            )
-
-        # Check if signup is open (for signup actions)
-        if request.method == "POST" and "join" in request.path:
-            if not club_event.is_signup_open:
-                return HttpResponseForbidden("Event signup is closed")
-
-        request.club_member = club_member
-        request.club = club_event.club
-        request.club_event = club_event
-
-        return view_func(request, *args, **kwargs)
-
-    return wrapper
+# event_signup_access decorator removed - ClubEvent model no longer exists
+# TODO: Create new decorator using Event.organizing_club when needed
 
 
 # team_allocation_access decorator removed - TeamAllocation model no longer exists

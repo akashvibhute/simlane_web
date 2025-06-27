@@ -24,7 +24,7 @@ from .models import (
     AvailabilityWindow, 
     EventSignupInvitation,
     Team, 
-    ClubEvent,
+    # ClubEvent removed - using sim.Event.organizing_club instead
     # TeamAllocation removed - replaced by enhanced participation system
     Club
 )
@@ -518,7 +518,7 @@ class WorkflowService:
     """Service for managing participation workflow transitions"""
 
     @staticmethod
-    def close_signup_phase(event: Event, club_event: ClubEvent = None):
+    def close_signup_phase(event: Event, club_event=None):  # club_event parameter removed
         """Close signup phase and prepare for team formation"""
         with transaction.atomic():
             # Update all signed up participants to team formation status
@@ -541,7 +541,7 @@ class WorkflowService:
             return participants.count()
 
     @staticmethod
-    def finalize_team_allocations(event: Event, club_event: ClubEvent = None):
+    def finalize_team_allocations(event: Event, club_event=None):  # club_event parameter removed
         """Finalize team allocations and create event entries"""
         with transaction.atomic():
             participants = EventParticipation.objects.filter(

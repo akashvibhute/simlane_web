@@ -5,213 +5,293 @@
 {% block title %}
   {% trans "Update Club" %} - {{ club.name }}
 {% endblock %}
+
 {% block content %}
-  <div class="container mx-auto px-4 py-8">
-    <!-- Breadcrumb -->
-    <nav class="flex mb-8" aria-label="Breadcrumb">
-      <ol class="inline-flex items-center space-x-1 md:space-x-3">
-        <li class="inline-flex items-center">
-          <a href="{% url 'teams:clubs_dashboard' %}"
-             class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
-            <svg class="w-3 h-3 mr-2.5"
-                 aria-hidden="true"
-                 xmlns="http://www.w3.org/2000/svg"
-                 fill="currentColor"
-                 viewBox="0 0 20 20">
-              <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L9 3.414V19a1 1 0 0 0 2 0V3.414l6.293 6.293a1 1 0 0 0 1.414-1.414Z" />
-            </svg>
-            {% trans "Clubs" %}
-          </a>
-        </li>
-        <li>
-          <div class="flex items-center">
-            <svg class="w-3 h-3 text-gray-400 mx-1"
-                 aria-hidden="true"
-                 xmlns="http://www.w3.org/2000/svg"
-                 fill="none"
-                 viewBox="0 0 6 10">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4" />
-            </svg>
-            <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{{ club.name }}</span>
-          </div>
-        </li>
-        <li aria-current="page">
-          <div class="flex items-center">
-            <svg class="w-3 h-3 text-gray-400 mx-1"
-                 aria-hidden="true"
-                 xmlns="http://www.w3.org/2000/svg"
-                 fill="none"
-                 viewBox="0 0 6 10">
-              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4" />
-            </svg>
-            <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">{% trans "Settings" %}</span>
-          </div>
-        </li>
-      </ol>
-    </nav>
+  <div class="bg-gray-50 dark:bg-gray-900">
     <!-- Header -->
-    <div class="mb-8">
-      <div class="flex items-center space-x-4">
-        {% if club.logo_url %}
-          <img src="{{ club.logo_url }}"
-               alt="{{ club.name }}"
-               class="w-16 h-16 rounded-lg" />
-        {% else %}
-          <div class="w-16 h-16 bg-primary-500 rounded-lg flex items-center justify-center">
-            <span class="text-xl font-bold text-white">{{ club.name|first }}</span>
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <!-- Left section with title -->
+          <div class="flex items-center">
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+              {% trans "Update Club" %}: {{ club.name }}
+            </h1>
           </div>
-        {% endif %}
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900">{% trans "Update Club Settings" %}</h1>
-          <p class="mt-2 text-lg text-gray-600">{{ club.name }}</p>
+          <!-- Right section -->
+          <div class="flex items-center space-x-4">
+            <a href="{% url 'teams:club_dashboard' club.id %}"
+               class="btn-secondary">
+              {% trans "Back to Club" %}
+            </a>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Main Form -->
-      <div class="lg:col-span-2">
-        <div class="bg-white shadow-lg rounded-lg p-6">
-          <form method="post" class="space-y-6">
-            {% csrf_token %}
-            <!-- Club Name -->
-            <div>
-              <label for="{{ form.name.id_for_label }}"
-                     class="block text-sm font-medium text-gray-700 mb-2">
-                {{ form.name.label }}
-                <span class="text-red-500">*</span>
-              </label>
-              {{ form.name }}
-              {% if form.name.errors %}<div class="mt-1 text-sm text-red-600">{{ form.name.errors|first }}</div>{% endif %}
-              {% if form.name.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.name.help_text }}</p>{% endif %}
-            </div>
-            <!-- Description -->
-            <div>
-              <label for="{{ form.description.id_for_label }}"
-                     class="block text-sm font-medium text-gray-700 mb-2">{{ form.description.label }}</label>
-              {{ form.description }}
-              {% if form.description.errors %}
-                <div class="mt-1 text-sm text-red-600">{{ form.description.errors|first }}</div>
-              {% endif %}
-              {% if form.description.help_text %}
-                <p class="mt-1 text-xs text-gray-500">{{ form.description.help_text }}</p>
-              {% endif %}
-            </div>
-            <!-- Logo URL -->
-            <div>
-              <label for="{{ form.logo_url.id_for_label }}"
-                     class="block text-sm font-medium text-gray-700 mb-2">{{ form.logo_url.label }}</label>
-              {{ form.logo_url }}
-              {% if form.logo_url.errors %}<div class="mt-1 text-sm text-red-600">{{ form.logo_url.errors|first }}</div>{% endif %}
-              {% if form.logo_url.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.logo_url.help_text }}</p>{% endif %}
-            </div>
-            <!-- Website -->
-            <div>
-              <label for="{{ form.website.id_for_label }}"
-                     class="block text-sm font-medium text-gray-700 mb-2">{{ form.website.label }}</label>
-              {{ form.website }}
-              {% if form.website.errors %}<div class="mt-1 text-sm text-red-600">{{ form.website.errors|first }}</div>{% endif %}
-              {% if form.website.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.website.help_text }}</p>{% endif %}
-            </div>
-            <!-- Social Links -->
-            <div>
-              <label for="{{ form.social_links.id_for_label }}"
-                     class="block text-sm font-medium text-gray-700 mb-2">{{ form.social_links.label }}</label>
-              {{ form.social_links }}
-              {% if form.social_links.errors %}
-                <div class="mt-1 text-sm text-red-600">{{ form.social_links.errors|first }}</div>
-              {% endif %}
-              {% if form.social_links.help_text %}
-                <p class="mt-1 text-xs text-gray-500">{{ form.social_links.help_text }}</p>
-              {% endif %}
-              <div class="mt-2 p-3 bg-blue-50 rounded-md">
-                <p class="text-xs text-blue-700">
-                  <strong>{% trans "Example:" %}</strong> {"discord": "https://discord.gg/yourserver", "twitter": "https://twitter.com/yourclub"}
-                </p>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <!-- Success Message -->
+      {% if messages %}
+        {% for message in messages %}
+          <div class="mb-6 rounded-md bg-green-50 dark:bg-green-900/20 p-4 border border-green-200 dark:border-green-800">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm font-medium text-green-800 dark:text-green-200">{{ message }}</p>
               </div>
             </div>
-            <!-- Action Buttons -->
-            <div class="flex items-center justify-between pt-6 border-t border-gray-200">
-              <a href="{% url 'teams:clubs_dashboard' %}"
-                 class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                {% trans "Cancel" %}
-              </a>
-              <button type="submit"
-                      class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                <svg class="w-4 h-4 mr-2"
-                     fill="none"
-                     stroke="currentColor"
-                     viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Form -->
+        <div class="lg:col-span-2">
+          <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6">
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+              {% csrf_token %}
+              
+              <!-- Basic Information Section -->
+              <div class="border-b border-gray-200 dark:border-gray-700 pb-6">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">{% trans "Basic Information" %}</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Club Name -->
+                  <div class="md:col-span-2">
+                    <label for="{{ form.name.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      {{ form.name.label }}
+                      <span class="text-red-500">*</span>
+                    </label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.name.errors|first }}</div>{% endif %}
+                    {% if form.name.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.name.help_text }}</p>{% endif %}
+                  </div>
+                  
+                  <!-- Description -->
+                  <div class="md:col-span-2">
+                    <label for="{{ form.description.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                      <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.description.errors|first }}</div>
+                    {% endif %}
+                    {% if form.description.help_text %}
+                      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.description.help_text }}</p>
+                    {% endif %}
+                  </div>
+                  
+                  <!-- Logo Upload -->
+                  <div>
+                    <label for="{{ form.logo.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ form.logo.label }}</label>
+                    {% if club.logo %}
+                      <div class="mb-2">
+                        <img src="{{ club.logo.url }}" alt="{{ club.name }}" class="w-16 h-16 rounded-lg object-cover">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{% trans "Current logo" %}</p>
+                      </div>
+                    {% endif %}
+                    {{ form.logo }}
+                    {% if form.logo.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.logo.errors|first }}</div>{% endif %}
+                    {% if form.logo.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.logo.help_text }}</p>{% endif %}
+                  </div>
+                  
+                  <!-- Website -->
+                  <div>
+                    <label for="{{ form.website.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{{ form.website.label }}</label>
+                    {{ form.website }}
+                    {% if form.website.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.website.errors|first }}</div>{% endif %}
+                    {% if form.website.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.website.help_text }}</p>{% endif %}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Social Links Section -->
+              <div class="pb-6">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">{% trans "Social Links" %}</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">{% trans "Update your social media links to help members connect with your club community." %}</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Discord -->
+                  <div>
+                    <label for="{{ form.discord_url.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.010c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                      </svg>
+                      {{ form.discord_url.label }}
+                    </label>
+                    {{ form.discord_url }}
+                    {% if form.discord_url.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.discord_url.errors|first }}</div>{% endif %}
+                    {% if form.discord_url.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.discord_url.help_text }}</p>{% endif %}
+                  </div>
+                  
+                  <!-- Twitter -->
+                  <div>
+                    <label for="{{ form.twitter_url.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      </svg>
+                      {{ form.twitter_url.label }}
+                    </label>
+                    {{ form.twitter_url }}
+                    {% if form.twitter_url.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.twitter_url.errors|first }}</div>{% endif %}
+                    {% if form.twitter_url.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.twitter_url.help_text }}</p>{% endif %}
+                  </div>
+                  
+                  <!-- YouTube -->
+                  <div>
+                    <label for="{{ form.youtube_url.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                      </svg>
+                      {{ form.youtube_url.label }}
+                    </label>
+                    {{ form.youtube_url }}
+                    {% if form.youtube_url.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.youtube_url.errors|first }}</div>{% endif %}
+                    {% if form.youtube_url.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.youtube_url.help_text }}</p>{% endif %}
+                  </div>
+                  
+                  <!-- Twitch -->
+                  <div>
+                    <label for="{{ form.twitch_url.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+                      </svg>
+                      {{ form.twitch_url.label }}
+                    </label>
+                    {{ form.twitch_url }}
+                    {% if form.twitch_url.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.twitch_url.errors|first }}</div>{% endif %}
+                    {% if form.twitch_url.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.twitch_url.help_text }}</p>{% endif %}
+                  </div>
+                  
+                  <!-- Facebook -->
+                  <div>
+                    <label for="{{ form.facebook_url.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      {{ form.facebook_url.label }}
+                    </label>
+                    {{ form.facebook_url }}
+                    {% if form.facebook_url.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.facebook_url.errors|first }}</div>{% endif %}
+                    {% if form.facebook_url.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.facebook_url.help_text }}</p>{% endif %}
+                  </div>
+                  
+                  <!-- Instagram -->
+                  <div>
+                    <label for="{{ form.instagram_url.id_for_label }}"
+                           class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12.017 0C8.396 0 7.989.013 7.041.072 6.094.131 5.431.244 4.861.416a6.427 6.427 0 0 0-2.322 1.511A6.427 6.427 0 0 0 1.028 4.25C.85 4.82.738 5.483.68 6.43.621 7.378.608 7.785.608 11.406v1.188c0 3.621.013 4.028.072 4.976.058.947.17 1.61.342 2.18a6.427 6.427 0 0 0 1.511 2.322 6.427 6.427 0 0 0 2.321 1.511c.571.172 1.234.284 2.181.343.948.058 1.355.072 4.976.072h1.188c3.621 0 4.028-.013 4.976-.072.947-.058 1.61-.17 2.18-.343a6.427 6.427 0 0 0 2.322-1.511 6.427 6.427 0 0 0 1.511-2.322c.172-.57.284-1.233.343-2.18.058-.948.072-1.355.072-4.976V11.406c0-3.621-.013-4.028-.072-4.976-.058-.947-.17-1.61-.343-2.18a6.427 6.427 0 0 0-1.511-2.322A6.427 6.427 0 0 0 19.394.416c-.57-.172-1.233-.284-2.18-.343C16.266.013 15.859 0 12.238 0h-.221zm-.132 2.203h.176c3.543 0 3.96.014 5.36.08.926.042 1.43.196 1.764.326.444.173.76.379 1.093.712.333.333.539.65.712 1.093.13.333.284.838.326 1.764.066 1.4.08 1.817.08 5.36 0 3.543-.014 3.96-.08 5.36-.042.926-.196 1.43-.326 1.764a2.942 2.942 0 0 1-.712 1.093 2.942 2.942 0 0 1-1.093.712c-.333.13-.838.284-1.764.326-1.4.066-1.817.08-5.36.08-3.543 0-3.96-.014-5.36-.08-.926-.042-1.43-.196-1.764-.326a2.942 2.942 0 0 1-1.093-.712 2.942 2.942 0 0 1-.712-1.093c-.13-.333-.284-.838-.326-1.764-.066-1.4-.08-1.817-.08-5.36 0-3.543.014-3.96.08-5.36.042-.926.196-1.43.326-1.764.173-.444.379-.76.712-1.093.333-.333.65-.539 1.093-.712.333-.13.838-.284 1.764-.326 1.225-.056 1.7-.072 4.4-.072zm0 3.555a5.686 5.686 0 1 0 0 11.372 5.686 5.686 0 0 0 0-11.372zm0 9.373a3.687 3.687 0 1 1 0-7.374 3.687 3.687 0 0 1 0 7.374zm7.238-9.616a1.33 1.33 0 1 1-2.66 0 1.33 1.33 0 0 1 2.66 0z"/>
+                      </svg>
+                      {{ form.instagram_url.label }}
+                    </label>
+                    {{ form.instagram_url }}
+                    {% if form.instagram_url.errors %}<div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.instagram_url.errors|first }}</div>{% endif %}
+                    {% if form.instagram_url.help_text %}<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.instagram_url.help_text }}</p>{% endif %}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{% url 'teams:club_dashboard' club.id %}"
+                   class="btn-secondary">
+                  {% trans "Cancel" %}
+                </a>
+                <button type="submit"
+                        class="btn-primary">
+                  <svg class="w-4 h-4 mr-2"
+                       fill="none"
+                       stroke="currentColor"
+                       viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  {% trans "Update Club" %}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+          <!-- Current Club Info -->
+          <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">{% trans "Current Club" %}</h3>
+            <div class="space-y-4">
+              <!-- Club Logo -->
+              {% if club.logo %}
+                <div>
+                  <img src="{{ club.logo.url }}" alt="{{ club.name }}" class="w-20 h-20 rounded-lg object-cover mx-auto">
+                </div>
+              {% else %}
+                <div class="w-20 h-20 bg-primary-500 rounded-lg flex items-center justify-center mx-auto">
+                  <span class="text-2xl font-bold text-white">{{ club.name|first }}</span>
+                </div>
+              {% endif %}
+              
+              <!-- Club Stats -->
+              <div class="text-center">
+                <h4 class="font-medium text-gray-900 dark:text-white">{{ club.name }}</h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  {{ club.members.count }} {% trans "members" %}
+                </p>
+              </div>
+              
+              <!-- Social Links Preview -->
+              {% if club.social_links %}
+                <div class="flex justify-center space-x-3">
+                  {% for platform, url in club.social_links.items %}
+                    <a href="{{ url }}" target="_blank" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <span class="sr-only">{{ platform|title }}</span>
+                      <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        {% if platform == "discord" %}
+                          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.010c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                        {% elif platform == "twitter" %}
+                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        {% endif %}
+                      </svg>
+                    </a>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+          
+          <!-- Help -->
+          <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
-                {% trans "Update Club" %}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-      <!-- Sidebar -->
-      <div class="lg:col-span-1">
-        <!-- Quick Actions -->
-        <div class="bg-white shadow-lg rounded-lg p-6 mb-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Quick Actions" %}</h3>
-          <div class="space-y-3">
-            <a href="{% url 'teams:club_members' club.slug %}"
-               class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md">
-              <svg class="w-4 h-4 mr-3"
-                   fill="none"
-                   stroke="currentColor"
-                   viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-              </svg>
-              {% trans "Manage Members" %}
-            </a>
-            <a href="{% url 'teams:club_invite_member' club.slug %}"
-               class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md">
-              <svg class="w-4 h-4 mr-3"
-                   fill="none"
-                   stroke="currentColor"
-                   viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              {% trans "Invite Members" %}
-            </a>
-            <a href="{% url 'teams:event_signup_create' club.slug %}"
-               class="flex items-center w-full px-4 py-2 text-sm text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-md">
-              <svg class="w-4 h-4 mr-3"
-                   fill="none"
-                   stroke="currentColor"
-                   viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {% trans "Create Event Signup" %}
-            </a>
-          </div>
-        </div>
-        <!-- Club Stats -->
-        <div class="bg-white shadow-lg rounded-lg p-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">{% trans "Club Statistics" %}</h3>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">{% trans "Total Members" %}</span>
-              <span class="text-lg font-semibold text-gray-900">{{ club.members.count }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">{% trans "Created" %}</span>
-              <span class="text-sm text-gray-900">{{ club.created_at|date:"M j, Y" }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">{% trans "Status" %}</span>
-              <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium {% if club.is_active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                {% if club.is_active %}
-                  {% trans "Active" %}
-                {% else %}
-                  {% trans "Inactive" %}
-                {% endif %}
-              </span>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  {% trans "Update Tips" %}
+                </h3>
+                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                  <ul class="list-disc list-inside space-y-1">
+                    <li>{% trans "Upload a logo to make your club more recognizable" %}</li>
+                    <li>{% trans "Add social links to help members connect" %}</li>
+                    <li>{% trans "Keep your description current and engaging" %}</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 {% endblock %}

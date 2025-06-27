@@ -11,7 +11,7 @@ from simlane.sim.models import Event
 from simlane.sim.models import SimCar
 
 from .models import Club
-from .models import ClubEvent
+# ClubEvent removed - using sim.Event.organizing_club instead
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
@@ -27,48 +27,93 @@ class ClubCreateForm(forms.ModelForm):
 
     class Meta:
         model = Club
-        fields = ["name", "description", "logo_url", "website", "social_links"]
+        fields = [
+            "name", 
+            "description", 
+            "logo", 
+            "website", 
+            "discord_url",
+            "twitter_url", 
+            "youtube_url", 
+            "twitch_url", 
+            "facebook_url", 
+            "instagram_url"
+        ]
         widgets = {
             "name": forms.TextInput(
                 attrs={
-                    "class": "form-control",
+                    "class": "form-input",
                     "placeholder": "Enter club name",
                     "required": True,
                 },
             ),
             "description": forms.Textarea(
                 attrs={
-                    "class": "form-control",
+                    "class": "form-input",
                     "rows": 4,
                     "placeholder": "Describe your club...",
                 },
             ),
-            "logo_url": forms.URLInput(
+            "logo": forms.ClearableFileInput(
                 attrs={
-                    "class": "form-control",
-                    "placeholder": "https://example.com/logo.png",
+                    "class": "form-input",
+                    "accept": "image/*",
                 },
             ),
             "website": forms.URLInput(
                 attrs={
-                    "class": "form-control",
+                    "class": "form-input",
                     "placeholder": "https://example.com",
                 },
             ),
-            "social_links": forms.Textarea(
+            "discord_url": forms.URLInput(
                 attrs={
-                    "class": "form-control",
-                    "rows": 3,
-                    "placeholder": '{"discord": "https://discord.gg/...", "twitter": "https://twitter.com/..."}',
+                    "class": "form-input",
+                    "placeholder": "https://discord.gg/yourserver",
+                },
+            ),
+            "twitter_url": forms.URLInput(
+                attrs={
+                    "class": "form-input",
+                    "placeholder": "https://twitter.com/yourclub",
+                },
+            ),
+            "youtube_url": forms.URLInput(
+                attrs={
+                    "class": "form-input",
+                    "placeholder": "https://youtube.com/@yourclub",
+                },
+            ),
+            "twitch_url": forms.URLInput(
+                attrs={
+                    "class": "form-input",
+                    "placeholder": "https://twitch.tv/yourclub",
+                },
+            ),
+            "facebook_url": forms.URLInput(
+                attrs={
+                    "class": "form-input",
+                    "placeholder": "https://facebook.com/yourclub",
+                },
+            ),
+            "instagram_url": forms.URLInput(
+                attrs={
+                    "class": "form-input",
+                    "placeholder": "https://instagram.com/yourclub",
                 },
             ),
         }
         help_texts = {
             "name": "Choose a unique name for your club",
             "description": "Tell potential members what your club is about",
-            "logo_url": "URL to your club logo image",
+            "logo": "Upload your club logo (JPG, PNG, or GIF)",
             "website": "Your club website (optional)",
-            "social_links": "JSON format for social media links (optional)",
+            "discord_url": "Discord server invite link (optional)",
+            "twitter_url": "Twitter/X profile URL (optional)",
+            "youtube_url": "YouTube channel URL (optional)",
+            "twitch_url": "Twitch channel URL (optional)",
+            "facebook_url": "Facebook page URL (optional)",
+            "instagram_url": "Instagram profile URL (optional)",
         }
 
     def clean_name(self):
@@ -77,18 +122,19 @@ class ClubCreateForm(forms.ModelForm):
             raise ValidationError("A club with this name already exists.")
         return name
 
-    def clean_social_links(self):
-        social_links = self.cleaned_data.get("social_links")
-        if social_links:
-            try:
-                import json
-
-                # Try to parse as JSON to validate format
-                if isinstance(social_links, str):
-                    json.loads(social_links)
-            except (json.JSONDecodeError, TypeError):
-                raise ValidationError("Social links must be valid JSON format")
-        return social_links
+    def clean_logo(self):
+        logo = self.cleaned_data.get("logo")
+        if logo:
+            # Validate file size (max 5MB)
+            if logo.size > 5 * 1024 * 1024:
+                raise ValidationError("Logo file size must be less than 5MB.")
+            
+            # Validate file type
+            valid_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+            if logo.content_type not in valid_types:
+                raise ValidationError("Logo must be a JPEG, PNG, GIF, or WebP image.")
+        
+        return logo
 
 
 class ClubUpdateForm(ClubCreateForm):
@@ -118,7 +164,7 @@ class ClubInvitationForm(forms.Form):
     email = forms.EmailField(
         widget=forms.EmailInput(
             attrs={
-                "class": "form-control",
+                "class": "form-input",
                 "placeholder": "member@example.com",
                 "required": True,
             },
@@ -131,7 +177,7 @@ class ClubInvitationForm(forms.Form):
         initial=ClubRole.MEMBER,
         widget=forms.Select(
             attrs={
-                "class": "form-control",
+                "class": "form-select",
             },
         ),
         help_text="Role the invited user will have in this club",
@@ -140,7 +186,7 @@ class ClubInvitationForm(forms.Form):
     personal_message = forms.CharField(
         widget=forms.Textarea(
             attrs={
-                "class": "form-control",
+                "class": "form-input",
                 "rows": 3,
                 "placeholder": "Add a personal message to your invitation (optional)...",
             },
@@ -204,123 +250,475 @@ class ClubInvitationForm(forms.Form):
         return invitation
 
 
-class ClubEventCreateForm(forms.ModelForm):
-    """Form for creating event signup sheets"""
-
-    base_event = forms.ModelChoiceField(
-        queryset=Event.objects.none(),
-        widget=forms.Select(
-            attrs={
-                "class": "form-control select2",
-                "data-placeholder": "Select an event",
-            },
-        ),
-        help_text="Select the sim event for this signup",
-    )
-
-    signup_deadline = forms.DateTimeField(
-        widget=forms.DateTimeInput(
-            attrs={
-                "class": "form-control",
-                "type": "datetime-local",
-            },
-        ),
-        help_text="Deadline for event signups",
-    )
-
+class ClubEventSignupSheetForm(forms.ModelForm):
+    """Form for club admins to create event signup sheets"""
+    
     class Meta:
-        model = ClubEvent
+        from .models import ClubEventSignupSheet
+        model = ClubEventSignupSheet
         fields = [
-            "base_event",
-            "title",
-            "description",
-            "signup_deadline",
-            "max_participants",
-            "requires_team_assignment",
-            "auto_assign_teams",
-            "team_size_min",
-            "team_size_max",
+            'event',
+            'title',
+            'description',
+            'signup_opens',
+            'signup_closes',
+            'max_teams',
+            'target_team_size',
+            'min_drivers_per_team',
+            'max_drivers_per_team',
+            'min_license_level',
+            'notes_for_admins',
         ]
         widgets = {
-            "title": forms.TextInput(
+            'event': forms.Select(
                 attrs={
-                    "class": "form-control",
-                    "placeholder": "Event signup title",
-                },
+                    'class': 'form-select',
+                    'required': True,
+                }
             ),
-            "description": forms.Textarea(
+            'title': forms.TextInput(
                 attrs={
-                    "class": "form-control",
-                    "rows": 4,
-                    "placeholder": "Event description and details...",
-                },
+                    'class': 'form-input',
+                    'placeholder': 'e.g., "24h Le Mans Team Signup"',
+                    'required': True,
+                }
             ),
-            "max_participants": forms.NumberInput(
+            'description': forms.Textarea(
                 attrs={
-                    "class": "form-control",
-                    "min": 1,
-                    "placeholder": "Maximum participants",
-                },
+                    'class': 'form-input',
+                    'rows': 4,
+                    'placeholder': 'Provide details about this event signup for club members...',
+                }
             ),
-            "requires_team_assignment": forms.CheckboxInput(
+            'signup_opens': forms.DateTimeInput(
                 attrs={
-                    "class": "form-check-input",
+                    'class': 'form-input',
+                    'type': 'datetime-local',
+                    'required': True,
                 },
+                format='%Y-%m-%dT%H:%M',
             ),
-            "auto_assign_teams": forms.CheckboxInput(
+            'signup_closes': forms.DateTimeInput(
                 attrs={
-                    "class": "form-check-input",
+                    'class': 'form-input',
+                    'type': 'datetime-local',
+                    'required': True,
                 },
+                format='%Y-%m-%dT%H:%M',
             ),
-            "team_size_min": forms.NumberInput(
+            'max_teams': forms.NumberInput(
                 attrs={
-                    "class": "form-control",
-                    "min": 1,
-                    "placeholder": "Minimum team size",
-                },
+                    'class': 'form-input',
+                    'placeholder': 'Leave blank for no limit',
+                    'min': 1,
+                }
             ),
-            "team_size_max": forms.NumberInput(
+            'target_team_size': forms.NumberInput(
                 attrs={
-                    "class": "form-control",
-                    "min": 1,
-                    "placeholder": "Maximum team size",
-                },
+                    'class': 'form-input',
+                    'min': 2,
+                    'max': 10,
+                }
+            ),
+            'min_drivers_per_team': forms.NumberInput(
+                attrs={
+                    'class': 'form-input',
+                    'min': 1,
+                    'max': 10,
+                }
+            ),
+            'max_drivers_per_team': forms.NumberInput(
+                attrs={
+                    'class': 'form-input',
+                    'min': 2,
+                    'max': 20,
+                }
+            ),
+            'min_license_level': forms.TextInput(
+                attrs={
+                    'class': 'form-input',
+                    'placeholder': 'e.g., "C4.0" (optional)',
+                }
+            ),
+            'notes_for_admins': forms.Textarea(
+                attrs={
+                    'class': 'form-input',
+                    'rows': 3,
+                    'placeholder': 'Internal notes for club admins (not visible to members)...',
+                }
             ),
         }
-
+    
     def __init__(self, *args, **kwargs):
-        self.club = kwargs.pop("club", None)
+        self.club = kwargs.pop('club', None)
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-
-        # Filter available events
+        
+        # Only show events that are not already opened by this club
         if self.club:
-            self.fields["base_event"].queryset = Event.objects.filter(
-                start_time__gte=timezone.now(),
-            ).order_by("start_time")
-
+            # Get events already with signup sheets for this club
+            existing_event_ids = self.club.event_signup_sheets.values_list('event_id', flat=True)
+            
+            # Filter to available events
+            self.fields['event'].queryset = Event.objects.exclude(
+                id__in=existing_event_ids
+            ).filter(
+                # Only future events or events with instances in the future
+                instances__start_time__gt=timezone.now()
+            ).distinct().order_by('instances__start_time')
+        
+        # Convert datetime fields to local timezone for display
+        if self.instance and self.instance.pk:
+            if self.instance.signup_opens:
+                self.initial['signup_opens'] = self.instance.signup_opens.strftime('%Y-%m-%dT%H:%M')
+            if self.instance.signup_closes:
+                self.initial['signup_closes'] = self.instance.signup_closes.strftime('%Y-%m-%dT%H:%M')
+    
     def clean(self):
         cleaned_data = super().clean()
-
+        
+        # Validate signup window
+        signup_opens = cleaned_data.get('signup_opens')
+        signup_closes = cleaned_data.get('signup_closes')
+        
+        if signup_opens and signup_closes:
+            if signup_closes <= signup_opens:
+                raise ValidationError("Signup close time must be after open time")
+            
+            # Check that signup opens before event starts
+            event = cleaned_data.get('event')
+            if event:
+                earliest_instance = event.instances.order_by('start_time').first()
+                if earliest_instance and signup_closes > earliest_instance.start_time:
+                    raise ValidationError(
+                        f"Signups must close before the event starts ({earliest_instance.start_time})"
+                    )
+        
         # Validate team size constraints
-        requires_teams = cleaned_data.get("requires_team_assignment", False)
-        team_size_min = cleaned_data.get("team_size_min")
-        team_size_max = cleaned_data.get("team_size_max")
-
-        if requires_teams:
-            if not team_size_min or team_size_min < 1:
-                raise ValidationError("Minimum team size is required for team events.")
-            if not team_size_max or team_size_max < team_size_min:
-                raise ValidationError("Maximum team size must be greater than minimum.")
-
-        # Validate signup deadline
-        signup_deadline = cleaned_data.get("signup_deadline")
-        base_event = cleaned_data.get("base_event")
-
-        if signup_deadline and base_event:
-            if signup_deadline >= base_event.start_time:
-                raise ValidationError("Signup deadline must be before event start time.")
-
+        min_drivers = cleaned_data.get('min_drivers_per_team')
+        max_drivers = cleaned_data.get('max_drivers_per_team')
+        target_size = cleaned_data.get('target_team_size')
+        
+        if min_drivers and max_drivers and min_drivers > max_drivers:
+            raise ValidationError("Minimum drivers cannot be greater than maximum drivers")
+        
+        if target_size:
+            if min_drivers and target_size < min_drivers:
+                raise ValidationError("Target team size cannot be less than minimum drivers")
+            if max_drivers and target_size > max_drivers:
+                raise ValidationError("Target team size cannot be greater than maximum drivers")
+        
         return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Set the club and creator
+        if self.club:
+            instance.club = self.club
+        if self.user:
+            instance.created_by = self.user
+        
+        # Auto-open if signup time has passed
+        if instance.signup_opens <= timezone.now() and instance.status == 'draft':
+            instance.status = 'open'
+        
+        if commit:
+            instance.save()
+        
+        return instance
+
+
+class ClubEventSignupBulkCreateForm(forms.Form):
+    """Form for creating multiple event signup sheets at once"""
+    
+    # Event selection with multi-select
+    events = forms.ModelMultipleChoiceField(
+        queryset=Event.objects.none(),
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'rounded border-gray-300 text-blue-600 focus:ring-blue-500'
+        }),
+        help_text="Select multiple events to create signup sheets for"
+    )
+    
+    # Shared settings for all selected events
+    title_template = forms.CharField(
+        max_length=255,
+        initial="{event_name} - Team Signup",
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Use {event_name} for event name, {date} for date'
+        }),
+        help_text="Title template for signup sheets. Use {event_name} and {date} as placeholders"
+    )
+    
+    description_template = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-input',
+            'rows': 3,
+            'placeholder': 'Description template for all signup sheets...'
+        }),
+        help_text="Shared description for all signup sheets"
+    )
+    
+    # Signup timing
+    TIMING_CHOICES = [
+        ('immediate', 'Open immediately'),
+        ('relative', 'Relative to event start'),
+        ('fixed', 'Fixed date/time'),
+    ]
+    
+    signup_timing = forms.ChoiceField(
+        choices=TIMING_CHOICES,
+        initial='relative',
+        widget=forms.RadioSelect(attrs={'class': 'text-blue-600'}),
+        help_text="How to set signup open/close times"
+    )
+    
+    # For relative timing
+    days_before_open = forms.IntegerField(
+        initial=14,
+        min_value=1,
+        max_value=365,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'placeholder': '14'
+        }),
+        help_text="Days before event to open signups"
+    )
+    
+    days_before_close = forms.IntegerField(
+        initial=2,
+        min_value=0,
+        max_value=30,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'placeholder': '2'
+        }),
+        help_text="Days before event to close signups"
+    )
+    
+    # For fixed timing
+    fixed_signup_opens = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={
+            'class': 'form-input',
+            'type': 'datetime-local'
+        }),
+        help_text="Fixed open time (only used if 'Fixed date/time' is selected)"
+    )
+    
+    fixed_signup_closes = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={
+            'class': 'form-input',
+            'type': 'datetime-local'
+        }),
+        help_text="Fixed close time (only used if 'Fixed date/time' is selected)"
+    )
+    
+    # Team formation settings (shared)
+    max_teams = forms.IntegerField(
+        required=False,
+        min_value=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'No limit'
+        }),
+        help_text="Maximum teams per event (leave blank for no limit)"
+    )
+    
+    target_team_size = forms.IntegerField(
+        initial=4,
+        min_value=2,
+        max_value=10,
+        widget=forms.NumberInput(attrs={'class': 'form-input'})
+    )
+    
+    min_drivers_per_team = forms.IntegerField(
+        initial=2,
+        min_value=1,
+        max_value=10,
+        widget=forms.NumberInput(attrs={'class': 'form-input'})
+    )
+    
+    max_drivers_per_team = forms.IntegerField(
+        initial=6,
+        min_value=2,
+        max_value=20,
+        widget=forms.NumberInput(attrs={'class': 'form-input'})
+    )
+    
+    # Requirements
+    min_license_level = forms.CharField(
+        required=False,
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'e.g., C4.0'
+        })
+    )
+    
+    # Template saving
+    save_as_template = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'rounded border-gray-300'}),
+        help_text="Save these settings as a template for future use"
+    )
+    
+    template_name = forms.CharField(
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Template name...'
+        }),
+        help_text="Name for this template (required if saving as template)"
+    )
+    
+    def __init__(self, *args, **kwargs):
+        self.club = kwargs.pop('club', None)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.club:
+            # Get events that don't already have signup sheets for this club
+            existing_event_ids = self.club.event_signup_sheets.values_list('event_id', flat=True)
+            
+            # Show upcoming events only
+            available_events = Event.objects.exclude(
+                id__in=existing_event_ids
+            ).filter(
+                instances__start_time__gt=timezone.now()
+            ).distinct().order_by('instances__start_time')
+            
+            self.fields['events'].queryset = available_events
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        
+        # Validate timing settings
+        timing = cleaned_data.get('signup_timing')
+        
+        if timing == 'fixed':
+            opens = cleaned_data.get('fixed_signup_opens')
+            closes = cleaned_data.get('fixed_signup_closes')
+            
+            if not opens or not closes:
+                raise ValidationError("Fixed open and close times are required when using fixed timing")
+            
+            if closes <= opens:
+                raise ValidationError("Close time must be after open time")
+        
+        elif timing == 'relative':
+            days_open = cleaned_data.get('days_before_open')
+            days_close = cleaned_data.get('days_before_close')
+            
+            if days_close >= days_open:
+                raise ValidationError("Signup must close closer to event than it opens")
+        
+        # Validate team settings
+        min_drivers = cleaned_data.get('min_drivers_per_team')
+        max_drivers = cleaned_data.get('max_drivers_per_team')
+        target_size = cleaned_data.get('target_team_size')
+        
+        if min_drivers and max_drivers and min_drivers > max_drivers:
+            raise ValidationError("Minimum drivers cannot be greater than maximum drivers")
+        
+        if target_size:
+            if min_drivers and target_size < min_drivers:
+                raise ValidationError("Target team size cannot be less than minimum drivers")
+            if max_drivers and target_size > max_drivers:
+                raise ValidationError("Target team size cannot be greater than maximum drivers")
+        
+        # Validate template saving
+        save_template = cleaned_data.get('save_as_template')
+        template_name = cleaned_data.get('template_name')
+        
+        if save_template and not template_name:
+            raise ValidationError("Template name is required when saving as template")
+        
+        return cleaned_data
+    
+    def create_signup_sheets(self):
+        """Create signup sheets for all selected events"""
+        from datetime import timedelta
+        
+        events = self.cleaned_data['events']
+        created_sheets = []
+        
+        for event in events:
+            # Calculate signup times based on timing method
+            timing = self.cleaned_data['signup_timing']
+            
+            if timing == 'immediate':
+                signup_opens = timezone.now()
+                # Close 2 days before event by default
+                earliest_instance = event.instances.order_by('start_time').first()
+                if earliest_instance:
+                    signup_closes = earliest_instance.start_time - timedelta(days=2)
+                else:
+                    signup_closes = timezone.now() + timedelta(days=7)  # Fallback
+            
+            elif timing == 'fixed':
+                signup_opens = self.cleaned_data['fixed_signup_opens']
+                signup_closes = self.cleaned_data['fixed_signup_closes']
+            
+            else:  # relative
+                earliest_instance = event.instances.order_by('start_time').first()
+                if earliest_instance:
+                    signup_opens = earliest_instance.start_time - timedelta(
+                        days=self.cleaned_data['days_before_open']
+                    )
+                    signup_closes = earliest_instance.start_time - timedelta(
+                        days=self.cleaned_data['days_before_close']
+                    )
+                else:
+                    # Fallback if no instances
+                    signup_opens = timezone.now()
+                    signup_closes = timezone.now() + timedelta(days=7)
+            
+            # Generate title from template
+            title_template = self.cleaned_data['title_template']
+            title = title_template.format(
+                event_name=event.name,
+                date=earliest_instance.start_time.strftime('%b %d') if earliest_instance else 'TBD'
+            )
+            
+            # Create the signup sheet
+            sheet = ClubEventSignupSheet.objects.create(
+                club=self.club,
+                event=event,
+                created_by=self.user,
+                title=title,
+                description=self.cleaned_data.get('description_template', ''),
+                signup_opens=signup_opens,
+                signup_closes=signup_closes,
+                max_teams=self.cleaned_data.get('max_teams'),
+                target_team_size=self.cleaned_data['target_team_size'],
+                min_drivers_per_team=self.cleaned_data['min_drivers_per_team'],
+                max_drivers_per_team=self.cleaned_data['max_drivers_per_team'],
+                min_license_level=self.cleaned_data.get('min_license_level', ''),
+                status='open' if signup_opens <= timezone.now() else 'draft'
+            )
+            
+            created_sheets.append(sheet)
+        
+        # Save as template if requested
+        if self.cleaned_data.get('save_as_template'):
+            self._save_template()
+        
+        return created_sheets
+    
+    def _save_template(self):
+        """Save form settings as a reusable template"""
+        # TODO: Implement template saving
+        # This would create a SignupSheetTemplate model
+        pass
+
+
+# ClubEventCreateForm removed - using sim.Event.organizing_club instead
 
 
 # Legacy form classes removed (EventSignupForm, EventSignupAvailabilityForm, TeamAllocationForm)

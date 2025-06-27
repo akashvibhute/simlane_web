@@ -31,9 +31,25 @@ class Club(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     description = models.TextField(blank=True)
-    logo_url = models.URLField(blank=True)
+    
+    # Replace logo_url with ImageField
+    logo = models.ImageField(
+        upload_to='club_logos/',
+        blank=True,
+        null=True,
+        help_text="Club logo image"
+    )
+    
     website = models.URLField(blank=True)
-    social_links = models.JSONField(null=True, blank=True)
+    
+    # Replace social_links JSONField with individual fields for better UX
+    discord_url = models.URLField(blank=True, help_text="Discord server invite link")
+    twitter_url = models.URLField(blank=True, help_text="Twitter/X profile URL")
+    youtube_url = models.URLField(blank=True, help_text="YouTube channel URL")
+    twitch_url = models.URLField(blank=True, help_text="Twitch channel URL")
+    facebook_url = models.URLField(blank=True, help_text="Facebook page URL")
+    instagram_url = models.URLField(blank=True, help_text="Instagram profile URL")
+    
     is_active = models.BooleanField(default=True)
     is_public = models.BooleanField(
         default=False,
@@ -41,7 +57,7 @@ class Club(models.Model):
     )
     discord_guild_id = models.CharField(max_length=50, blank=True)
 
-    # ENHANCED: Track who created the club
+    # Track who created the club
     created_by = models.ForeignKey(
         User,
         on_delete=models.PROTECT,  # Don't delete club if creator is deleted
@@ -62,9 +78,7 @@ class Club(models.Model):
         return self.name
 
     def save(self, *args, **kwargs):
-        """Ensure club creator becomes admin on club creation and generate slug"""
-        is_new = self.pk is None
-
+        """Auto-generate slug if not provided"""
         # Auto-generate slug if not provided
         if not self.slug:
             self.slug = slugify(self.name)
@@ -77,13 +91,28 @@ class Club(models.Model):
 
         super().save(*args, **kwargs)
 
-        # If this is a new club and we have a creator, make them admin
-        if is_new and self.created_by:
-            ClubMember.objects.get_or_create(
-                user=self.created_by,
-                club=self,
-                defaults={"role": ClubRole.ADMIN},
-            )
+    @property
+    def social_links(self):
+        """Return a dictionary of social links for backward compatibility"""
+        links = {}
+        if self.discord_url:
+            links['discord'] = self.discord_url
+        if self.twitter_url:
+            links['twitter'] = self.twitter_url
+        if self.youtube_url:
+            links['youtube'] = self.youtube_url
+        if self.twitch_url:
+            links['twitch'] = self.twitch_url
+        if self.facebook_url:
+            links['facebook'] = self.facebook_url
+        if self.instagram_url:
+            links['instagram'] = self.instagram_url
+        return links
+
+    @property
+    def logo_url(self):
+        """Return logo URL for backward compatibility"""
+        return self.logo.url if self.logo else None
 
 
 class ClubMember(models.Model):
@@ -106,6 +135,10 @@ class ClubMember(models.Model):
 
     def can_manage_club(self):
         """Check if user has admin or teams manager privileges."""
+        return self.role in [ClubRole.ADMIN, ClubRole.TEAMS_MANAGER]
+
+    def can_manage_events(self):
+        """Check if this member can manage club events and signups"""
         return self.role in [ClubRole.ADMIN, ClubRole.TEAMS_MANAGER]
 
     def is_admin(self):
@@ -482,6 +515,16 @@ class EventParticipation(models.Model):
         related_name="event_participations"
     )
     
+    # Club context for signup - tracks which club's signup sheet this came from
+    signup_context_club = models.ForeignKey(
+        Club,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='event_signups',
+        help_text="Which club this signup is associated with (for club-organized signups)"
+    )
+    
     # === PARTICIPATION TYPE ===
     participation_type = models.CharField(
         max_length=20,
@@ -542,6 +585,21 @@ class EventParticipation(models.Model):
         help_text="Final car assignment after team formation"
     )
     
+    # Instance/timeslot preferences
+    preferred_instances = models.ManyToManyField(
+        EventInstance,
+        blank=True,
+        related_name="preferred_participations"
+    )
+    assigned_instance = models.ForeignKey(
+        EventInstance,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_participations",
+        help_text="Final instance assignment after team formation"
+    )
+    
     # Class selection
     preferred_classes = models.ManyToManyField(
         EventClass,
@@ -599,16 +657,6 @@ class EventParticipation(models.Model):
         help_text="Participant's timezone for this event (e.g., 'America/New_York')"
     )
     
-    # === CLUB EVENT INTEGRATION ===
-    club_event = models.ForeignKey(
-        "ClubEvent",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="participations",
-        help_text="Club event this participation is associated with"
-    )
-    
     # Legacy team allocation field removed - using direct team assignment in enhanced system
     
     # For individual team formation
@@ -654,21 +702,31 @@ class EventParticipation(models.Model):
                     ~models.Q(participation_type='team_entry', team__isnull=True)
                 ),
                 name='team_entry_requires_team'
+            ),
+            # User can only participate in one instance at a time
+            models.UniqueConstraint(
+                fields=['assigned_instance', 'user'],
+                name='unique_user_event_instance_participation',
+                condition=models.Q(assigned_instance__isnull=False, user__isnull=False)
+            ),
+            # Team can only participate in one instance at a time  
+            models.UniqueConstraint(
+                fields=['assigned_instance', 'team'],
+                name='unique_team_event_instance_participation',
+                condition=models.Q(assigned_instance__isnull=False, team__isnull=False)
             )
         ]
         
-        unique_together = [
-            ['event', 'user'],  # User can only participate once per event
-            ['event', 'team'],  # Team can only participate once per event
-        ]
+        unique_together = []  # Remove event-level constraints
         
         indexes = [
             models.Index(fields=['event', 'status']),
             models.Index(fields=['user', 'status']),
             models.Index(fields=['team', 'status']),
             models.Index(fields=['participation_type', 'status']),
-            models.Index(fields=['club_event']),
             models.Index(fields=['event', 'participation_type']),
+            models.Index(fields=['signup_context_club', 'event']),  # New index for club signups
+            models.Index(fields=['assigned_instance', 'status']),  # New index for instance queries
         ]
     
     def __str__(self):
@@ -1622,88 +1680,174 @@ class ClubInvitation(models.Model):
         self.save()
 
 
-class ClubEvent(models.Model):
-    """Club-specific event organization around existing sim.Event"""
-
+class ClubEventSignupSheet(models.Model):
+    """
+    Represents a club's signup sheet for an existing event.
+    This allows clubs to open signups for events without creating duplicate events.
+    """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="club_events")
-
-    # Link to existing sim.Event
-    base_event = models.ForeignKey(
-        Event,
-        on_delete=models.CASCADE,
-        related_name="club_events",
+    
+    # Core relationships
+    club = models.ForeignKey(
+        Club, 
+        on_delete=models.CASCADE, 
+        related_name="event_signup_sheets"
     )
-
-    # Club-specific event settings
-    title = models.CharField(max_length=255, help_text="Club-specific event title")
-    slug = models.SlugField(max_length=280, blank=True)
-    description = models.TextField(blank=True)
-    signup_deadline = models.DateTimeField()
-    max_participants = models.IntegerField(null=True, blank=True)
-
-    # Team management settings
-    requires_team_assignment = models.BooleanField(default=True)
-    auto_assign_teams = models.BooleanField(default=False)
-    team_size_min = models.IntegerField(default=2)
-    team_size_max = models.IntegerField(default=4)
-
-    # Status tracking
+    event = models.ForeignKey(
+        Event, 
+        on_delete=models.CASCADE, 
+        related_name="club_signup_sheets"
+    )
+    created_by = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE,
+        related_name="created_signup_sheets"
+    )
+    
+    # Club-specific signup details
+    title = models.CharField(
+        max_length=255, 
+        help_text="Club-specific title for this signup (e.g., 'Team Endurance - Le Mans')"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Club-specific instructions or notes about this event"
+    )
+    
+    # Signup window
+    signup_opens = models.DateTimeField(
+        help_text="When signups open for club members"
+    )
+    signup_closes = models.DateTimeField(
+        help_text="When signups close"
+    )
+    
+    # Team formation settings
+    max_teams = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Maximum number of teams the club will enter"
+    )
+    target_team_size = models.IntegerField(
+        default=4,
+        help_text="Target number of drivers per team"
+    )
+    min_drivers_per_team = models.IntegerField(
+        default=2,
+        help_text="Minimum drivers needed to form a team"
+    )
+    max_drivers_per_team = models.IntegerField(
+        default=6,
+        help_text="Maximum drivers allowed per team"
+    )
+    
+    # Requirements
+    min_license_level = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="Minimum license level required (club-specific requirement)"
+    )
+    
+    # Status
     status = models.CharField(
         max_length=20,
         choices=[
-            ("draft", "Draft"),
-            ("signup_open", "Signup Open"),
-            ("signup_closed", "Signup Closed"),
-            ("teams_assigned", "Teams Assigned"),
-            ("in_progress", "In Progress"),
-            ("completed", "Completed"),
-            ("cancelled", "Cancelled"),
+            ('draft', 'Draft'),
+            ('open', 'Open for Signups'),
+            ('closed', 'Signups Closed'),
+            ('teams_forming', 'Teams Being Formed'),
+            ('teams_finalized', 'Teams Finalized'),
+            ('cancelled', 'Cancelled'),
         ],
-        default="draft",
+        default='draft'
     )
-
-    is_active = models.BooleanField(default=True)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    
+    # Metadata
+    notes_for_admins = models.TextField(
+        blank=True,
+        help_text="Internal notes for club admins/managers"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
     class Meta:
-        unique_together = ["club", "base_event", "slug"]
+        unique_together = [['club', 'event']]  # One signup sheet per club per event
         indexes = [
-            models.Index(fields=["club"]),
-            models.Index(fields=["base_event"]),
-            models.Index(fields=["status"]),
-            models.Index(fields=["signup_deadline"]),
-            models.Index(fields=["club", "slug"]),
+            models.Index(fields=['club', 'status']),
+            models.Index(fields=['event', 'status']),
+            models.Index(fields=['signup_opens', 'signup_closes']),
+            models.Index(fields=['status']),
         ]
-
+    
     def __str__(self):
-        return f"{self.club.name} - {self.title}"
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.title)
-            # Ensure uniqueness within club
-            counter = 1
-            original_slug = self.slug
-            while ClubEvent.objects.filter(club=self.club, slug=self.slug).exists():
-                self.slug = f"{original_slug}-{counter}"
-                counter += 1
-        super().save(*args, **kwargs)
-
+        return f"{self.club.name} - {self.event.name} Signup"
+    
     @property
-    def is_signup_open(self):
-        return self.status == "signup_open" and timezone.now() < self.signup_deadline
-
+    def is_open(self):
+        """Check if signups are currently open"""
+        from django.utils import timezone
+        now = timezone.now()
+        return (
+            self.status == 'open' and 
+            self.signup_opens <= now <= self.signup_closes
+        )
+    
     @property
-    def track_layout(self):
-        """Get the track layout from the base event"""
-        return self.base_event.sim_layout
-
+    def signup_count(self):
+        """Get count of signups for this sheet"""
+        return self.event.participations.filter(
+            signup_context_club=self.club,
+            status__in=['signed_up', 'team_formation', 'team_assigned', 'entered', 'confirmed']
+        ).count()
+    
     @property
-    def pit_data(self):
-        """Get pit data from the track layout"""
-        if self.track_layout and self.track_layout.pit_data:
-            return self.track_layout.pit_data
-        return None
+    def can_open_signups(self):
+        """Check if signups can be opened"""
+        from django.utils import timezone
+        return (
+            self.status == 'draft' and 
+            self.signup_opens <= timezone.now()
+        )
+    
+    def open_signups(self):
+        """Open signups for this event"""
+        if not self.can_open_signups():
+            raise ValueError("Cannot open signups at this time")
+        
+        self.status = 'open'
+        self.save()
+    
+    def close_signups(self):
+        """Close signups and prepare for team formation"""
+        if self.status != 'open':
+            raise ValueError("Signups are not open")
+        
+        self.status = 'closed'
+        self.save()
+    
+    def get_signups(self):
+        """Get all signups for this sheet"""
+        return self.event.participations.filter(
+            signup_context_club=self.club
+        ).select_related('user').prefetch_related('availability_windows')
+    
+    def can_user_signup(self, user):
+        """Check if a user can sign up through this sheet"""
+        # Must be club member
+        is_member = self.club.members.filter(user=user).exists()
+        if not is_member:
+            return False, "You must be a member of this club"
+        
+        # Signups must be open
+        if not self.is_open:
+            return False, "Signups are not currently open"
+        
+        # User can't already be signed up for this event instance
+        existing_signup = self.event.participations.filter(user=user).exists()
+        if existing_signup:
+            return False, "You have already signed up for this event"
+        
+        return True, "You can sign up"
+
+
+# ClubEvent model removed - using sim.Event.organizing_club instead

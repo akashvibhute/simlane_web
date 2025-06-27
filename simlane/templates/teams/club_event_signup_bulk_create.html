@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | SimLane{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Breadcrumb -->
+    <nav class="mb-6">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li>
+                <a href="{% url 'teams:clubs_dashboard' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    Clubs
+                </a>
+            </li>
+            <li>
+                <span class="text-gray-400 dark:text-gray-600">/</span>
+            </li>
+            <li>
+                <a href="{% url 'teams:club_dashboard' club.slug %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    {{ club.name }}
+                </a>
+            </li>
+            <li>
+                <span class="text-gray-400 dark:text-gray-600">/</span>
+            </li>
+            <li class="text-gray-900 dark:text-gray-100">Bulk Create Signups</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Bulk Create Event Signups</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">
+            Create signup sheets for multiple events at once with shared settings.
+        </p>
+    </div>
+
+    <!-- Quick Info Card -->
+    <div class="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    Bulk Creation Benefits
+                </h3>
+                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    <ul class="list-disc list-inside space-y-1">
+                        <li>Set shared team formation settings across all events</li>
+                        <li>Use templates for consistent naming and descriptions</li>
+                        <li>Automatically calculate signup windows relative to event dates</li>
+                        <li>Save configurations as templates for future use</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-8">
+        {% csrf_token %}
+        
+        <!-- Event Selection -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                Select Events
+            </h2>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Choose events to create signup sheets for:
+                </label>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {{ form.events }}
+                </div>
+                {% if form.events.help_text %}
+                    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ form.events.help_text }}</p>
+                {% endif %}
+                {% if form.events.errors %}
+                    <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.events.errors|first }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Shared Settings -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Shared Settings
+            </h2>
+            
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <!-- Title Template -->
+                <div>
+                    <label for="{{ form.title_template.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Title Template
+                    </label>
+                    {{ form.title_template }}
+                    {% if form.title_template.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.title_template.help_text }}</p>
+                    {% endif %}
+                    {% if form.title_template.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.title_template.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Description Template -->
+                <div>
+                    <label for="{{ form.description_template.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Description Template
+                    </label>
+                    {{ form.description_template }}
+                    {% if form.description_template.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.description_template.help_text }}</p>
+                    {% endif %}
+                    {% if form.description_template.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.description_template.errors|first }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Signup Timing -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Signup Timing
+            </h2>
+            
+            <div class="space-y-4">
+                <!-- Timing Method -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        How to set signup windows:
+                    </label>
+                    <div class="space-y-2">
+                        {{ form.signup_timing }}
+                    </div>
+                    {% if form.signup_timing.help_text %}
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ form.signup_timing.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Relative Timing Options -->
+                <div id="relative-timing" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="{{ form.days_before_open.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Days Before Event to Open
+                        </label>
+                        {{ form.days_before_open }}
+                        {% if form.days_before_open.help_text %}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.days_before_open.help_text }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.days_before_close.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Days Before Event to Close
+                        </label>
+                        {{ form.days_before_close }}
+                        {% if form.days_before_close.help_text %}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.days_before_close.help_text }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Fixed Timing Options -->
+                <div id="fixed-timing" class="grid grid-cols-1 gap-4 sm:grid-cols-2" style="display: none;">
+                    <div>
+                        <label for="{{ form.fixed_signup_opens.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Fixed Open Time
+                        </label>
+                        {{ form.fixed_signup_opens }}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.fixed_signup_closes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Fixed Close Time
+                        </label>
+                        {{ form.fixed_signup_closes }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Formation Settings -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                Team Formation Settings
+            </h2>
+            
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                    <label for="{{ form.max_teams.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Max Teams
+                    </label>
+                    {{ form.max_teams }}
+                    {% if form.max_teams.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.max_teams.help_text }}</p>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label for="{{ form.target_team_size.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Target Team Size
+                    </label>
+                    {{ form.target_team_size }}
+                </div>
+
+                <div>
+                    <label for="{{ form.min_drivers_per_team.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Min Drivers
+                    </label>
+                    {{ form.min_drivers_per_team }}
+                </div>
+
+                <div>
+                    <label for="{{ form.max_drivers_per_team.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Max Drivers
+                    </label>
+                    {{ form.max_drivers_per_team }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Requirements -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Requirements (Optional)</h2>
+            
+            <div>
+                <label for="{{ form.min_license_level.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Minimum License Level
+                </label>
+                {{ form.min_license_level }}
+                {% if form.min_license_level.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.min_license_level.help_text }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Template Saving -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Save as Template</h2>
+            
+            <div class="space-y-4">
+                <div class="flex items-center">
+                    {{ form.save_as_template }}
+                    <label for="{{ form.save_as_template.id_for_label }}" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        Save these settings as a template for future use
+                    </label>
+                </div>
+                
+                <div id="template-name-field" style="display: none;">
+                    <label for="{{ form.template_name.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Template Name
+                    </label>
+                    {{ form.template_name }}
+                    {% if form.template_name.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.template_name.help_text }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-3">
+            <a href="{% url 'teams:club_event_signups' club.slug %}" 
+               class="btn btn-secondary">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Create Signup Sheets
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Show/hide timing options based on selection
+document.addEventListener('DOMContentLoaded', function() {
+    const timingRadios = document.querySelectorAll('input[name="signup_timing"]');
+    const relativeDiv = document.getElementById('relative-timing');
+    const fixedDiv = document.getElementById('fixed-timing');
+    
+    function updateTimingDisplay() {
+        const selected = document.querySelector('input[name="signup_timing"]:checked');
+        if (!selected) return;
+        
+        const value = selected.value;
+        
+        if (value === 'relative') {
+            relativeDiv.style.display = 'grid';
+            fixedDiv.style.display = 'none';
+        } else if (value === 'fixed') {
+            relativeDiv.style.display = 'none';
+            fixedDiv.style.display = 'grid';
+        } else { // immediate
+            relativeDiv.style.display = 'none';
+            fixedDiv.style.display = 'none';
+        }
+    }
+    
+    timingRadios.forEach(radio => {
+        radio.addEventListener('change', updateTimingDisplay);
+    });
+    
+    updateTimingDisplay(); // Initial state
+    
+    // Template name field visibility
+    const saveTemplateCheckbox = document.querySelector('input[name="save_as_template"]');
+    const templateNameField = document.getElementById('template-name-field');
+    
+    if (saveTemplateCheckbox && templateNameField) {
+        saveTemplateCheckbox.addEventListener('change', function() {
+            templateNameField.style.display = this.checked ? 'block' : 'none';
+        });
+    }
+});
+</script>
+{% endblock %} 

@@ -5,8 +5,7 @@ from ninja.errors import HttpError
 
 from simlane.api.schemas.clubs import Club as ClubSchema
 from simlane.api.schemas.clubs import ClubCreate
-from simlane.api.schemas.clubs import ClubEvent as ClubEventSchema
-from simlane.api.schemas.clubs import ClubEventCreate
+# ClubEvent schemas removed - using sim.Event.organizing_club instead
 from simlane.api.schemas.clubs import ClubMember as ClubMemberSchema
 from simlane.api.schemas.clubs import ClubMemberUpdate
 from simlane.api.schemas.clubs import ClubUpdate
@@ -14,7 +13,7 @@ from simlane.api.schemas.clubs import ClubUpdate
 from simlane.api.schemas.clubs import Team as TeamSchema
 from simlane.api.schemas.clubs import TeamCreate
 from simlane.teams.models import Club
-from simlane.teams.models import ClubEvent
+# ClubEvent removed - using sim.Event.organizing_club instead
 from simlane.teams.models import ClubMember
 # Legacy EventSignup model removed
 from simlane.teams.models import Team
@@ -211,53 +210,8 @@ def create_club_team(request: HttpRequest, club_id: int, team_data: TeamCreate):
     return TeamSchema.from_orm(team)
 
 
-# Event endpoints
-@router.get("/{club_id}/events", response=list[ClubEventSchema])
-def list_club_events(request: HttpRequest, club_id: int):
-    """List club events."""
-    club = get_object_or_404(Club, id=club_id)
-    check_club_access(request.auth, club)
-
-    events = ClubEvent.objects.filter(club=club).order_by("-start_date")
-    return [ClubEventSchema.from_orm(event) for event in events]
-
-
-@router.post("/{club_id}/events", response=ClubEventSchema)
-def create_club_event(request: HttpRequest, club_id: int, event_data: ClubEventCreate):
-    """Create a new event."""
-    club = get_object_or_404(Club, id=club_id)
-    check_club_manager(request.auth, club)
-
-    # TODO: Get simulator, car, track objects
-    # For now, we'll need to import and get these from the sim app
-    from simlane.sim.models import SimCar
-    from simlane.sim.models import SimTrack
-    from simlane.sim.models import Simulator
-
-    simulator = get_object_or_404(Simulator, id=event_data.simulator_id)
-    car = get_object_or_404(SimCar, id=event_data.car_id)
-    track = get_object_or_404(SimTrack, id=event_data.track_id)
-
-    event = ClubEvent.objects.create(
-        name=event_data.name,
-        description=event_data.description,
-        club=club,
-        simulator=simulator,
-        car=car,
-        track=track,
-        start_date=event_data.start_date,
-        duration_minutes=event_data.duration_minutes,
-        max_signups=event_data.max_signups,
-        signup_deadline=event_data.signup_deadline,
-        is_team_event=event_data.is_team_event,
-        max_teams=event_data.max_teams,
-        points_system=event_data.points_system,
-        event_format=event_data.event_format,
-        weather_conditions=event_data.weather_conditions,
-        track_conditions=event_data.track_conditions,
-    )
-
-    return ClubEventSchema.from_orm(event)
+# Event endpoints removed - using sim.Event.organizing_club instead
+# Clubs can organize events by setting organizing_club field on sim.Event
 
 
 # Legacy event signup endpoints removed - replaced by enhanced participation system

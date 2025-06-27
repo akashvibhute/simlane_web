@@ -5,7 +5,8 @@ from unfold.admin import ModelAdmin
 
 from .models import AvailabilityWindow
 from .models import Club
-from .models import ClubEvent
+# ClubEvent removed - using sim.Event.organizing_club instead
+from .models import ClubEventSignupSheet
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import EventParticipation
@@ -103,7 +104,6 @@ class EventParticipationAdmin(ModelAdmin):
         "backup_car",
         "assigned_car",
         "assigned_class",
-        "club_event",
         "signup_invitation"
     ]
     
@@ -409,60 +409,131 @@ class ClubInvitationAdmin(ModelAdmin):
         self.message_user(request, f"Marked {count} invitations as expired")
 
 
-@admin.register(ClubEvent)
-class ClubEventAdmin(ModelAdmin):
+@admin.register(ClubEventSignupSheet)
+class ClubEventSignupSheetAdmin(ModelAdmin):
     list_display = [
         "title",
-        "base_event",
         "club",
+        "event",
         "status",
-        "signup_deadline",
+        "signup_opens",
+        "signup_closes",
+        "signup_count",
         "created_by",
-        "is_active",
+        "created_at",
     ]
-    list_filter = ["status", "club", "is_active", "created_at"]
-    search_fields = ["title", "base_event__name", "club__name"]
-    readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["club", "base_event", "created_by"]
-
+    list_filter = [
+        "status",
+        "club",
+        "event__simulator",
+        "signup_opens",
+        "created_at",
+    ]
+    search_fields = [
+        "title",
+        "club__name",
+        "event__name",
+        "created_by__username",
+    ]
+    readonly_fields = [
+        "created_at",
+        "updated_at",
+        "signup_count",
+        "is_open",
+    ]
+    raw_id_fields = ["club", "event", "created_by"]
+    
+    @admin.display(description="Signups")
+    def signup_count(self, obj):
+        return obj.signup_count
+    
+    @admin.display(description="Open", boolean=True)
+    def is_open(self, obj):
+        return obj.is_open
+    
     fieldsets = (
-        (
-            None,
-            {
-                "fields": (
-                    "club",
-                    "base_event",
-                    "title",
-                    "description",
-                    "status",
-                    "is_active",
-                ),
-            },
-        ),
-        (
-            "Signup Settings",
-            {
-                "fields": ("signup_deadline", "max_participants"),
-            },
-        ),
-        (
-            "Team Settings",
-            {
-                "fields": (
-                    "requires_team_assignment",
-                    "auto_assign_teams",
-                    "team_size_min",
-                    "team_size_max",
-                ),
-            },
-        ),
-        (
-            "Metadata",
-            {
-                "fields": ("created_by", "created_at", "updated_at"),
-            },
-        ),
+        ("Event Information", {
+            "fields": (
+                "club",
+                "event",
+                "title",
+                "description",
+                "created_by",
+            )
+        }),
+        ("Signup Window", {
+            "fields": (
+                "signup_opens",
+                "signup_closes",
+                "status",
+                "is_open",
+            )
+        }),
+        ("Team Formation Settings", {
+            "fields": (
+                "max_teams",
+                "target_team_size",
+                "min_drivers_per_team",
+                "max_drivers_per_team",
+            )
+        }),
+        ("Requirements", {
+            "fields": (
+                "min_license_level",
+            ),
+            "classes": ("collapse",)
+        }),
+        ("Admin Notes", {
+            "fields": (
+                "notes_for_admins",
+            ),
+            "classes": ("collapse",)
+        }),
+        ("Metadata", {
+            "fields": (
+                "signup_count",
+                "created_at",
+                "updated_at",
+            ),
+            "classes": ("collapse",)
+        }),
     )
+    
+    actions = ["open_signups", "close_signups", "cancel_signups"]
+    
+    @admin.action(description="Open selected signup sheets")
+    def open_signups(self, request, queryset):
+        count = 0
+        for sheet in queryset:
+            try:
+                sheet.open_signups()
+                count += 1
+            except ValueError as e:
+                self.message_user(request, f"Could not open {sheet.title}: {str(e)}", level="ERROR")
+        
+        if count:
+            self.message_user(request, f"Opened {count} signup sheet(s)")
+    
+    @admin.action(description="Close selected signup sheets")
+    def close_signups(self, request, queryset):
+        count = 0
+        for sheet in queryset:
+            try:
+                sheet.close_signups()
+                count += 1
+            except ValueError as e:
+                self.message_user(request, f"Could not close {sheet.title}: {str(e)}", level="ERROR")
+        
+        if count:
+            self.message_user(request, f"Closed {count} signup sheet(s)")
+    
+    @admin.action(description="Cancel selected signup sheets")
+    def cancel_signups(self, request, queryset):
+        count = queryset.update(status='cancelled')
+        self.message_user(request, f"Cancelled {count} signup sheet(s)")
+
+
+# ClubEventAdmin removed - using sim.Event.organizing_club instead
 
 
 

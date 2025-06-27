@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | SimLane{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <!-- Breadcrumb -->
+    <nav class="mb-6">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li>
+                <a href="{% url 'teams:clubs_dashboard' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    Clubs
+                </a>
+            </li>
+            <li>
+                <span class="text-gray-400 dark:text-gray-600">/</span>
+            </li>
+            <li>
+                <a href="{% url 'teams:club_dashboard' club.slug %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    {{ club.name }}
+                </a>
+            </li>
+            <li>
+                <span class="text-gray-400 dark:text-gray-600">/</span>
+            </li>
+            <li class="text-gray-900 dark:text-gray-100">Create Event Signup</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Create Event Signup</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">
+            Create a signup sheet for club members to register their interest in an event.
+        </p>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Event Selection -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Event Selection</h2>
+            
+            <div>
+                <label for="{{ form.event.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Select Event
+                </label>
+                {{ form.event }}
+                {% if form.event.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.event.help_text }}</p>
+                {% endif %}
+                {% if form.event.errors %}
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.event.errors|first }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Signup Details -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Signup Details</h2>
+            
+            <div class="space-y-4">
+                <!-- Title -->
+                <div>
+                    <label for="{{ form.title.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Signup Title
+                    </label>
+                    {{ form.title }}
+                    {% if form.title.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.title.help_text }}</p>
+                    {% endif %}
+                    {% if form.title.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.title.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Description
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.description.help_text }}</p>
+                    {% endif %}
+                    {% if form.description.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.description.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Signup Window -->
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="{{ form.signup_opens.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Signup Opens
+                        </label>
+                        {{ form.signup_opens }}
+                        {% if form.signup_opens.help_text %}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.signup_opens.help_text }}</p>
+                        {% endif %}
+                        {% if form.signup_opens.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.signup_opens.errors|first }}</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.signup_closes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Signup Closes
+                        </label>
+                        {{ form.signup_closes }}
+                        {% if form.signup_closes.help_text %}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.signup_closes.help_text }}</p>
+                        {% endif %}
+                        {% if form.signup_closes.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.signup_closes.errors|first }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Formation Settings -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Team Formation Settings</h2>
+            
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <!-- Max Teams -->
+                <div>
+                    <label for="{{ form.max_teams.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Maximum Teams
+                    </label>
+                    {{ form.max_teams }}
+                    {% if form.max_teams.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.max_teams.help_text }}</p>
+                    {% endif %}
+                    {% if form.max_teams.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.max_teams.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Target Team Size -->
+                <div>
+                    <label for="{{ form.target_team_size.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Target Team Size
+                    </label>
+                    {{ form.target_team_size }}
+                    {% if form.target_team_size.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.target_team_size.help_text }}</p>
+                    {% endif %}
+                    {% if form.target_team_size.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.target_team_size.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Min Drivers -->
+                <div>
+                    <label for="{{ form.min_drivers_per_team.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Minimum Drivers per Team
+                    </label>
+                    {{ form.min_drivers_per_team }}
+                    {% if form.min_drivers_per_team.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.min_drivers_per_team.help_text }}</p>
+                    {% endif %}
+                    {% if form.min_drivers_per_team.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.min_drivers_per_team.errors|first }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Max Drivers -->
+                <div>
+                    <label for="{{ form.max_drivers_per_team.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Maximum Drivers per Team
+                    </label>
+                    {{ form.max_drivers_per_team }}
+                    {% if form.max_drivers_per_team.help_text %}
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.max_drivers_per_team.help_text }}</p>
+                    {% endif %}
+                    {% if form.max_drivers_per_team.errors %}
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.max_drivers_per_team.errors|first }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Requirements -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Requirements (Optional)</h2>
+            
+            <div>
+                <label for="{{ form.min_license_level.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Minimum License Level
+                </label>
+                {{ form.min_license_level }}
+                {% if form.min_license_level.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.min_license_level.help_text }}</p>
+                {% endif %}
+                {% if form.min_license_level.errors %}
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.min_license_level.errors|first }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Admin Notes -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Admin Notes (Optional)</h2>
+            
+            <div>
+                <label for="{{ form.notes_for_admins.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Internal Notes
+                </label>
+                {{ form.notes_for_admins }}
+                {% if form.notes_for_admins.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.notes_for_admins.help_text }}</p>
+                {% endif %}
+                {% if form.notes_for_admins.errors %}
+                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.notes_for_admins.errors|first }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-3">
+            <a href="{% url 'teams:club_dashboard' club.slug %}" 
+               class="btn btn-secondary">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                Create Signup Sheet
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %} 

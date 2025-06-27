@@ -246,11 +246,6 @@ UNFOLD = {
                         "link": reverse_lazy("admin:teams_clubmember_changelist"),
                     },
                     {
-                        "title": _("Club Events"),
-                        "icon": "event_note",
-                        "link": reverse_lazy("admin:teams_clubevent_changelist"),
-                    },
-                    {
                         "title": _("Club Invitations"),
                         "icon": "mail_outline",
                         "link": reverse_lazy("admin:teams_clubinvitation_changelist"),

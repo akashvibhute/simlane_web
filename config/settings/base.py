@@ -364,6 +364,9 @@ SOCIALACCOUNT_ADAPTER = "simlane.users.adapters.SocialAccountAdapter"
 SOCIALACCOUNT_FORMS = {"signup": "simlane.users.forms.UserSocialSignupForm"}
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_STORE_TOKENS = True
+# https://docs.allauth.org/en/latest/socialaccount/configuration.html
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_EMAIL_REQUIRED = True
 # https://docs.allauth.org/en/latest/socialaccount/providers/discord.html
 SOCIALACCOUNT_PROVIDERS = {
     "discord": {
@@ -371,12 +374,20 @@ SOCIALACCOUNT_PROVIDERS = {
         "AUTH_PARAMS": {
             "access_type": "online",
         },
+        'EMAIL_AUTHENTICATION': True,
+        "APPS": [
+            {
+                "client_id": env("DISCORD_CLIENT_ID"),
+                "secret": env("DISCORD_CLIENT_SECRET"),
+            }
+        ]
     },
     "garage61": {
         "SCOPE": ["driving_data"],
         "AUTH_PARAMS": {
             "access_type": "online",
         },
+        'EMAIL_AUTHENTICATION': True
     },
 }
 

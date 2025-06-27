@@ -1,228 +1,202 @@
 # SimLane Club Management Implementation Status
 
 ## Overview
-This document tracks the implementation progress of the comprehensive club management system for SimLane, as outlined in the ClubPlan.md.
+This document tracks the implementation progress of the comprehensive club management system for SimLane.
 
-## Current Status: 100% Complete ✅
+## Current Status: 40% Complete ⚠️
 
-### Backend Implementation: 100% Complete ✅
+### 🎯 **MAJOR ARCHITECTURE SIMPLIFICATION COMPLETED** ✅
+**Decision**: Remove `ClubEvent` model and use existing `sim.Event` with enhanced race planning capabilities.
 
-#### Models (Complete)
-- ✅ `Club` model with member management
-- ✅ `ClubMember` model with role-based permissions
-- ✅ `ClubInvitation` model with token-based invitations
-- ✅ `EventSignup` model for organizing event signups
-- ✅ `EventSignupEntry` model for member registrations
-- ✅ `EventSignupAvailability` model for session availability
-- ✅ `TeamAllocation` model for team assignments
-- ✅ `TeamAllocationMember` model for team rosters
-- ✅ `StintAssignment` model for stint planning
+**Rationale**: 
+- `sim.Event` already has `organizing_club` and `organizing_user` fields
+- Universal race planning should be available to all users, not just club members
+- Clubs can participate in any event (official, user-created, or club-organized)
+- Eliminates data duplication and complexity
 
-#### Services & Business Logic (Complete)
-- ✅ `ClubInvitationService` - invitation workflow management
-- ✅ `EventSignupService` - signup sheet management
-- ✅ `TeamAllocationService` - AI-assisted team splitting
-- ✅ `StintPlanningService` - pit strategy and stint optimization
-- ✅ `NotificationService` - email notifications
+**Status**: ✅ **COMPLETED**
+- ✅ ClubEvent model removed from models.py
+- ✅ Migration applied successfully
+- ✅ Admin registration removed
+- ✅ API endpoints removed
+- ✅ Forms removed
+- ✅ Basic import cleanup completed
+- ⚠️ Views cleanup pending (many ClubEvent references remain)
+- ⚠️ URL patterns need updating
+- ⚠️ Templates need updating
 
-#### Views & URLs (Complete)
-- ✅ Club management views (create, update, members, invitations)
-- ✅ Event signup views (create, detail, join, close)
-- ✅ Team allocation views (wizard, preview, create)
-- ✅ Team planning views (dashboard, stint planning)
-- ✅ HTMX partial views for dynamic updates
-- ✅ Complete URL routing with proper namespacing
+### Backend Implementation: 50% Complete ⚠️
 
-#### Admin Interface (Complete)
-- ✅ All model admin configurations
-- ✅ Custom admin actions for bulk operations
-- ✅ Search and filtering capabilities
-- ✅ Proper permission handling
+#### Models (Simplified & Enhanced)
+- ✅ `Club` model with member management (Updated with ImageField logo, individual social URLs)
+- ✅ `ClubMember` model with enhanced roles and permissions
+- ✅ `Team` model with flexible ownership (user/imported) and club association
+- ✅ `TeamMember` model with detailed roles and permissions
+- ✅ `EventParticipation` unified model (replaces EventEntry/EventSignup)
+- ✅ `AvailabilityWindow` for granular time-based availability
+- ✅ `RaceStrategy` and `StintPlan` for team strategy management
+- ✅ `EventSignupInvitation` for individual event team formation
+- ✅ `ClubInvitation` with enhanced security and tracking
+- ❌ **ClubEvent model removed** (using Event.organizing_club instead)
 
-#### Forms & Validation (Complete)
-- ✅ `ClubCreateForm` and `ClubUpdateForm`
-- ✅ `ClubInvitationForm` with email validation
-- ✅ `EventSignupCreateForm` and `EventSignupEntryForm`
-- ✅ `EventSignupAvailabilityFormSet` for multi-session events
-- ✅ `TeamAllocationForm` with member selection
-- ✅ Comprehensive form validation and error handling
+#### Database Migrations
+- ✅ Club model updates (logo ImageField, social URLs)
+- ✅ ClubEvent removal migration applied
+- ✅ All models properly migrated
 
-#### Utilities & Helpers (Complete)
-- ✅ Token generation and validation utilities
-- ✅ Team allocation algorithms (skill-balanced, availability-optimized)
-- ✅ Stint planning calculations with pit data integration
-- ✅ Data export utilities (CSV, PDF)
-- ✅ Notification context helpers
+#### Admin Interface
+- ✅ Club admin with enhanced fieldsets and filters
+- ✅ ClubMember admin with role management
+- ✅ Team admin with ownership and club filtering
+- ✅ EventParticipation admin with comprehensive fields
+- ✅ Enhanced admin for all new models
+- ✅ ClubEvent admin removed
 
-#### Decorators & Permissions (Complete)
-- ✅ `@club_admin_required` decorator
-- ✅ `@club_manager_required` decorator
-- ✅ `@club_member_required` decorator
-- ✅ `@event_signup_access` decorator
-- ✅ `@team_allocation_access` decorator
+#### API Endpoints (Django Ninja)
+- ✅ Club CRUD operations
+- ✅ Club member management
+- ✅ Team management and association
+- ✅ Event participation endpoints
+- ✅ ClubEvent endpoints removed
+- ⚠️ Need to add Event.organizing_club integration
 
-### Frontend Implementation: 100% Complete ✅
+#### Forms & Validation
+- ✅ ClubCreateForm with ImageField and individual social URLs
+- ✅ ClubUpdateForm with proper validation
+- ✅ ClubInvitationForm with enhanced security
+- ✅ EnhancedEventSignupForm for participation
+- ✅ TeamFormationSettingsForm for team creation
+- ✅ ClubEventCreateForm removed
+- ⚠️ Need Event organization forms
 
-#### Core Templates (Complete)
-- ✅ `club_create.html` - Club creation with form validation
-- ✅ `club_members.html` - Member management with role controls
-- ✅ `event_signup_create.html` - Multi-step signup creation wizard
-- ✅ `club_invitation_form.html` - Member invitation interface
-- ✅ `event_signup_detail.html` - Comprehensive signup management
-- ✅ `event_signup_join.html` - Member signup form with availability
-- ✅ `team_allocation_wizard.html` - Drag-and-drop team allocation
-- ✅ `team_planning_dashboard.html` - Team strategy and communication
+#### Services & Business Logic
+- ✅ EventParticipationService for unified participation
+- ✅ ClubInvitationService (referenced but needs implementation)
+- ✅ Team formation algorithms and recommendations
+- ✅ Availability analysis and overlap detection
+- ✅ Race strategy and stint planning
+- ⚠️ ClubEvent service methods removed (need Event.organizing_club equivalents)
 
-#### HTMX Partial Templates (Complete)
-- ✅ `club_members_partial.html` - Real-time member management with role changes, invitation handling, and online status
-- ✅ `signup_entries_partial.html` - Dynamic signup updates with sorting, statistics, and activity feed
-- ✅ `stint_plan_partial.html` - Collaborative stint planning with real-time timeline, cursor tracking, and conflict resolution
+### Frontend Implementation: 20% Complete ⚠️
 
-#### Email Templates (Complete)
-- ✅ `emails/club_invitation.html` - Professional invitation emails with role explanations
-- ✅ `emails/event_signup_confirmation.html` - Event registration confirmations
-- ✅ `emails/team_allocation_notification.html` - Team assignment notifications
+#### Templates & Views
+- ✅ Club dashboard with responsive design and dark mode
+- ✅ Club creation/update forms with proper styling
+- ✅ Club member management interface
+- ✅ Club invitation system
+- ✅ Browse clubs functionality
+- ⚠️ **ClubEvent views need major refactoring** (many broken references)
+- ❌ Event organization through clubs
+- ❌ Team formation interfaces
+- ❌ Race planning interfaces
+- ❌ Availability management UI
 
-#### JavaScript Components (Enhanced)
-- ✅ `team_allocation.js` - Drag-and-drop team builder with validation
-- ✅ `stint_planning.js` - **Enhanced** with real-time collaboration features:
-  - ✅ WebSocket-based real-time updates
-  - ✅ Collaborative cursor tracking
-  - ✅ Conflict resolution system
-  - ✅ Advanced undo/redo with collaborative history
-  - ✅ Presence indicators and user status
-  - ✅ Auto-save functionality
-  - ✅ Mobile-optimized timeline interactions
+#### URL Patterns
+- ✅ Club CRUD URLs with slug support
+- ✅ Club member management URLs
+- ✅ Club invitation URLs
+- ⚠️ **Event signup URLs need updating** (ClubEvent references removed)
+- ❌ Team formation URLs
+- ❌ Race planning URLs
 
-#### CSS & Styling (Complete)  
-- ✅ `teams.css` - Comprehensive styling for all team components
-- ✅ Drag-and-drop visual feedback and animations
-- ✅ Timeline visualization for stint planning
-- ✅ Responsive design for mobile and desktop
-- ✅ Print-optimized styles for race day schedules
-- ✅ Loading states and transition animations
+#### HTMX Integration
+- ✅ Club dashboard sections with HTMX loading
+- ✅ Member management with dynamic updates
+- ⚠️ Event signup interfaces need updating
+- ❌ Team formation workflows
+- ❌ Real-time availability updates
 
-#### Management Commands (Complete)
-- ✅ `cleanup_expired_invitations.py` - Automated maintenance
-- ✅ Directory structure for management commands
+#### Styling & UX
+- ✅ Tailwind v4 with design tokens
+- ✅ Dark mode support throughout
+- ✅ Responsive design for mobile
+- ✅ Accessibility improvements
+- ✅ Form styling with proper classes
+- ⚠️ Event interfaces need styling updates
 
-### All Core Features Complete ✅
+### Integration Points: 30% Complete ⚠️
 
-#### Final Templates Delivered (3 templates)
-1. ✅ `team_allocation_preview.html` - Comprehensive preview with team statistics, validation warnings, and finalization workflow
-2. ✅ `club_dashboard_content_partial.html` updates - Enhanced dashboard with event signups, team allocations, and management sections
-3. ✅ Custom error pages - Racing-themed 404 ("Off Track"), 500 ("Engine Failure"), and 403 ("Access Restricted") pages with SimLane branding
+#### sim.Event Integration
+- ✅ Event model has organizing_club field
+- ✅ EventParticipation links directly to Event
+- ⚠️ Need club event organization workflows
+- ❌ Club event discovery and browsing
+- ❌ Club-specific event settings
 
-#### Testing Infrastructure (Optional - Skipped per user request)
-- ❌ `test_models.py` - Model validation and relationships
-- ❌ `test_views.py` - View functionality and permissions
-- ❌ `test_forms.py` - Form validation and behavior
-- ❌ `test_services.py` - Business logic and algorithms
-- ❌ `test_utils.py` - Utility functions and calculations
-- ❌ `factories.py` - Test data generation
+#### Discord Integration
+- ✅ Discord URL field in Club model
+- ❌ Discord bot integration for clubs
+- ❌ Automated role management
+- ❌ Event announcements
 
-#### Sample Data & Documentation (Optional - Skipped per user request)
-- ❌ `generate_sample_data.py` - Development data generation
-- ❌ API documentation for integration points
-- ❌ User guide documentation
+#### iRacing Integration
+- ✅ Team import from iRacing
+- ✅ Profile linking for team ownership
+- ❌ Event import for club organization
+- ❌ Results integration
 
-## System Capabilities Delivered ✅
+### Testing: 10% Complete ❌
 
-### Complete Club Management Workflow
-1. ✅ **Club Creation & Setup** - Professional club creation with branding
-2. ✅ **Member Invitation System** - Email-based invitations with role assignments
-3. ✅ **Event Signup Management** - Comprehensive signup sheets with availability tracking
-4. ✅ **AI-Powered Team Allocation** - Multiple algorithms for optimal team balance
-5. ✅ **Advanced Stint Planning** - Timeline-based planning with pit strategy integration
-6. ✅ **Real-Time Collaboration** - Live updates and team coordination tools
+#### Unit Tests
+- ❌ Model tests for all club models
+- ❌ Form validation tests
+- ❌ Service method tests
+- ❌ API endpoint tests
 
-### Key Features Implemented
-- ✅ **Drag-and-Drop Team Builder** - Intuitive team allocation interface
-- ✅ **Smart Allocation Algorithms** - Skill-balanced, availability-optimized, car-preference based
-- ✅ **Professional Email Templates** - Branded communications with clear CTAs
-- ✅ **Mobile-Responsive Design** - Optimized for all device types
-- ✅ **Pit Strategy Integration** - Uses existing PitData model for fuel/tire calculations
-- ✅ **Export Capabilities** - PDF/CSV export for race day schedules
-- ✅ **Permission System** - Role-based access control (Admin, Teams Manager, Member)
-- ✅ **Timeline Visualization** - SVG-based stint planning with visual feedback
+#### Integration Tests
+- ❌ Club workflow tests
+- ❌ Team formation tests
+- ❌ Event participation tests
+- ❌ Permission and security tests
 
-### Integration Points
-- ✅ **Existing SimLane Models** - Seamless integration with User, Event, SimCar, PitData
-- ✅ **Email Service** - Leverages existing core email infrastructure
-- ✅ **Authentication** - Works with current user authentication system
-- ✅ **Admin Interface** - Consistent with existing admin theme and patterns
+### Documentation: 15% Complete ⚠️
 
-## Performance & Scalability Considerations
+#### Technical Documentation
+- ✅ This implementation status document
+- ✅ Model documentation in Club.md
+- ⚠️ Need to update for ClubEvent removal
+- ❌ API documentation
+- ❌ Workflow documentation
 
-### Implemented Optimizations
-- ✅ **Efficient Database Queries** - Proper use of select_related and prefetch_related
-- ✅ **HTMX Integration** - Reduced page loads with dynamic updates
-- ✅ **JavaScript Performance** - Optimized algorithms for large team allocations
-- ✅ **CSS Optimization** - Efficient styling with minimal bundle size
+#### User Documentation
+- ❌ Club management guide
+- ❌ Team formation guide
+- ❌ Event organization guide
+- ❌ Race planning guide
 
-### Production Readiness
-- ✅ **Security** - CSRF protection, permission decorators, secure token generation
-- ✅ **Error Handling** - Comprehensive validation and user feedback
-- ✅ **Logging** - Proper logging for debugging and monitoring
-- ✅ **Database Migrations** - Clean migration path for existing installations
+## Next Priority Actions
 
-## Deployment Notes
+### Immediate (This Session)
+1. **Clean up ClubEvent view references** - Many views still import/use ClubEvent
+2. **Update URL patterns** - Remove ClubEvent-based URLs
+3. **Fix template references** - Update templates to use Event.organizing_club
+4. **Test basic club functionality** - Ensure club creation/management still works
 
-### Database Changes Required
-```bash
-just manage makemigrations teams
-just manage migrate
-```
+### Short Term (Next Few Sessions)
+1. **Implement Event.organizing_club workflows** - Club event organization
+2. **Create event discovery for clubs** - Browse and organize events
+3. **Update team formation interfaces** - Remove ClubEvent dependencies
+4. **Enhance race planning** - Direct Event-based planning
 
-### Static Files
-```bash
-just manage collectstatic
-```
+### Medium Term
+1. **Complete frontend implementation** - All club workflows
+2. **Add comprehensive testing** - Unit and integration tests
+3. **Discord integration** - Bot and automation
+4. **Mobile app considerations** - API completeness
 
-### Dependencies
-All required dependencies are already included in the existing requirements files. No new packages needed.
+## Key Decisions Made
 
-### Celery Tasks (Future Enhancement)
-The system is ready for background task integration for:
-- Email sending optimization
-- Large team allocation processing
-- Automated cleanup tasks
+1. **ClubEvent Removal**: Simplified architecture using Event.organizing_club
+2. **ImageField for logos**: Better UX than URL fields
+3. **Individual social URLs**: Better UX than JSONField
+4. **Unified EventParticipation**: Single model for all participation types
+5. **Flexible team ownership**: Support both user-created and imported teams
+6. **Granular availability**: Time-window based availability system
 
-## Summary
+## Architecture Benefits
 
-The club management system is **100% complete** and ready for production use. All core functionality is fully implemented with a professional user interface, comprehensive feature set, advanced real-time collaboration capabilities, and enhanced user experience features.
-
-**Ready for immediate use:**
-- ✅ Club creation and member management with real-time updates
-- ✅ Event signup workflows with dynamic statistics and activity feeds
-- ✅ Team allocation with drag-and-drop interface and AI algorithms
-- ✅ **Advanced stint planning** with collaborative timeline and conflict resolution
-- ✅ **Real-time collaboration** with cursor tracking and presence indicators
-- ✅ **Enhanced dashboard** with integrated event signups and team allocation management
-- ✅ **Professional error pages** with racing-themed branding and helpful navigation
-- ✅ **Team allocation preview** with comprehensive statistics and validation feedback
-
-### Advanced Features Delivered
-- ✅ **Enterprise-grade collaboration** - Real-time cursor tracking, conflict resolution, and collaborative editing
-- ✅ **Comprehensive team preview** - Detailed team statistics, skill balancing, and validation warnings
-- ✅ **Enhanced dashboard integration** - Seamless workflow from club management to event execution
-- ✅ **Professional error handling** - Branded error pages with contextual help and navigation
-- ✅ **Mobile-optimized interfaces** - Touch-friendly controls for all devices
-- ✅ **Accessibility compliance** - Screen reader support and keyboard navigation
-- ✅ Email notifications for all key events
-- ✅ Mobile-optimized interfaces for all workflows
-
-**New Advanced Features Completed:**
-- ✅ **Real-Time Collaboration** - WebSocket-based live updates with cursor tracking
-- ✅ **Conflict Resolution** - Intelligent handling of simultaneous edits
-- ✅ **Advanced Timeline** - SVG-based stint planning with visual feedback
-- ✅ **Collaborative History** - Undo/redo with team-wide synchronization
-- ✅ **Presence Indicators** - Live user status and activity tracking
-- ✅ **Auto-Save** - Seamless data persistence during collaboration
-
-**Remaining minor work (5%):**
-1. Team allocation preview template (optional enhancement)
-2. Dashboard integration updates (minor UI improvements)
-3. Custom error pages (optional branding)
-
-**System is production-ready** with professional-grade features comparable to enterprise collaboration tools. The real-time collaboration and advanced stint planning capabilities provide a significant competitive advantage for organized sim racing. 
+1. **Simplified Data Model**: No duplication between ClubEvent and Event
+2. **Universal Race Planning**: Available to all users, not just club members
+3. **Flexible Event Organization**: Clubs can organize any event type
+4. **Better UX**: Individual form fields instead of JSON configuration
+5. **Mobile Ready**: Clean API structure for mobile app development
