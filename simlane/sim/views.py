@@ -102,6 +102,8 @@ def profiles_list(request):
     }
     
     if request.headers.get('HX-Request'):
+        if request.GET:
+            return render(request, 'sim/profiles/profiles_results_partial.html', context)
         return render(request, 'sim/profiles/list_partial.html', context)
     return render(request, 'sim/profiles/list.html', context)
 
@@ -469,8 +471,9 @@ def cars_list(request):
     if simulator_slug:
         cars = cars.filter(sim_cars__simulator__slug=simulator_slug)
     
-    if car_class_slug:
-        cars = cars.filter(car_class__slug=car_class_slug)
+    # TODO: Update car class filtering to use new system
+    # if car_class_slug:
+    #     cars = cars.filter(car_class__slug=car_class_slug)
     
     if manufacturer:
         cars = cars.filter(manufacturer__iexact=manufacturer)
@@ -479,7 +482,7 @@ def cars_list(request):
         cars = cars.filter(
             Q(name__icontains=search_query) |
             Q(manufacturer__icontains=search_query) |
-            Q(car_class__name__icontains=search_query)
+            Q(category__icontains=search_query)
         )
     
     # Get filter options
@@ -516,6 +519,9 @@ def cars_list(request):
     }
     
     if request.htmx:
+        # Distinguish between initial HTMX load and subsequent filter/pagination requests
+        if request.GET:
+            return render(request, 'sim/cars/cars_list_partial.html', context)
         return render(request, 'sim/cars/list_partial.html', context)
     return render(request, 'sim/cars/list.html', context)
 
@@ -523,7 +529,7 @@ def cars_list(request):
 def car_detail(request, car_slug):
     """Detailed view of a specific car"""
     car = get_object_or_404(
-        CarModel.objects.select_related('car_class').prefetch_related(
+        CarModel.objects.prefetch_related(
             Prefetch(
                 'sim_cars',
                 queryset=SimCar.objects.select_related('simulator', 'pit_data').filter(is_active=True),
@@ -532,12 +538,12 @@ def car_detail(request, car_slug):
         slug=car_slug
     )
     
-    # Get related cars (same class or manufacturer)
+    # Get related cars (same category or manufacturer)
     related_cars = CarModel.objects.filter(
-        Q(car_class=car.car_class) | Q(manufacturer=car.manufacturer)
+        Q(category=car.category) | Q(manufacturer=car.manufacturer)
     ).exclude(
         id=car.id
-    ).select_related('car_class').annotate(
+    ).annotate(
         simulator_count=Count('sim_cars__simulator', distinct=True)
     )[:8]
     
@@ -630,6 +636,8 @@ def tracks_list(request):
     }
     
     if request.htmx:
+        if request.GET:
+            return render(request, 'sim/tracks/tracks_list_partial.html', context)
         return render(request, 'sim/tracks/list_partial.html', context)
     return render(request, 'sim/tracks/list.html', context)
 
@@ -762,6 +770,19 @@ def events_list(request):
     """Public listing of all events"""
     events = get_events_queryset()
     
+    # Apply search filter
+    search_query = request.GET.get('q')
+    if search_query:
+        events = events.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(sim_layout__sim_track__track_model__name__icontains=search_query) |
+            Q(sim_layout__name__icontains=search_query) |
+            Q(series__name__icontains=search_query) |
+            Q(organizing_club__name__icontains=search_query) |
+            Q(organizing_user__username__icontains=search_query)
+        )
+    
     # Apply filters
     simulator_slug = request.GET.get('simulator')
     event_source = request.GET.get('source')
@@ -790,12 +811,112 @@ def events_list(request):
             'simulator': simulator_slug,
             'source': event_source,
             'status': status,
+            'q': search_query,
         }
     }
     
     if request.headers.get('HX-Request'):
-        return render(request, 'sim/events/list_partial.html', context)
+        # Check if this is a filter/pagination request (has query parameters)
+        if request.GET:
+            # Return only the events list partial for filter/pagination requests
+            return render(request, 'sim/events/events_list_partial.html', context)
+        else:
+            # Return the full partial with filters for initial HTMX load
+            return render(request, 'sim/events/list_partial.html', context)
     return render(request, 'sim/events/list.html', context)
+
+
+@cache_for_anonymous(timeout=900)  # 15 minutes
+def upcoming_events_list(request):
+    """Public listing of upcoming events only"""
+    from django.utils import timezone
+    
+    events = get_events_queryset()
+    
+    # Filter to only upcoming events (events with future instances)
+    events = events.filter(
+        instances__start_time__gt=timezone.now()
+    ).distinct()
+    
+    # Apply search filter
+    search_query = request.GET.get('q')
+    if search_query:
+        events = events.filter(
+            Q(name__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(sim_layout__sim_track__track_model__name__icontains=search_query) |
+            Q(sim_layout__name__icontains=search_query) |
+            Q(series__name__icontains=search_query) |
+            Q(organizing_club__name__icontains=search_query) |
+            Q(organizing_user__username__icontains=search_query)
+        )
+    
+    # Apply filters
+    simulator_slug = request.GET.get('simulator')
+    event_source = request.GET.get('source')
+    status = request.GET.get('status')
+    
+    if simulator_slug:
+        events = events.filter(simulator__slug=simulator_slug)
+    
+    if event_source:
+        events = events.filter(event_source=event_source)
+        
+    if status:
+        events = events.filter(status=status)
+    
+    # Check for dropdown mode (for club signup autocomplete)
+    dropdown_mode = request.GET.get('dropdown') or request.POST.get('dropdown')
+    
+    if dropdown_mode:
+        # For dropdown mode, only show results if there's a search query
+        if not search_query or search_query.strip() == '':
+            context = {
+                'events': [],
+                'search_query': search_query,
+            }
+            return render(request, 'sim/events/dropdown_results_partial.html', context)
+        
+        # For dropdown mode, limit results and return simple dropdown template
+        events = events.select_related(
+            'simulator', 'series', 'sim_layout__sim_track__track_model'
+        ).prefetch_related('instances').order_by('instances__start_time')[:10]
+        
+        context = {
+            'events': events,
+            'search_query': search_query,
+        }
+        return render(request, 'sim/events/dropdown_results_partial.html', context)
+    
+    # Normal page mode - with pagination
+    events = events.order_by('instances__start_time')
+    paginator = Paginator(events, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'simulators': get_active_simulators(),
+        'event_sources': EventSource.choices,
+        'event_statuses': EventStatus.choices,
+        'current_filters': {
+            'simulator': simulator_slug,
+            'source': event_source,
+            'status': status,
+            'q': search_query,
+        },
+        'is_upcoming_view': True,  # Flag to indicate this is the upcoming view
+    }
+    
+    if request.headers.get('HX-Request'):
+        # Check if this is a filter/pagination request (has query parameters)
+        if request.GET and not dropdown_mode:
+            # Return only the events list partial for filter/pagination requests
+            return render(request, 'sim/events/events_list_partial.html', context)
+        else:
+            # Return the full partial with filters for initial HTMX load
+            return render(request, 'sim/events/list_partial.html', context)
+    return render(request, 'sim/events/upcoming_list.html', context)
 
 
 def event_detail(request, event_slug):

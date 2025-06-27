@@ -217,16 +217,8 @@ class Command(BaseCommand):
                 if not car_model_name:
                     car_model_name = car_full_name or 'Unknown'
 
-                # Create or get car class (keeping for backward compatibility)
-                car_class, class_created = CarClass.objects.get_or_create(
-                    name=normalized_category.replace('_', ' ').title(),
-                    defaults={
-                        'slug': slugify(normalized_category),
-                        'description': f'Car class from iRacing: {normalized_category}',
-                    }
-                )
-                if class_created:
-                    created_car_classes += 1
+                # NOTE: No longer creating artificial car classes from category
+                # Real car classes will be imported via load_car_classes command
 
                 # Prepare search filters for easier searching
                 search_filters = [
@@ -264,7 +256,6 @@ class Command(BaseCommand):
                 car_model, model_created = CarModel.objects.get_or_create(
                     name=car_model_name,
                     manufacturer=car_make,
-                    car_class=car_class,
                     defaults=car_model_defaults
                 )
                 

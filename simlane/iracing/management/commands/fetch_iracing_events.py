@@ -109,7 +109,6 @@ class Command(BaseCommand):
                 self.stdout.write("Starting synchronous execution...")
                 
                 # Execute the sync logic directly without Celery
-                from simlane.iracing.services import iracing_service
                 
                 events_created = 0
                 events_updated = 0

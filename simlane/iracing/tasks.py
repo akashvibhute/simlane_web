@@ -19,9 +19,9 @@ from asgiref.sync import async_to_sync
 
 from simlane.iracing.services import IRacingServiceError, iracing_service
 from simlane.sim.models import (
-    CarModel, Event, EventInstance, EventStatus, SimCar, SimLayout, 
+    CarModel, Event, EventInstance, EventStatus, Series, EventSource, SimCar, SimLayout, 
     SimProfile, SimProfileCarOwnership, SimProfileTrackOwnership, SimTrack, Simulator, TrackModel,
-    EventResult, TeamResult, ParticipantResult
+    EventResult, TeamResult, ParticipantResult, Season, RaceWeek, CarRestriction
 )
 from simlane.teams.models import Team
 from simlane.sim.utils import create_event_result_from_api, create_team_and_participant_results
@@ -686,7 +686,6 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
     Returns:
         Tuple of (events_created, events_updated, errors)
     """
-    from simlane.sim.models import Series, Event, EventSource, EventStatus, Simulator, SimTrack, SimLayout
     
     events_created = 0
     events_updated = 0
@@ -701,22 +700,100 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
         errors.append(error_msg)
         return events_created, events_updated, errors
     
+    # Fetch all series data to get proper series names
+    try:
+        from simlane.iracing.services import iracing_service
+        series_data = iracing_service.get_series()
+        # Create a lookup map of series_id -> series info
+        series_lookup = {}
+        if isinstance(series_data, dict) and 'data' in series_data:
+            series_list = series_data['data']
+        elif isinstance(series_data, list):
+            series_list = series_data
+        else:
+            series_list = []
+            
+        for series_info in series_list:
+            series_id = series_info.get('series_id')
+            if series_id:
+                series_lookup[series_id] = series_info
+        
+        logger.info(f"Loaded {len(series_lookup)} series for lookup")
+    except Exception as e:
+        error_msg = f"Failed to fetch series data for lookup: {str(e)}"
+        logger.error(error_msg)
+        errors.append(error_msg)
+        # Continue processing without series lookup
+        series_lookup = {}
+    
     for season_data in series_seasons_data:
         try:
             series_id = season_data.get("series_id")
-            series_name = season_data.get("series_name", "")
             season_name = season_data.get("season_name", "")
             
-            if not series_id or not series_name:
+            if not series_id:
                 continue
             
-            # Get or create Series
-            series, _ = Series.objects.get_or_create(
-                name=series_name,
+            # Get series name from the series lookup
+            series_info = series_lookup.get(series_id, {})
+            series_name = series_info.get("series_name", "")
+            
+            # Fallback to extracting from season name if no series info found
+            if not series_name and season_name:
+                series_name = season_name
+                # Common patterns to clean up: " - 2025 Season", " - Fixed", " - Open", etc.
+                import re
+                series_name = re.sub(r'\s*-\s*\d{4}\s*Season.*$', '', series_name)
+                series_name = re.sub(r'\s*-\s*(Fixed|Open)(\s*-.*)?$', '', series_name)
+                series_name = series_name.strip()
+            
+            if not series_name:
+                logger.warning(f"No series name found for series_id {series_id}, skipping")
+                continue
+            
+            # Extract car class and series-level data
+            car_class_ids = season_data.get("car_class_ids", [])
+            multiclass = season_data.get("multiclass", False)
+            fixed_setup = season_data.get("fixed_setup", False)
+            
+            # Convert car_class_ids to strings for consistency
+            allowed_car_class_ids = [str(class_id) for class_id in car_class_ids] if car_class_ids else []
+            
+            # Get or create Series with enhanced data
+            series, series_created = Series.objects.get_or_create(
+                external_series_id=series_id,
                 defaults={
+                    "name": series_name,
                     "description": f"iRacing {series_name} series",
+                    "simulator": iracing_simulator,
+                    "multiclass": multiclass,
+                    "fixed_setup": fixed_setup,
+                    "allowed_car_class_ids": allowed_car_class_ids,
+                    "is_official": season_data.get("official", True),
+                    "license_group": season_data.get("license_group"),
+                    "incident_limit": season_data.get("incident_limit"),
+                    "max_team_drivers": season_data.get("max_team_drivers", 1),
+                    "car_switching": season_data.get("car_switching", False),
+                    "cross_license": season_data.get("cross_license", False),
+                    "region_competition": season_data.get("region_competition", True),
+                    "category": season_data.get("category", ""),
                 }
             )
+            
+            # Update existing series with latest data if not just created
+            if not series_created:
+                series.multiclass = multiclass
+                series.fixed_setup = fixed_setup
+                series.allowed_car_class_ids = allowed_car_class_ids
+                series.is_official = season_data.get("official", True)
+                series.license_group = season_data.get("license_group")
+                series.incident_limit = season_data.get("incident_limit")
+                series.max_team_drivers = season_data.get("max_team_drivers", 1)
+                series.car_switching = season_data.get("car_switching", False)
+                series.cross_license = season_data.get("cross_license", False)
+                series.region_competition = season_data.get("region_competition", True)
+                series.category = season_data.get("category", "")
+                series.save()
             
             # Process race schedules to create specific events
             schedules = season_data.get("schedules", [])
@@ -742,37 +819,52 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                         logger.warning("Missing track info in schedule for series %s", series_name)
                         continue
                     
-                    # Find the corresponding SimTrack and SimLayout
+                    # Find the corresponding SimLayout
                     try:
-                        # First try to find by sim_api_id (track_id)
-                        sim_track = SimTrack.objects.get(
-                            sim_api_id=str(track_id),
-                            simulator=iracing_simulator
+                        # Direct lookup by layout_code which contains the track_id from iRacing API
+                        sim_layout = SimLayout.objects.select_related('sim_track').get(
+                            layout_code=str(track_id),
+                            sim_track__simulator=iracing_simulator
                         )
                         
-                        # Find the specific layout by config_name
-                        sim_layout = None
-                        if config_name:
-                            # Try to find layout by name matching config_name
-                            sim_layout = sim_track.layouts.filter(
-                                name__icontains=config_name
-                            ).first()
-                        
-                        # Fallback to first available layout
-                        if not sim_layout:
-                            sim_layout = sim_track.layouts.first()
+                    except SimLayout.DoesNotExist:
+                        # Fallback: try to find SimTrack and then match by config_name
+                        try:
+                            # Find all layouts for tracks with this name
+                            sim_layouts = SimLayout.objects.filter(
+                                sim_track__track_model__name=track_name,
+                                sim_track__simulator=iracing_simulator
+                            ).select_related('sim_track')
                             
-                        if not sim_layout:
-                            error_msg = f"No layouts found for track {track_name} (ID: {track_id})"
+                            # Try to match by config_name
+                            sim_layout = None
+                            if config_name and sim_layouts.exists():
+                                # Try exact match first
+                                sim_layout = sim_layouts.filter(name=config_name).first()
+                                
+                                # Try partial match if exact match fails
+                                if not sim_layout:
+                                    sim_layout = sim_layouts.filter(name__icontains=config_name).first()
+                            
+                            # Fallback to first layout if no match
+                            if not sim_layout and sim_layouts.exists():
+                                sim_layout = sim_layouts.first()
+                                logger.warning(
+                                    f"Could not find exact layout match for {config_name} at {track_name}, "
+                                    f"using {sim_layout.name}"
+                                )
+                            
+                            if not sim_layout:
+                                error_msg = f"SimLayout not found for track {track_name} (ID: {track_id}). Track data may need to be synced first."
+                                logger.warning(error_msg)
+                                errors.append(error_msg)
+                                continue
+                                
+                        except Exception as e:
+                            error_msg = f"Error finding SimLayout for track {track_name} (ID: {track_id}): {str(e)}"
                             logger.warning(error_msg)
                             errors.append(error_msg)
                             continue
-                            
-                    except SimTrack.DoesNotExist:
-                        error_msg = f"SimTrack not found for track_id {track_id} ({track_name}). Track data may need to be synced first."
-                        logger.warning(error_msg)
-                        errors.append(error_msg)
-                        continue
                     
                     # Create event name with track and layout info
                     race_week_num = schedule.get("race_week_num", "")
@@ -845,6 +937,60 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                         event.save()
                         events_updated += 1
                         logger.debug("Updated race week event: %s", event_name)
+                    
+                    # Process car restrictions if present in the schedule
+                    car_restrictions = schedule.get("car_restrictions", [])
+                    if car_restrictions:
+                        # We need to create/update RaceWeek and Season first
+                        season, _ = Season.objects.get_or_create(
+                            external_season_id=season_data.get("season_id"),
+                            series=series,
+                            defaults={
+                                "name": season_name,
+                                "active": season_data.get("active", True),
+                                "complete": season_data.get("complete", False),
+                            }
+                        )
+                        
+                        # Create/update RaceWeek
+                        race_week, rw_created = RaceWeek.objects.get_or_create(
+                            season=season,
+                            week_number=race_week_num,
+                            defaults={
+                                "sim_layout": sim_layout,
+                                "start_date": event_date.date() if event_date else timezone.now().date(),
+                                "end_date": datetime.fromisoformat(schedule.get("week_end_time", "").replace('Z', '+00:00')) if schedule.get("week_end_time") else (event_date.date() + timedelta(days=7) if event_date else timezone.now().date() + timedelta(days=7)),
+                                "category": track_info.get("category", ""),
+                                "enable_pitlane_collisions": schedule.get("enable_pitlane_collisions", False),
+                                "full_course_cautions": schedule.get("full_course_cautions", False),
+                            }
+                        )
+                        
+                        # Process each car restriction
+                        for restriction_data in car_restrictions:
+                            car_api_id = restriction_data.get("car_id")
+                            if car_api_id:
+                                try:
+                                    sim_car = SimCar.objects.get(
+                                        simulator=iracing_simulator,
+                                        sim_api_id=str(car_api_id)
+                                    )
+                                    
+                                    # Create or update car restriction
+                                    CarRestriction.objects.update_or_create(
+                                        race_week=race_week,
+                                        sim_car=sim_car,
+                                        defaults={
+                                            "max_dry_tire_sets": restriction_data.get("max_dry_tire_sets", 0),
+                                            "max_pct_fuel_fill": restriction_data.get("max_pct_fuel_fill", 100),
+                                            "power_adjust_pct": float(restriction_data.get("power_adjust_pct", 0)),
+                                            "weight_penalty_kg": restriction_data.get("weight_penalty_kg", 0),
+                                        }
+                                    )
+                                    logger.debug(f"Created/updated car restriction for {sim_car.display_name} in week {race_week_num}")
+                                    
+                                except SimCar.DoesNotExist:
+                                    logger.warning(f"SimCar not found for car_id {car_api_id}, skipping restriction")
                         
                 except Exception as e:
                     error_msg = f"Error processing schedule for series {series_name}: {str(e)}"

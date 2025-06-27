@@ -27,6 +27,9 @@ urlpatterns = [
     path("<slug:club_slug>/signups/", views.club_event_signups, name="club_event_signups"),
     path("<slug:club_slug>/signups/create/", views.club_event_signup_create, name="club_event_signup_create"),
     path("<slug:club_slug>/signups/bulk-create/", views.club_event_signup_bulk_create, name="club_event_signup_bulk_create"),
+    # Signup Sheet Detail
+    path("<slug:club_slug>/signups/<uuid:sheet_id>/", views.club_event_signup_detail, name="club_event_signup_detail"),
+    path("<slug:club_slug>/signups/<uuid:sheet_id>/edit/", views.club_event_signup_edit, name="club_event_signup_edit"),
     
     # Club Invitation URLs (token-based, no club needed in URL)
     path("invite/<str:token>/accept/", views.club_invitation_accept, name="club_invitation_accept"),

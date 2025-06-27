@@ -5,17 +5,13 @@ from ninja.errors import HttpError
 
 from simlane.api.schemas.clubs import Club as ClubSchema
 from simlane.api.schemas.clubs import ClubCreate
-# ClubEvent schemas removed - using sim.Event.organizing_club instead
 from simlane.api.schemas.clubs import ClubMember as ClubMemberSchema
 from simlane.api.schemas.clubs import ClubMemberUpdate
 from simlane.api.schemas.clubs import ClubUpdate
-# Legacy EventSignup schemas removed
 from simlane.api.schemas.clubs import Team as TeamSchema
 from simlane.api.schemas.clubs import TeamCreate
 from simlane.teams.models import Club
-# ClubEvent removed - using sim.Event.organizing_club instead
 from simlane.teams.models import ClubMember
-# Legacy EventSignup model removed
 from simlane.teams.models import Team
 
 router = Router()

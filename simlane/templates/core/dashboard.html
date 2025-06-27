@@ -16,24 +16,6 @@
         </p>
       </div>
     </div>
-    <!-- Quick Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <c-stat-tile :value="total_profiles" label="Sim Profiles">
-      <c-slot name="icon">
-      <c-icon-desktop class="h-6 w-6 text-primary-600"></c-icon-desktop>
-      </c-slot>
-      </c-stat-tile>
-      <c-stat-tile label="Teams & Clubs" value="{{ total_teams }} • {{ total_clubs }}">
-      <c-slot name="icon">
-      <c-icon-users class="h-6 w-6 text-green-600"></c-icon-users>
-      </c-slot>
-      </c-stat-tile>
-      <c-stat-tile value="Add Sim Profile" label="Quick Setup">
-      <c-slot name="icon">
-      <c-icon-plus class="h-6 w-6 text-blue-600"></c-icon-plus>
-      </c-slot>
-      </c-stat-tile>
-    </div>
     <!-- Sim Profiles Section -->
     <div class="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700">
       <div class="px-4 py-5 sm:p-6">
@@ -116,8 +98,33 @@
             View Clubs Dashboard
           </a>
         </div>
-        {% if user_teams %}
+        {% if user_teams or user_clubs %}
           <div class="space-y-4">
+            {# === CLUBS FIRST === #}
+            {% for club in user_clubs %}
+              <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    {% if club.logo %}
+                      <img src="{{ club.logo.url }}" alt="{{ club.name }}" class="w-8 h-8 rounded" />
+                    {% else %}
+                      <div class="w-8 h-8 bg-primary-500 rounded flex items-center justify-center">
+                        <span class="text-sm font-bold text-white">{{ club.name|first }}</span>
+                      </div>
+                    {% endif %}
+                    <div>
+                      <h4 class="text-sm font-medium text-gray-900 dark:text-white">{{ club.name }}</h4>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">{{ club.description|default:"No description" }}</p>
+                    </div>
+                  </div>
+                  <a href="{% url 'teams:club_dashboard' club.slug %}" class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium">
+                    Dashboard
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+
+            {# === TEAMS === #}
             {% for team in user_teams %}
               <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <div class="flex items-center justify-between">
@@ -140,7 +147,7 @@
               </path>
             </svg>
             <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No teams or clubs</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Teams and clubs functionality is coming soon!</p>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Join or create a club to collaborate with other drivers!</p>
           </div>
         {% endif %}
       </div>

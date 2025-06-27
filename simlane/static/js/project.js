@@ -67,3 +67,45 @@ if (wsClient) {
     }
   });
 }
+
+// Global HTMX skeleton delay functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Strip empty parameters before HTMX sends the request
+    document.body.addEventListener('htmx:configRequest', function(evt) {
+        const params = evt.detail.parameters;
+        if (params) {
+            Object.keys(params).forEach((key) => {
+                if (params[key] === '' || params[key] == null) {
+                    delete params[key];
+                }
+            });
+        }
+    });
+
+    // Add 150ms delay to skeleton loaders to prevent flicker on fast responses
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+        const indicator = evt.detail.elt.querySelector('[data-loading-states]');
+        if (indicator) {
+            // Store original display style
+            indicator._originalDisplay = indicator.style.display;
+            
+            // Hide initially
+            indicator.style.display = 'none';
+            
+            // Show after delay
+            indicator._showTimeout = setTimeout(() => {
+                indicator.style.display = indicator._originalDisplay || '';
+            }, 150);
+        }
+    });
+    
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        const indicator = evt.detail.elt.querySelector('[data-loading-states]');
+        if (indicator && indicator._showTimeout) {
+            // Clear timeout if request completes before delay
+            clearTimeout(indicator._showTimeout);
+            // Hide the indicator
+            indicator.style.display = 'none';
+        }
+    });
+});

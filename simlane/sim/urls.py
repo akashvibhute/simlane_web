@@ -13,6 +13,7 @@ urlpatterns = [
 # Events patterns - to be included at top level
 events_patterns = [
     path("", views.events_list, name="events_list"),
+    path("upcoming/", views.upcoming_events_list, name="upcoming_events_list"),
     path("<slug:event_slug>/", views.event_detail, name="event_detail"),
 ]
 

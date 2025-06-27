@@ -182,12 +182,12 @@
                     </div>
                   </div>
                   <div class="flex items-center space-x-2 ml-4">
-                    <a href="{% url 'teams:club_event_signups' club.slug %}"
+                    <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}"
                        class="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                       View
                     </a>
                     {% if can_manage_events and sheet.is_open %}
-                      <a href="#"
+                      <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}#management"
                          class="inline-flex items-center px-3 py-1 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30">
                         Manage
                       </a>
@@ -392,15 +392,7 @@
       </div>
     </div>
   {% elif active_section == 'events' %}
-    <!-- Events Section Placeholder -->
-    <div class="space-y-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <div class="px-6 py-4">
-          <h2 class="text-lg font-medium text-gray-900 dark:text-white">Events</h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Events management is coming soon.</p>
-        </div>
-      </div>
-    </div>
+    {% include "teams/club_dashboard_events_section.html" %}
   {% elif active_section == 'results' %}
     <!-- Results Section -->
     <div class="space-y-6">

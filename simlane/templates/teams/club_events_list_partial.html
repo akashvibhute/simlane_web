@@ -1,0 +1,33 @@
+{% comment %}Simple list of signup sheets for Club dashboard events tab{% endcomment %}
+{% if signup_list %}
+  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {% for sheet in signup_list %}
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">{{ sheet.title }}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">{{ sheet.event.name }}</p>
+
+        <div class="space-y-2 text-sm mb-4">
+          <div class="flex items-center justify-between">
+            <span class="text-gray-500 dark:text-gray-400">Signups:</span>
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ sheet.signup_count }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-gray-500 dark:text-gray-400">Closes:</span>
+            <span class="font-medium text-gray-900 dark:text-gray-100">{{ sheet.signup_closes|date:"M j, H:i" }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          {% if sheet.is_open %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Open</span>
+          {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ sheet.status|capfirst }}</span>
+          {% endif %}
+          <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}" class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">View Details →</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-gray-600 dark:text-gray-400">No signup sheets in this category.</p>
+{% endif %} 

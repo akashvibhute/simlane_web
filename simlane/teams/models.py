@@ -1849,5 +1849,3 @@ class ClubEventSignupSheet(models.Model):
         
         return True, "You can sign up"
 
-
-# ClubEvent model removed - using sim.Event.organizing_club instead

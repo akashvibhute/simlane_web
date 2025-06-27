@@ -61,10 +61,9 @@ class CarClassAdmin(ModelAdmin):
 
 @admin.register(CarModel)
 class CarModelAdmin(ModelAdmin):
-    list_display = ["name", "manufacturer", "car_class", "release_year"]
-    list_filter = ["car_class", "release_year"]
+    list_display = ["name", "manufacturer", "category", "release_year"]
+    list_filter = ["category", "release_year"]
     search_fields = ["name", "manufacturer"]
-    raw_id_fields = ["car_class"]
 
 
 @admin.register(SimCar)
@@ -141,10 +140,10 @@ class EventSessionAdmin(ModelAdmin):
 
 @admin.register(EventClass)
 class EventClassAdmin(ModelAdmin):
-    list_display = ["name", "event", "car_class"]
-    list_filter = ["car_class", "event"]
+    list_display = ["name", "event"]
+    list_filter = ["event"]
     search_fields = ["name", "event__name"]
-    raw_id_fields = ["event", "car_class"]
+    raw_id_fields = ["event"]
 
 
 @admin.register(EventInstance)

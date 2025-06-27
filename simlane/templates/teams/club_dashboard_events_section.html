@@ -1,0 +1,31 @@
+{% comment %}Club Dashboard Events Section - HTMX tabs without client JS{% endcomment %}
+<div id="club-events-section" class="space-y-6">
+  <!-- Tabs -->
+  <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1" role="tablist">
+    <a href="{% url 'teams:club_dashboard_section' club.slug 'events' %}?tab=upcoming"
+       hx-get="{% url 'teams:club_dashboard_section' club.slug 'events' %}?tab=upcoming"
+       hx-target="#club-events-section"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="px-3 py-1.5 text-sm font-medium rounded-md {% if events_tab == 'upcoming' %}bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors{% endif %}">
+      Upcoming
+    </a>
+    <a href="{% url 'teams:club_dashboard_section' club.slug 'events' %}?tab=past"
+       hx-get="{% url 'teams:club_dashboard_section' club.slug 'events' %}?tab=past"
+       hx-target="#club-events-section"
+       hx-swap="outerHTML"
+       hx-push-url="true"
+       class="px-3 py-1.5 text-sm font-medium rounded-md {% if events_tab == 'past' %}bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors{% endif %}">
+      Past
+    </a>
+  </div>
+
+  <!-- Tab Content -->
+  <div id="club-events-container" class="mt-6">
+    {% if events_tab == 'past' %}
+      {% include "teams/club_dashboard_events_tab_partial.html" with signup_list=past_signup_sheets tab='past' can_manage=can_manage_events %}
+    {% else %}
+      {% include "teams/club_dashboard_events_tab_partial.html" with signup_list=upcoming_signup_sheets tab='upcoming' can_manage=can_manage_events %}
+    {% endif %}
+  </div>
+</div> 

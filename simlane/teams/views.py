@@ -239,6 +239,46 @@ def club_dashboard_section(request, club_slug, section="overview"):
     else:
         can_manage_events = False
 
+    # === Events section specific context ===
+    upcoming_signup_sheets = []
+    past_signup_sheets = []
+    events_tab = request.GET.get('tab', 'upcoming')
+    if section == 'events':
+        signup_sheets_all = (
+            club.event_signup_sheets
+            .select_related('event')
+            .annotate(
+                signup_count_annotated=models.Count(
+                    'event__participations',
+                    filter=models.Q(
+                        event__participations__signup_context_club=club,
+                    ),
+                )
+            )
+            .order_by('-created_at')
+        )
+        now = timezone.now()
+        for ss in signup_sheets_all:
+            if ss.is_open or ss.signup_closes > now:
+                upcoming_signup_sheets.append(ss)
+            else:
+                past_signup_sheets.append(ss)
+
+        # For HTMX tab swap: if only tab content requested, return full events section
+        if request.headers.get('HX-Request') and request.GET.get('tab'):
+            # Re-render the entire events section so tabs update correctly
+            return render(
+                request,
+                "teams/club_dashboard_events_section.html",
+                {
+                    "club": club,
+                    "events_tab": events_tab,
+                    "upcoming_signup_sheets": upcoming_signup_sheets,
+                    "past_signup_sheets": past_signup_sheets,
+                    "can_manage_events": can_manage_events,
+                },
+            )
+
     context = {
         "club": club,
         "user_role": user_role,
@@ -258,6 +298,9 @@ def club_dashboard_section(request, club_slug, section="overview"):
         ).count(),
         "user_clubs": user_clubs,
         "is_public_view": user_role is None,
+        "upcoming_signup_sheets": upcoming_signup_sheets,
+        "past_signup_sheets": past_signup_sheets,
+        "events_tab": events_tab,
     }
 
     # HTMX requests return partial content
@@ -422,10 +465,25 @@ def club_event_signup_create(request, club_slug):
     else:
         form = ClubEventSignupSheetForm(club=club, user=request.user)
     
+    # Determine selected event for redisplay (if any)
+    selected_event = None
+    try:
+        event_id = form.data.get('event') if hasattr(form, 'data') else None
+        if event_id:
+            from simlane.sim.models import Event
+            selected_event = Event.objects.select_related('simulator').prefetch_related('instances').filter(id=event_id).first()
+    except Exception:
+        selected_event = None
+
+    # Import here to avoid circular import
+    from simlane.sim.views import get_active_simulators
+    
     context = {
         "form": form,
         "club": club,
         "title": f"Create Event Signup - {club.name}",
+        "simulators": get_active_simulators(),
+        "selected_event": selected_event,
     }
     
     if request.headers.get("HX-Request"):
@@ -618,3 +676,74 @@ def stint_plan_partial_legacy(request, allocation_id):
 # - event_race_plan: Plan race strategy for an event
 # - event_signup: Sign up for an event (individual or team)
 # - event_team_formation: Form teams for an event
+
+# === EVENT SIGNUP SHEET DETAIL ===
+@club_member_required
+def club_event_signup_detail(request, club_slug, sheet_id):
+    """Detailed view of a club's event signup sheet."""
+    club = request.club
+    signup_sheet = get_object_or_404(
+        ClubEventSignupSheet.objects.select_related(
+            "event",
+            "event__simulator",
+            "event__sim_layout",
+            "event__sim_layout__sim_track",
+            "event__sim_layout__sim_track__track_model",
+            "created_by",
+        ).prefetch_related(
+            "event__instances",
+        ),
+        id=sheet_id,
+        club=club,
+    )
+
+    # Fetch signups (participations) for this sheet
+    signups_qs = EventParticipation.objects.filter(
+        event=signup_sheet.event,
+        signup_context_club=club,
+    ).select_related("user", "team", "assigned_car")
+
+    can_manage = request.club_member.can_manage_events() if hasattr(request, "club_member") else False
+
+    context = {
+        "club": club,
+        "signup_sheet": signup_sheet,
+        "signups": signups_qs,
+        "can_manage": can_manage,
+        "title": signup_sheet.title,
+    }
+
+    if request.headers.get("HX-Request"):
+        return render(request, "teams/club_event_signup_detail_partial.html", context)
+
+    return render(request, "teams/club_event_signup_detail.html", context)
+
+
+@club_manager_required
+def club_event_signup_edit(request, club_slug, sheet_id):
+    """Edit an existing signup sheet (event is immutable)."""
+    club = request.club
+    signup_sheet = get_object_or_404(ClubEventSignupSheet, id=sheet_id, club=club)
+
+    if request.method == "POST":
+        form = ClubEventSignupSheetForm(
+            request.POST, instance=signup_sheet, club=club, user=request.user
+        )
+        # Prevent event from being changed
+        form.fields.pop('event_search', None)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Signup sheet updated successfully.")
+            return redirect('teams:club_event_signup_detail', club_slug=club.slug, sheet_id=sheet_id)
+    else:
+        form = ClubEventSignupSheetForm(instance=signup_sheet, club=club, user=request.user)
+        form.fields.pop('event_search', None)
+
+    context = {
+        "club": club,
+        "form": form,
+        "signup_sheet": signup_sheet,
+        "edit_mode": True,
+        "title": f"Edit Signup - {signup_sheet.title}",
+    }
+    return render(request, "teams/club_event_signup_edit.html", context)

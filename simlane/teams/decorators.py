@@ -6,11 +6,9 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404
 
 from .models import Club
-# ClubEvent removed - using sim.Event.organizing_club instead
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
-# TeamAllocation import removed - model no longer exists
 
 
 def club_admin_required(view_func):

@@ -1,0 +1,218 @@
+{% load static %}
+
+<!-- Events Container -->
+<div id="events-container">
+    <!-- Results count -->
+    <div class="mb-6">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+            Showing {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }} events
+        </p>
+    </div>
+    
+    <!-- Skeleton Loader (only visible when loading) -->
+    <c-skeleton-grid count="3" class="htmx-indicator" id="loading-indicator"></c-skeleton-grid>
+    
+    <!-- Events Grid -->
+    {% if page_obj.object_list %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {% for event in page_obj.object_list %}
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+                    <!-- Event Header -->
+                    <div class="p-6 pb-4">
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                                    <a href="{% url 'events:event_detail' event.slug %}" class="hover:text-blue-600 dark:hover:text-blue-400">
+                                        {{ event.name }}
+                                    </a>
+                                </h3>
+                                
+                                <!-- Event Source/Type Badge -->
+                                <div class="flex items-center space-x-2 mb-2">
+                                    {% if event.event_source == 'SERIES' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                                            Official Series
+                                        </span>
+                                    {% elif event.event_source == 'SPECIAL' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                                            Special Event
+                                        </span>
+                                    {% elif event.event_source == 'CLUB' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                            Club Event
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                                            Community
+                                        </span>
+                                    {% endif %}
+                                    
+                                    <!-- Status Badge -->
+                                    {% if event.status == 'SCHEDULED' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                            {{ event.get_status_display }}
+                                        </span>
+                                    {% elif event.status == 'ONGOING' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
+                                            {{ event.get_status_display }}
+                                        </span>
+                                    {% elif event.status == 'COMPLETED' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                                            {{ event.get_status_display }}
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                                            {{ event.get_status_display }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Simulator Icon -->
+                            <div class="flex-shrink-0 ml-3">
+                                {% if event.simulator.icon %}
+                                    <img src="{{ event.simulator.icon.url }}" alt="{{ event.simulator.name }}" class="w-8 h-8 rounded">
+                                {% else %}
+                                    <div class="w-8 h-8 bg-gray-200 dark:bg-gray-600 rounded flex items-center justify-center">
+                                        <span class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ event.simulator.name|first }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Track Information -->
+                        <div class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span>{{ event.sim_layout.sim_track.track_model.name }}</span>
+                                {% if event.sim_layout.name != event.sim_layout.sim_track.track_model.name %}
+                                    <span class="text-gray-500 dark:text-gray-500 ml-1">({{ event.sim_layout.name }})</span>
+                                {% endif %}
+                            </div>
+                            {% if event.sim_layout.sim_track.track_model.country %}
+                                <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">{{ event.sim_layout.sim_track.track_model.country }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Series Information -->
+                        {% if event.series %}
+                            <div class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                <div class="flex items-center">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                    <span>{{ event.series.name }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Organizer Information -->
+                        {% if event.organizing_club %}
+                            <div class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                <span class="font-medium">Organized by:</span> {{ event.organizing_club.name }}
+                            </div>
+                        {% elif event.organizing_user %}
+                            <div class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                <span class="font-medium">Organized by:</span> {{ event.organizing_user.get_full_name|default:event.organizing_user.username }}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Description Preview -->
+                        {% if event.description %}
+                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                                {{ event.description|truncatewords:20 }}
+                            </p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Event Footer with Instances Info -->
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
+                        {% if event.instances.all %}
+                            <div class="text-sm text-gray-600 dark:text-gray-400">
+                                <div class="flex items-center justify-between">
+                                    <span>{{ event.instances.all|length }} instance{{ event.instances.all|pluralize }}</span>
+                                    {% with next_instance=event.instances.all|first %}
+                                        {% if next_instance %}
+                                            <span class="text-xs">
+                                                Next: {{ next_instance.start_time|date:"M j, Y H:i" }}
+                                            </span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-sm text-gray-500 dark:text-gray-500">
+                                No scheduled instances
+                            </div>
+                        {% endif %}
+                        
+                        {% if event.is_team_event %}
+                            <div class="mt-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                                    Team Event
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+            <div class="flex justify-center">
+                <nav class="flex items-center space-x-2">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}{% if current_filters.simulator %}&simulator={{ current_filters.simulator }}{% endif %}{% if current_filters.source %}&source={{ current_filters.source }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}" 
+                           hx-get="?page={{ page_obj.previous_page_number }}{% if current_filters.simulator %}&simulator={{ current_filters.simulator }}{% endif %}{% if current_filters.source %}&source={{ current_filters.source }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}"
+                           hx-target="#events-container"
+                           hx-push-url="true"
+                           class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                            Previous
+                        </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="px-3 py-2 text-sm text-white bg-blue-600 dark:bg-blue-500 border border-blue-600 dark:border-blue-500 rounded-md">
+                                {{ num }}
+                            </span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?page={{ num }}{% if current_filters.simulator %}&simulator={{ current_filters.simulator }}{% endif %}{% if current_filters.source %}&source={{ current_filters.source }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}" 
+                               hx-get="?page={{ num }}{% if current_filters.simulator %}&simulator={{ current_filters.simulator }}{% endif %}{% if current_filters.source %}&source={{ current_filters.source }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}"
+                               hx-target="#events-container"
+                               hx-push-url="true"
+                               class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                                {{ num }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}{% if current_filters.simulator %}&simulator={{ current_filters.simulator }}{% endif %}{% if current_filters.source %}&source={{ current_filters.source }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}" 
+                           hx-get="?page={{ page_obj.next_page_number }}{% if current_filters.simulator %}&simulator={{ current_filters.simulator }}{% endif %}{% if current_filters.source %}&source={{ current_filters.source }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}"
+                           hx-target="#events-container"
+                           hx-push-url="true"
+                           class="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                            Next
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+    {% else %}
+        <!-- No events found -->
+        <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No events found</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Try adjusting your filters to find more events.
+            </p>
+        </div>
+    {% endif %}
+</div> 

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ signup_sheet.title }} | {{ club.name }} | SimLane{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="mb-6">
+        <ol class="flex items-center space-x-2 text-sm">
+            <li>
+                <a href="{% url 'teams:clubs_dashboard' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Clubs</a>
+            </li>
+            <li><span class="text-gray-400 dark:text-gray-600">/</span></li>
+            <li>
+                <a href="{% url 'teams:club_dashboard' club.slug %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">{{ club.name }}</a>
+            </li>
+            <li><span class="text-gray-400 dark:text-gray-600">/</span></li>
+            <li>
+                <a href="{% url 'teams:club_event_signups' club.slug %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Event Signups</a>
+            </li>
+            <li><span class="text-gray-400 dark:text-gray-600">/</span></li>
+            <li class="text-gray-900 dark:text-gray-100 truncate">{{ signup_sheet.title|truncatechars:40 }}</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="flex items-start justify-between flex-wrap gap-4">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ signup_sheet.title }}</h1>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">
+              {{ signup_sheet.event.name }} &middot; {{ signup_sheet.event.instances.first.start_time|date:"M d, Y" }}
+            </p>
+        </div>
+        {% if can_manage %}
+        <div class="flex space-x-2">
+            <a href="{% url 'teams:club_event_signup_edit' club.slug signup_sheet.id %}" class="btn btn-secondary">Edit</a>
+            <a href="#" class="btn btn-secondary opacity-50 cursor-not-allowed">Close Signups (TODO)</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Event Quick Info -->
+    <div class="flex flex-wrap gap-4 text-sm text-gray-700 dark:text-gray-300 items-center">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+          {{ signup_sheet.event.simulator.name }}
+        </span>
+        <span>{{ signup_sheet.event.sim_layout.sim_track.track_model.name }}{% if signup_sheet.event.sim_layout.name != signup_sheet.event.sim_layout.sim_track.track_model.name %} ({{ signup_sheet.event.sim_layout.name }}){% endif %}</span>
+        <span>•</span>
+        <span>{{ signup_sheet.event.instances.first.start_time|date:"M d, Y H:i" }}</span>
+        {% if signup_sheet.event.total_race_time %}
+          <span>•</span><span>{{ signup_sheet.event.total_race_time }} race</span>
+        {% endif %}
+        {% if signup_sheet.event.series %}
+          <span>•</span><span>{{ signup_sheet.event.series.name }}</span>
+        {% endif %}
+    </div>
+
+    <!-- Signup Sheet Info -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-gray-500 dark:text-gray-400">Signup Window</span>
+                <div class="font-medium text-gray-900 dark:text-gray-100">
+                    {{ signup_sheet.signup_opens|date:"M d, Y H:i" }} → {{ signup_sheet.signup_closes|date:"M d, Y H:i" }}
+                </div>
+            </div>
+            <div>
+                <span class="text-gray-500 dark:text-gray-400">Teams</span>
+                <div class="font-medium text-gray-900 dark:text-gray-100">
+                    {% if signup_sheet.max_teams %}{{ signup_sheet.max_teams }} max{% else %}No limit{% endif %}
+                    &middot; Target size {{ signup_sheet.target_team_size }}
+                </div>
+            </div>
+            <div>
+                <span class="text-gray-500 dark:text-gray-400">Status</span>
+                <div class="font-medium text-gray-900 dark:text-gray-100">{{ signup_sheet.status|capfirst }}</div>
+            </div>
+            <div>
+                <span class="text-gray-500 dark:text-gray-400">Min License</span>
+                <div class="font-medium text-gray-900 dark:text-gray-100">{{ signup_sheet.min_license_level|default:"N/A" }}</div>
+            </div>
+        </div>
+
+        {% if signup_sheet.description %}
+        <div>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Description</h2>
+            <div class="prose dark:prose-invert max-w-none">
+                {{ signup_sheet.description|linebreaksbr }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Signups List -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Signups ({{ signups.count }})</h2>
+        {% if signups %}
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for signup in signups %}
+                <li class="py-3 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="font-medium text-gray-900 dark:text-gray-100">
+                            {% if signup.user %}{{ signup.user.username }}{% else %}{{ signup.team.name }}{% endif %}
+                        </span>
+                        {% if signup.team %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200">Team</span>
+                        {% endif %}
+                    </div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">{{ signup.status|capfirst }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-gray-600 dark:text-gray-400">No signups yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

@@ -5,7 +5,6 @@ from unfold.admin import ModelAdmin
 
 from .models import AvailabilityWindow
 from .models import Club
-# ClubEvent removed - using sim.Event.organizing_club instead
 from .models import ClubEventSignupSheet
 from .models import ClubInvitation
 from .models import ClubMember
@@ -531,9 +530,3 @@ class ClubEventSignupSheetAdmin(ModelAdmin):
     def cancel_signups(self, request, queryset):
         count = queryset.update(status='cancelled')
         self.message_user(request, f"Cancelled {count} signup sheet(s)")
-
-
-# ClubEventAdmin removed - using sim.Event.organizing_club instead
-
-
-

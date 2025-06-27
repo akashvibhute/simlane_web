@@ -24,8 +24,6 @@ from .models import (
     AvailabilityWindow, 
     EventSignupInvitation,
     Team, 
-    # ClubEvent removed - using sim.Event.organizing_club instead
-    # TeamAllocation removed - replaced by enhanced participation system
     Club
 )
 

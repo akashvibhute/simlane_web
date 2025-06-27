@@ -362,25 +362,29 @@ class IRacingAPIService:
         self,
         series_ids: list[int] | None = None,
         include_series: bool = True
-    ) -> dict[str, Any]:
+    ) -> list[dict[str, Any]]:
         """
         Get series seasons data with optional series filtering.
         
         Args:
-            series_ids: List of series IDs to filter (optional)
+            series_ids: List of series IDs to filter (optional) - Note: filtering happens client-side
             include_series: Whether to include detailed series data (schedules, tracks, etc.)
         
         Returns:
-            Dict containing series seasons data with track/layout information.
+            List containing series seasons data with track/layout information.
         """
         if not self.is_available():
             msg = "iRacing API client not available"
             raise IRacingServiceError(msg)
         try:
-            return self.client.series_seasons(
-                series_ids=series_ids,
-                include_series=include_series
-            )
+            # The iRacing API series_seasons method only accepts include_series parameter
+            data = self.client.series_seasons(include_series=include_series)
+            
+            # Client-side filtering if series_ids provided
+            if series_ids:
+                data = [season for season in data if season.get('series_id') in series_ids]
+            
+            return data
         except Exception as e:
             logger.exception("Error fetching series seasons")
             msg = f"Failed to fetch series seasons: {str(e)}"
@@ -423,6 +427,24 @@ class IRacingAPIService:
         except Exception as e:
             logger.exception("Error fetching event types")
             msg = "Failed to fetch event types"
+            raise IRacingServiceError(msg) from e
+
+    def get_car_classes(self) -> list[dict[str, Any]]:
+        """
+        Get list of car classes from iRacing constants.
+
+        Returns:
+            List of car classes with IDs, names, and car lists
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+
+        try:
+            return self.client.get_carclasses()
+        except Exception as e:
+            logger.exception("Error fetching car classes")
+            msg = "Failed to fetch car classes"
             raise IRacingServiceError(msg) from e
 
     def member_recent_races(self, cust_id: int, category_id: int | None = None) -> dict[str, Any]:
@@ -504,9 +526,8 @@ class IRacingAPIService:
         Returns the season dict if found, else None.
         """
         try:
-            data = self.get_series_seasons(series_ids=[series_id], include_series=True)
-            # The structure is typically { 'seasons': [ ... ] }
-            seasons = data.get('seasons', [])
+            seasons = self.get_series_seasons(series_ids=[series_id], include_series=True)
+            # The data is now a list of seasons directly
             for season in seasons:
                 if (
                     season.get('series_id') == series_id and

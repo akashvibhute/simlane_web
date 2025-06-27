@@ -276,6 +276,7 @@ def dashboard_view(request):
 
     # Get user's teams/clubs (if teams app has this model)
     user_teams = []
+    user_clubs = []
     total_clubs = 0
     try:
         from simlane.teams.models import ClubMember
@@ -288,13 +289,16 @@ def dashboard_view(request):
         user_teams = [tm.team for tm in team_memberships]
 
         # Get clubs count through ClubMember relationships
-        total_clubs = ClubMember.objects.filter(user=request.user).count()
+        club_memberships = ClubMember.objects.filter(user=request.user).select_related("club")
+        user_clubs = [cm.club for cm in club_memberships]
+        total_clubs = len(user_clubs)
     except:
         pass  # Teams model might not exist yet
 
     context = {
         "profiles_by_sim": profiles_by_sim,
         "user_teams": user_teams,
+        "user_clubs": user_clubs,
         "total_profiles": user_profiles.count(),
         "total_teams": len(user_teams),
         "total_clubs": total_clubs,

@@ -274,13 +274,66 @@ class PitData(models.Model):
 
 class CarClass(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=120, blank=True)
+    short_name = models.CharField(max_length=50, blank=True, help_text="Short display name (e.g., 'GT3 Class')")
     category = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     icon_url = models.URLField(blank=True)
+    
+    # Simulator-specific fields
+    simulator = models.ForeignKey(
+        Simulator,
+        on_delete=models.CASCADE,
+        related_name="car_classes",
+        help_text="Simulator this car class belongs to",
+        null=True,
+        blank=True
+    )
+    sim_api_id = models.CharField(
+        max_length=50,
+        help_text="Car class ID from simulator API (e.g., car_class_id from iRacing)",
+        null=True,
+        blank=True
+    )
+    
+    # Additional API fields
+    relative_speed = models.IntegerField(
+        null=True, 
+        blank=True,
+        help_text="Relative speed rating from simulator API"
+    )
+    rain_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether rain is supported for this car class"
+    )
+    
+    # Car IDs in this class (from API cars_in_class)
+    car_sim_api_ids = ArrayField(
+        models.CharField(max_length=50),
+        blank=True,
+        default=list,
+        help_text="Array of car sim_api_ids in this class (from cars_in_class API field)"
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['simulator']),
+            models.Index(fields=['sim_api_id']),
+            models.Index(fields=['name']),
+            models.Index(fields=['slug']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['simulator', 'sim_api_id'],
+                condition=models.Q(simulator__isnull=False, sim_api_id__isnull=False),
+                name='unique_simulator_sim_api_id'
+            )
+        ]
 
     def __str__(self):
+        if self.simulator:
+            return f"{self.simulator.name}: {self.name}"
         return self.name
 
     def save(self, *args, **kwargs):
@@ -336,11 +389,8 @@ class CarModel(models.Model):
 
     
     # Existing fields
-    car_class = models.ForeignKey(
-        CarClass,
-        on_delete=models.CASCADE,
-        related_name="car_models",
-    )
+    # NOTE: car_class field removed - cars can belong to multiple classes
+    # Use CarClass.car_sim_api_ids to find which classes a car belongs to
     release_year = models.IntegerField(null=True, blank=True)
     default_image_url = models.URLField(blank=True)
     base_specs = models.JSONField(null=True, blank=True)
@@ -348,7 +398,6 @@ class CarModel(models.Model):
     class Meta:
         unique_together = ["manufacturer", "name", "slug"]
         indexes = [
-            models.Index(fields=["car_class"]),
             models.Index(fields=["slug"]),
             models.Index(fields=["manufacturer"]),
             models.Index(fields=["category"]),
@@ -364,6 +413,31 @@ class CarModel(models.Model):
 
     def __str__(self):
         return f"{self.manufacturer} {self.name}"
+    
+    def get_car_classes(self, simulator=None):
+        """Get all car classes this car belongs to for a specific simulator."""
+        if not hasattr(self, '_cached_car_classes'):
+            self._cached_car_classes = {}
+        
+        # Get all SimCars for this CarModel
+        sim_cars = self.sim_cars.filter(is_active=True)
+        if simulator:
+            sim_cars = sim_cars.filter(simulator=simulator)
+        
+        car_sim_api_ids = list(sim_cars.values_list('sim_api_id', flat=True))
+        
+        if not car_sim_api_ids:
+            return CarClass.objects.none()
+        
+        # Find CarClasses that contain any of these car IDs
+        car_classes = CarClass.objects.filter(
+            car_sim_api_ids__overlap=car_sim_api_ids
+        )
+        
+        if simulator:
+            car_classes = car_classes.filter(simulator=simulator)
+            
+        return car_classes.distinct()
 
     # Helper methods to get images from associated SimCars
     def get_logo(self, simulator_preference=None):
@@ -768,6 +842,14 @@ class Series(models.Model):
     max_team_drivers = models.IntegerField(default=1, help_text="Maximum drivers per team")
     region_competition = models.BooleanField(default=True, help_text="Region-based competition")
     
+    # Car class restrictions (simplified approach)
+    allowed_car_class_ids = ArrayField(
+        models.CharField(max_length=50),
+        blank=True,
+        default=list,
+        help_text="Array of car class sim_api_ids allowed in this series (from car_class_ids API field)"
+    )
+    
     # Existing fields
     is_team_event = models.BooleanField(default=False)
     min_drivers_per_entry = models.IntegerField(null=True, blank=True)
@@ -929,8 +1011,11 @@ class CarRestriction(models.Model):
     # BOP restrictions per car per week (from iRacing car_restrictions data)
     max_dry_tire_sets = models.IntegerField(default=0, help_text="Maximum dry tire sets allowed")
     max_pct_fuel_fill = models.IntegerField(default=100, help_text="Maximum fuel fill percentage")
-    power_adjust_pct = models.IntegerField(default=0, help_text="Power adjustment percentage")
+    power_adjust_pct = models.FloatField(default=0.0, help_text="Power adjustment percentage (can be decimal)")
     weight_penalty_kg = models.IntegerField(default=0, help_text="Weight penalty in kilograms")
+    
+    # Simplified setup restriction
+    is_fixed_setup = models.BooleanField(default=False, help_text="Whether this car uses fixed setup")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1037,6 +1122,14 @@ class Event(models.Model):
         null=True,
         blank=True,
         help_text="Custom requirements like specific licenses, achievements, etc."
+    )
+    
+    # Car class restrictions (simplified approach - can override series)
+    allowed_car_class_ids = ArrayField(
+        models.CharField(max_length=50),
+        blank=True,
+        default=list,
+        help_text="Array of car class sim_api_ids allowed in this event (overrides series if set)"
     )
     
     # Existing fields

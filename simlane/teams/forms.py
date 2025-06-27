@@ -11,13 +11,10 @@ from simlane.sim.models import Event
 from simlane.sim.models import SimCar
 
 from .models import Club
-# ClubEvent removed - using sim.Event.organizing_club instead
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
 from .models import Team
-# Removed imports: EventSignup, EventSignupAvailability, TeamAllocation, TeamAllocationMember
-# These models have been replaced by the enhanced participation system
 
 User = get_user_model()
 
@@ -253,6 +250,29 @@ class ClubInvitationForm(forms.Form):
 class ClubEventSignupSheetForm(forms.ModelForm):
     """Form for club admins to create event signup sheets"""
     
+    # Add autocomplete search field
+    event_search = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Type at least 4 characters to search events...',
+            'autocomplete': 'off',
+        }),
+        help_text="Start typing to search for upcoming events (minimum 4 characters)"
+    )
+    
+    # Add title append field for user's additional text
+    title_append = forms.CharField(
+        required=False,
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'e.g., Round 1, Championship, etc.',
+            'autocomplete': 'off'
+        }),
+        help_text="Additional text to append to the generated title"
+    )
+    
     class Meta:
         from .models import ClubEventSignupSheet
         model = ClubEventSignupSheet
@@ -270,19 +290,8 @@ class ClubEventSignupSheetForm(forms.ModelForm):
             'notes_for_admins',
         ]
         widgets = {
-            'event': forms.Select(
-                attrs={
-                    'class': 'form-select',
-                    'required': True,
-                }
-            ),
-            'title': forms.TextInput(
-                attrs={
-                    'class': 'form-input',
-                    'placeholder': 'e.g., "24h Le Mans Team Signup"',
-                    'required': True,
-                }
-            ),
+            'event': forms.HiddenInput(),  # Changed from Select to HiddenInput
+            'title': forms.HiddenInput(),  # Changed to hidden - we'll generate this automatically
             'description': forms.Textarea(
                 attrs={
                     'class': 'form-input',
@@ -354,6 +363,10 @@ class ClubEventSignupSheetForm(forms.ModelForm):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         
+        # Title is generated automatically; it should not be required before clean()
+        if 'title' in self.fields:
+            self.fields['title'].required = False
+        
         # Only show events that are not already opened by this club
         if self.club:
             # Get events already with signup sheets for this club
@@ -376,6 +389,26 @@ class ClubEventSignupSheetForm(forms.ModelForm):
     
     def clean(self):
         cleaned_data = super().clean()
+        
+        # Always generate title server-side (never trust client input)
+        event = cleaned_data.get('event')
+        title_append = cleaned_data.get('title_append', '').strip()
+        
+        if event and self.club:
+            # Generate base title server-side
+            base_title = f"{self.club.name} - {event.name} - Signup"
+            
+            # Append user's additional text if provided
+            if title_append:
+                final_title = f"{base_title} - {title_append}"
+            else:
+                final_title = base_title
+                
+            # Set the generated title
+            cleaned_data['title'] = final_title
+        elif not event:
+            # Clear title if no event selected
+            cleaned_data['title'] = ''
         
         # Validate signup window
         signup_opens = cleaned_data.get('signup_opens')

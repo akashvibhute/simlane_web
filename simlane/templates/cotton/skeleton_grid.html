@@ -1,0 +1,15 @@
+<c-vars count="3" grid_classes="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8" class="htmx-indicator" id="" />
+
+<div {% if id %}id="{{ id }}"{% endif %} class="{{ class }} {{ grid_classes }}" style="display: none;">
+    {% for i in ""|center:count %}
+        <c-skeleton-card></c-skeleton-card>
+    {% endfor %}
+</div>
+
+<style>
+body.htmx-request .htmx-indicator,
+.htmx-request .htmx-indicator,
+.htmx-indicator.htmx-request {
+    display: grid !important;
+}
+</style> 
