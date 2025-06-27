@@ -199,6 +199,16 @@ UNFOLD = {
                         "link": reverse_lazy("admin:sim_event_changelist"),
                     },
                     {
+                        "title": _("Seasons"),
+                        "icon": "calendar_month",
+                        "link": reverse_lazy("admin:sim_season_changelist"),
+                    },
+                    {
+                        "title": _("Race Weeks"),
+                        "icon": "view_week",
+                        "link": reverse_lazy("admin:sim_raceweek_changelist"),
+                    },
+                    {
                         "title": _("Event Sessions"),
                         "icon": "schedule",
                         "link": reverse_lazy("admin:sim_eventsession_changelist"),
@@ -212,6 +222,11 @@ UNFOLD = {
                         "title": _("Event Instances"),
                         "icon": "calendar_today",
                         "link": reverse_lazy("admin:sim_eventinstance_changelist"),
+                    },
+                    {
+                        "title": _("Car Restrictions"),
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:sim_carrestriction_changelist"),
                     },
                     {
                         "title": _("Lap Times"),

@@ -23,6 +23,7 @@ from .models import TrackModel
 from .models import WeatherForecast
 from .models import SimProfileCarOwnership, SimProfileTrackOwnership
 from .models import EventResult, TeamResult, ParticipantResult
+from .models import Season, RaceWeek, CarRestriction
 
 
 @admin.register(Simulator)
@@ -266,3 +267,68 @@ class ParticipantResultAdmin(admin.ModelAdmin):
     )
     search_fields = ('sim_profile__user__username', 'event_result__subsession_id', 'team_result__team__name')
     list_filter = ('car_class_name', 'finish_position')
+
+
+@admin.register(Season)
+class SeasonAdmin(ModelAdmin):
+    list_display = [
+        "series",
+        "name",
+        "external_season_id",
+        "start_date",
+        "end_date",
+        "active",
+        "complete",
+    ]
+    list_filter = ["series", "active", "complete", "start_date"]
+    search_fields = ["name", "series__name", "external_season_id"]
+    readonly_fields = ["created_at", "updated_at"]
+    raw_id_fields = ["series"]
+    date_hierarchy = "start_date"
+
+
+@admin.register(RaceWeek)
+class RaceWeekAdmin(ModelAdmin):
+    list_display = [
+        "season",
+        "week_number",
+        "sim_layout",
+        "start_date",
+        "end_date",
+    ]
+    list_filter = [
+        "season__series",
+        "sim_layout__sim_track__simulator",
+        "start_date",
+    ]
+    search_fields = [
+        "season__series__name",
+        "sim_layout__sim_track__track_model__name",
+        "sim_layout__name",
+    ]
+    readonly_fields = ["created_at", "updated_at"]
+    raw_id_fields = ["season", "sim_layout"]
+    date_hierarchy = "start_date"
+
+
+@admin.register(CarRestriction)
+class CarRestrictionAdmin(ModelAdmin):
+    list_display = [
+        "race_week",
+        "sim_car",
+        "max_pct_fuel_fill",
+        "power_adjust_pct",
+        "weight_penalty_kg",
+        "is_fixed_setup",
+    ]
+    list_filter = [
+        "race_week__season__series",
+        "sim_car__simulator",
+        "is_fixed_setup",
+    ]
+    search_fields = [
+        "race_week__season__series__name",
+        "sim_car__car_model__name",
+        "sim_car__sim_api_id",
+    ]
+    raw_id_fields = ["race_week", "sim_car"]
