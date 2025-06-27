@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ event.name }} - SimLane{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+        <a href="{% url 'events:events_list' %}" class="hover:text-blue-600">Events</a>
+        <span>›</span>
+        <span class="text-gray-900">{{ event.name|truncatewords:5 }}</span>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2">
+            <!-- Event Header -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ event.name }}</h1>
+                        
+                        <!-- Event Badges -->
+                        <div class="flex items-center space-x-2 mb-4">
+                            {% if event.event_source == 'SERIES' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                    Official Series
+                                </span>
+                            {% elif event.event_source == 'SPECIAL' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                                    Special Event
+                                </span>
+                            {% elif event.event_source == 'CLUB' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    Club Event
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                    Community
+                                </span>
+                            {% endif %}
+                            
+                            {% if event.status == 'SCHEDULED' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                    {{ event.get_status_display }}
+                                </span>
+                            {% elif event.status == 'ONGOING' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                                    {{ event.get_status_display }}
+                                </span>
+                            {% elif event.status == 'COMPLETED' %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                    {{ event.get_status_display }}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                                    {{ event.get_status_display }}
+                                </span>
+                            {% endif %}
+                            
+                            {% if event.is_team_event %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                                    Team Event
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Simulator Info -->
+                    <div class="flex-shrink-0 ml-6 text-center">
+                        {% if event.simulator.icon %}
+                            <img src="{{ event.simulator.icon.url }}" alt="{{ event.simulator.name }}" class="w-16 h-16 rounded-lg mx-auto mb-2">
+                        {% endif %}
+                        <div class="text-sm font-medium text-gray-900">{{ event.simulator.name }}</div>
+                    </div>
+                </div>
+                
+                <!-- Event Description -->
+                {% if event.description %}
+                    <div class="prose max-w-none mb-6">
+                        <p class="text-gray-600">{{ event.description|linebreaks }}</p>
+                    </div>
+                {% endif %}
+                
+                <!-- Action Buttons -->
+                {% if can_join %}
+                    <div class="mb-4">
+                        <button class="bg-blue-600 text-white px-6 py-2 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            Join Event
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Track & Series Information -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Event Details</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Track Information -->
+                    <div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-3">Track</h3>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                <span class="font-medium">{{ event.sim_layout.sim_track.track_model.name }}</span>
+                            </div>
+                            
+                            {% if event.sim_layout.name != event.sim_layout.sim_track.track_model.name %}
+                                <div class="text-sm text-gray-600 ml-7">
+                                    Layout: {{ event.sim_layout.name }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if event.sim_layout.sim_track.track_model.country %}
+                                <div class="text-sm text-gray-600 ml-7">
+                                    {{ event.sim_layout.sim_track.track_model.country }}
+                                </div>
+                            {% endif %}
+                            
+                            {% if event.sim_layout.length_km %}
+                                <div class="text-sm text-gray-600 ml-7">
+                                    Length: {{ event.sim_layout.length_km|floatformat:2 }} km
+                                </div>
+                            {% endif %}
+                            
+                            {% if event.sim_layout.layout_type %}
+                                <div class="text-sm text-gray-600 ml-7">
+                                    Type: {{ event.sim_layout.get_layout_type_display }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Series Information -->
+                    {% if series_context %}
+                        <div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-3">Series</h3>
+                            <div class="space-y-2">
+                                <div class="flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                    <span class="font-medium">{{ series_context.name }}</span>
+                                </div>
+                                
+                                {% if season_context %}
+                                    <div class="text-sm text-gray-600 ml-7">
+                                        Season: {{ season_context.name }}
+                                    </div>
+                                    {% if race_week_context %}
+                                        <div class="text-sm text-gray-600 ml-7">
+                                            Week {{ race_week_context.week_number }}
+                                        </div>
+                                    {% endif %}
+                                {% endif %}
+                                
+                                {% if series_context.category %}
+                                    <div class="text-sm text-gray-600 ml-7">
+                                        Category: {{ series_context.category|title }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Organizer Information -->
+                {% if event.organizing_club or event.organizing_user %}
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900 mb-3">Organizer</h3>
+                        {% if event.organizing_club %}
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                </svg>
+                                <span class="font-medium">{{ event.organizing_club.name }}</span>
+                            </div>
+                        {% elif event.organizing_user %}
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                <span class="font-medium">{{ event.organizing_user.get_full_name|default:event.organizing_user.username }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Upcoming Instances -->
+            {% if upcoming_instances %}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Upcoming Sessions</h2>
+                    <div class="space-y-4">
+                        {% for instance in upcoming_instances %}
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="text-lg font-medium text-gray-900">
+                                        {{ instance.start_time|date:"l, F j, Y" }}
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        {{ instance.start_time|date:"H:i" }} - {{ instance.end_time|date:"H:i" }}
+                                    </div>
+                                </div>
+                                
+                                <div class="text-sm text-gray-600 mb-2">
+                                    Registration: {{ instance.registration_open|date:"M j, H:i" }} - {{ instance.registration_ends|date:"M j, H:i" }}
+                                </div>
+                                
+                                {% if instance == next_instance and weather_forecasts %}
+                                    <div class="mt-3 pt-3 border-t border-gray-100">
+                                        <div class="text-sm font-medium text-gray-700 mb-2">Weather Forecast</div>
+                                        <div class="grid grid-cols-4 gap-2 text-xs">
+                                            {% for forecast in weather_forecasts|slice:":8" %}
+                                                <div class="text-center">
+                                                    <div class="text-gray-600">{{ forecast.timestamp|date:"H:i" }}</div>
+                                                    <div class="font-medium">{{ forecast.air_temperature|floatformat:0 }}°C</div>
+                                                    {% if forecast.precipitation_chance > 20 %}
+                                                        <div class="text-blue-600">{{ forecast.precipitation_chance }}%</div>
+                                                    {% endif %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Recent Instances -->
+            {% if recent_instances %}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Recent Results</h2>
+                    <div class="space-y-3">
+                        {% for instance in recent_instances %}
+                            <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                                <div>
+                                    <div class="font-medium text-gray-900">{{ instance.start_time|date:"M j, Y" }}</div>
+                                    {% if instance.result %}
+                                        <div class="text-sm text-gray-600">{{ instance.result.num_drivers }} drivers</div>
+                                    {% endif %}
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    {% if instance.result %}
+                                        <span class="text-green-600 font-medium">Complete</span>
+                                    {% else %}
+                                        <span class="text-gray-500">No results</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <!-- Event Stats -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Event Statistics</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Total Instances</span>
+                        <span class="font-medium">{{ upcoming_instances|length|add:recent_instances|length }}</span>
+                    </div>
+                    
+                    {% if upcoming_instances %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Upcoming</span>
+                            <span class="font-medium text-green-600">{{ upcoming_instances|length }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if recent_instances %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Completed</span>
+                            <span class="font-medium">{{ recent_instances|length }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if event.max_entries %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Max Entries</span>
+                            <span class="font-medium">{{ event.max_entries }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if event.is_team_event and event.min_drivers_per_entry %}
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Team Size</span>
+                            <span class="font-medium">
+                                {{ event.min_drivers_per_entry }}{% if event.max_drivers_per_entry and event.max_drivers_per_entry != event.min_drivers_per_entry %}-{{ event.max_drivers_per_entry }}{% endif %} drivers
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Requirements -->
+            {% if event.min_license_level or event.min_safety_rating or event.min_skill_rating %}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Requirements</h3>
+                    <div class="space-y-3">
+                        {% if event.min_license_level %}
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Min License</span>
+                                <span class="font-medium">{{ event.min_license_level }}</span>
+                            </div>
+                        {% endif %}
+                        
+                        {% if event.min_safety_rating %}
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Min Safety Rating</span>
+                                <span class="font-medium">{{ event.min_safety_rating|floatformat:2 }}</span>
+                            </div>
+                        {% endif %}
+                        
+                        {% if event.min_skill_rating %}
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Min Skill Rating</span>
+                                <span class="font-medium">{{ event.min_skill_rating|floatformat:0 }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Event Sessions -->
+            {% if event.sessions.all %}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Session Format</h3>
+                    <div class="space-y-2">
+                        {% for session in event.sessions.all %}
+                            <div class="flex justify-between items-center">
+                                <span class="text-gray-600">{{ session.get_session_type_display }}</span>
+                                <span class="text-sm font-medium">{{ session.duration }} min</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

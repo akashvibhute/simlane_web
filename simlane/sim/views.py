@@ -11,10 +11,11 @@ from django.views.decorators.vary import vary_on_cookie
 from django.core.cache import cache
 from django.views.decorators.http import require_POST
 import logging
+from django.utils import timezone
 
 from simlane.sim.models import (
     SimProfile, Simulator, CarModel, CarClass, 
-    TrackModel, SimCar, SimTrack, SimLayout, SimProfileCarOwnership
+    TrackModel, SimCar, SimTrack, SimLayout, SimProfileCarOwnership, Event, EventSource, EventStatus
 )
 from simlane.core.cache_utils import (
     cache_for_anonymous, CacheKeyManager, cache_query
@@ -65,6 +66,23 @@ def get_all_tracks_queryset():
         simulator_count=Count('sim_tracks__simulator', distinct=True),
         layout_count=Count('sim_tracks__layouts', distinct=True)
     ).order_by('name')
+
+@cache_query(timeout=600, cache_alias='query_cache')
+def get_events_queryset():
+    """Get optimized events queryset with related data"""
+    return Event.objects.select_related(
+        'simulator',
+        'series',
+        'series__simulator',
+        'sim_layout__sim_track__track_model',
+        'organizing_club',
+        'organizing_user'
+    ).prefetch_related(
+        'instances',
+        'sessions'
+    ).filter(
+        visibility__in=['PUBLIC', 'UNLISTED']
+    ).order_by('-created_at')
 
 
 # Public Profile Views
@@ -737,6 +755,143 @@ def refresh_iracing_owned_content(request):
         return JsonResponse({'error': 'SimProfile not found or not linked to user.'}, status=404)
     sync_iracing_owned_content.delay(profile.id)
     return render(request, 'sim/components/refresh_status.html', {'status': 'syncing'})
+
+
+@cache_for_anonymous(timeout=900)  # 15 minutes
+def events_list(request):
+    """Public listing of all events"""
+    events = get_events_queryset()
+    
+    # Apply filters
+    simulator_slug = request.GET.get('simulator')
+    event_source = request.GET.get('source')
+    status = request.GET.get('status')
+    
+    if simulator_slug:
+        events = events.filter(simulator__slug=simulator_slug)
+    
+    if event_source:
+        events = events.filter(event_source=event_source)
+        
+    if status:
+        events = events.filter(status=status)
+    
+    # Pagination
+    paginator = Paginator(events, 24)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'simulators': get_active_simulators(),
+        'event_sources': EventSource.choices,
+        'event_statuses': EventStatus.choices,
+        'current_filters': {
+            'simulator': simulator_slug,
+            'source': event_source,
+            'status': status,
+        }
+    }
+    
+    if request.headers.get('HX-Request'):
+        return render(request, 'sim/events/list_partial.html', context)
+    return render(request, 'sim/events/list.html', context)
+
+
+def event_detail(request, event_slug):
+    """View individual event details"""
+    # Generate cache key for public events
+    cache_key = None
+    if not request.user.is_authenticated:
+        cache_key = CacheKeyManager.get_view_cache_key(
+            'event_detail',
+            event_slug=event_slug
+        )
+        
+        # Try to get from cache
+        cached_response = cache.get(cache_key)
+        if cached_response:
+            return cached_response
+    
+    event = get_object_or_404(
+        Event.objects.select_related(
+            'simulator',
+            'series',
+            'series__simulator',
+            'sim_layout__sim_track__track_model',
+            'organizing_club',
+            'organizing_user'
+        ).prefetch_related(
+            'instances__weather_forecasts',
+            'instances__result',
+            'sessions',
+            'classes'
+        ),
+        slug=event_slug,
+        visibility__in=['PUBLIC', 'UNLISTED']
+    )
+    
+    # Check if user can view this event
+    if not event.can_user_view(request.user):
+        raise Http404("Event not found")
+    
+    # Get upcoming instances
+    upcoming_instances = event.instances.filter(
+        start_time__gt=timezone.now()
+    ).order_by('start_time')[:5]
+    
+    # Get recent/completed instances
+    recent_instances = event.instances.filter(
+        start_time__lte=timezone.now()
+    ).order_by('-start_time')[:10]
+    
+    # Get weather data for next instance if available
+    next_instance = upcoming_instances.first()
+    weather_forecasts = []
+    if next_instance:
+        weather_forecasts = next_instance.weather_forecasts.order_by('timestamp')[:24]  # Next 24 hours
+    
+    # Check if current user can join this event
+    can_join = False
+    can_manage = False
+    if request.user.is_authenticated:
+        can_join = event.can_user_join(request.user)
+        can_manage = event.can_user_manage(request.user)
+    
+    # Get series and season context if this is a series event
+    series_context = None
+    season_context = None
+    race_week_context = None
+    
+    if event.series:
+        series_context = event.series
+        # Try to find associated season and race week through sim_layout
+        race_weeks = event.sim_layout.race_weeks.select_related('season').order_by('-season__active', '-week_number')
+        if race_weeks.exists():
+            race_week = race_weeks.first()
+            race_week_context = race_week
+            season_context = race_week.season
+    
+    context = {
+        'event': event,
+        'upcoming_instances': upcoming_instances,
+        'recent_instances': recent_instances,
+        'next_instance': next_instance,
+        'weather_forecasts': weather_forecasts,
+        'can_join': can_join,
+        'can_manage': can_manage,
+        'series_context': series_context,
+        'season_context': season_context,
+        'race_week_context': race_week_context,
+    }
+    
+    response = render(request, 'sim/events/detail.html', context)
+    
+    # Cache the response for anonymous users
+    if cache_key and not request.user.is_authenticated:
+        cache.set(cache_key, response, timeout=900)  # 15 minutes
+    
+    return response
 
 
 

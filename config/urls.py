@@ -17,7 +17,7 @@ from simlane.users.views import (
     auth_signup_view,
     auth_socialaccount_login_error_view,
 )
-from simlane.sim.urls import cars_patterns, tracks_patterns, profiles_patterns, dashboard_patterns
+from simlane.sim.urls import cars_patterns, tracks_patterns, profiles_patterns, dashboard_patterns, events_patterns
 
 urlpatterns = [
     # Django Admin, use {% url 'admin:index' %}
@@ -39,9 +39,10 @@ urlpatterns = [
     # Top-level drivers and dashboard
     path("drivers/", include((profiles_patterns, "drivers"), namespace="drivers")),
     path("dashboard/", include((dashboard_patterns, "dashboard"), namespace="dashboard")),
-    # Top-level cars and tracks pages
+    # Top-level cars, tracks, and events pages
     path("cars/", include(cars_patterns)),
     path("tracks/", include(tracks_patterns)),
+    path("events/", include((events_patterns, "events"), namespace="events")),
     # Sim app (for any remaining sim-specific functionality)
     path("sim/", include("simlane.sim.urls", namespace="sim")),
     # API endpoints

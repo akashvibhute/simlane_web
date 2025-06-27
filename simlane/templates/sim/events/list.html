@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Events - SimLane{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Events</h1>
+        <p class="text-gray-600">Discover sim racing events from official series, clubs, and the community</p>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <form method="get" class="space-y-4 md:space-y-0 md:flex md:items-end md:space-x-4">
+            <!-- Simulator Filter -->
+            <div class="flex-1">
+                <label for="simulator" class="block text-sm font-medium text-gray-700 mb-1">Simulator</label>
+                <select name="simulator" id="simulator" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Simulators</option>
+                    {% for simulator in simulators %}
+                        <option value="{{ simulator.slug }}" {% if current_filters.simulator == simulator.slug %}selected{% endif %}>
+                            {{ simulator.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Event Source Filter -->
+            <div class="flex-1">
+                <label for="source" class="block text-sm font-medium text-gray-700 mb-1">Event Type</label>
+                <select name="source" id="source" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Types</option>
+                    {% for source_key, source_label in event_sources %}
+                        <option value="{{ source_key }}" {% if current_filters.source == source_key %}selected{% endif %}>
+                            {{ source_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="flex-1">
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select name="status" id="status" class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">All Statuses</option>
+                    {% for status_key, status_label in event_statuses %}
+                        <option value="{{ status_key }}" {% if current_filters.status == status_key %}selected{% endif %}>
+                            {{ status_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filter Button -->
+            <div>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Filter
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Events Grid -->
+    <div id="events-container">
+        {% include "sim/events/list_partial.html" %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit form on filter change
+    const filterForm = document.querySelector('form');
+    const selects = filterForm.querySelectorAll('select');
+    
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            filterForm.submit();
+        });
+    });
+});
+</script>
+{% endblock %} 

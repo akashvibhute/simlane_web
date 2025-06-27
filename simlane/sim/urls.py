@@ -10,6 +10,12 @@ urlpatterns = [
     path('refresh-iracing-owned/', views.refresh_iracing_owned_content, name='refresh_iracing_owned'),
 ]
 
+# Events patterns - to be included at top level
+events_patterns = [
+    path("", views.events_list, name="events_list"),
+    path("<slug:event_slug>/", views.event_detail, name="event_detail"),
+]
+
 # Profiles patterns - to be included at top level
 profiles_patterns = [
     path("", views.profiles_list, name="profiles_list"),

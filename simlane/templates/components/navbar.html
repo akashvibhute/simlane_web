@@ -46,6 +46,11 @@
            hx-get="{% url 'drivers:profiles_list' %}"
            hx-target="#main-content"
            hx-push-url="true">Drivers</a>
+        <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+           href="{% url 'events:events_list' %}"
+           hx-get="{% url 'events:events_list' %}"
+           hx-target="#main-content"
+           hx-push-url="true">Events</a>
         
         {% if request.user.is_authenticated %}
           <!-- Dashboard Link -->
@@ -199,6 +204,9 @@
         <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
                                                                                href="{% url 'drivers:profiles_list' %}"
              onclick="toggleMobileMenu()">Drivers</a>
+        <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
+           href="{% url 'events:events_list' %}"
+           onclick="toggleMobileMenu()">Events</a>
         
         {% if request.user.is_authenticated %}
           <!-- Authenticated Mobile Menu -->
