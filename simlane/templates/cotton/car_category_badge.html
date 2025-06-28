@@ -7,17 +7,34 @@ Props / attributes:
 
 We map category codes to label + emoji icon. You can replace emoji with SVG later.
 {% endcomment %}
-
 <c-vars size="sm" />
-
-<span class="inline-flex items-center rounded-full font-medium 
-    {% if size == 'lg' %}px-3 py-1 text-sm{% elif size == 'md' %}px-3 py-0.5 text-xs{% else %}px-2 py-0.5 text-xs{% endif %} 
-    {# colour classes #}
-    {% if category == 'formula_car' %}bg-indigo-100 text-indigo-800{% elif category == 'sports_car' %}bg-emerald-100 text-emerald-800{% elif category == 'oval' %}bg-yellow-100 text-yellow-800{% elif category == 'dirt_road' or category == 'dirt_oval' %}bg-orange-100 text-orange-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+<span class="inline-flex items-center rounded-full font-medium {% if size == 'lg' %}px-3 py-1 text-sm{% elif size == 'md' %}px-3 py-0.5 text-xs{% else %}px-2 py-0.5 text-xs{% endif %} {# colour classes #} {% if category == 'formula_car' %}bg-indigo-100 text-indigo-800{% elif category == 'sports_car' %}bg-emerald-100 text-emerald-800{% elif category == 'oval' %}bg-yellow-100 text-yellow-800{% elif category == 'dirt_road' or category == 'dirt_oval' %}bg-orange-100 text-orange-800{% else %}bg-gray-100 text-gray-800{% endif %}">
   <span class="mr-1">
-    {% if category == 'formula_car' %}🏎️{% elif category == 'sports_car' %}🚗{% elif category == 'oval' %}🏁{% elif category == 'dirt_road' or category == 'dirt_oval' %}🏜️{% else %}🚘{% endif %}
+    {% if category == 'formula_car' %}
+      🏎️
+    {% elif category == 'sports_car' %}
+      🚗
+    {% elif category == 'oval' %}
+      🏁
+    {% elif category == 'dirt_road' or category == 'dirt_oval' %}
+      🏜️
+    {% else %}
+      🚘
+    {% endif %}
   </span>
   <span>
-    {% if category == 'formula_car' %}Formula{% elif category == 'sports_car' %}Sports Car{% elif category == 'oval' %}Oval{% elif category == 'dirt_road' %}Dirt Road{% elif category == 'dirt_oval' %}Dirt Oval{% else %}{{ category|title }}{% endif %}
+    {% if category == 'formula_car' %}
+      Formula
+    {% elif category == 'sports_car' %}
+      Sports Car
+    {% elif category == 'oval' %}
+      Oval
+    {% elif category == 'dirt_road' %}
+      Dirt Road
+    {% elif category == 'dirt_oval' %}
+      Dirt Oval
+    {% else %}
+      {{ category|title }}
+    {% endif %}
   </span>
-</span> 
+</span>

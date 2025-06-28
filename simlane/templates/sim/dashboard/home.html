@@ -1,111 +1,104 @@
 {% extends "base.html" %}
 
 {% block title %}Sim Dashboard - SimLane{% endblock %}
-
 {% block content %}
-<div class="space-y-6">
+  <div class="space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sim Dashboard</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Manage your sim racing profiles and view analytics
-            </p>
-        </div>
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sim Dashboard</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your sim racing profiles and view analytics</p>
+      </div>
     </div>
-
     <!-- Your Sim Profiles -->
     {% if user_profiles %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Your Linked Profiles</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for profile in user_profiles %}
-                    <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {% if profile.simulator.icon %}
-                                <img src="{{ profile.simulator.icon.url }}" alt="{{ profile.simulator.name }}" class="w-10 h-10 rounded">
-                            {% else %}
-                                <div class="w-10 h-10 bg-primary-500 rounded flex items-center justify-center">
-                                    <span class="text-sm font-bold text-white">{{ profile.simulator.name|first }}</span>
-                                </div>
-                            {% endif %}
-                            <div class="flex-1">
-                                <h3 class="font-medium text-gray-900 dark:text-white">{{ profile.profile_name }}</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ profile.simulator.name }}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-center justify-between">
-                            {% if profile.is_verified %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
-                                    Verified
-                                </span>
-                            {% else %}
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-                                    Unverified
-                                </span>
-                            {% endif %}
-                            
-                            <a href="{% url 'dashboard:simulator_dashboard' profile.simulator.slug %}" 
-                               class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium">
-                                View Dashboard
-                            </a>
-                        </div>
-                    </div>
-                {% endfor %}
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Your Linked Profiles</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for profile in user_profiles %}
+            <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <div class="flex items-center space-x-3 mb-3">
+                {% if profile.simulator.icon %}
+                  <img src="{{ profile.simulator.icon.url }}"
+                       alt="{{ profile.simulator.name }}"
+                       class="w-10 h-10 rounded" />
+                {% else %}
+                  <div class="w-10 h-10 bg-primary-500 rounded flex items-center justify-center">
+                    <span class="text-sm font-bold text-white">{{ profile.simulator.name|first }}</span>
+                  </div>
+                {% endif %}
+                <div class="flex-1">
+                  <h3 class="font-medium text-gray-900 dark:text-white">{{ profile.profile_name }}</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">{{ profile.simulator.name }}</p>
+                </div>
+              </div>
+              <div class="flex items-center justify-between">
+                {% if profile.is_verified %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                    Verified
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
+                    Unverified
+                  </span>
+                {% endif %}
+                <a href="{% url 'dashboard:simulator_dashboard' profile.simulator.slug %}"
+                   class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium">
+                  View Dashboard
+                </a>
+              </div>
             </div>
+          {% endfor %}
         </div>
+      </div>
     {% endif %}
-
     <!-- Available Simulators -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Available Simulators</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {% for simulator in simulators %}
-                <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <div class="flex items-center space-x-3 mb-3">
-                        {% if simulator.icon %}
-                            <img src="{{ simulator.icon.url }}" alt="{{ simulator.name }}" class="w-10 h-10 rounded">
-                        {% else %}
-                            <div class="w-10 h-10 bg-primary-500 rounded flex items-center justify-center">
-                                <span class="text-sm font-bold text-white">{{ simulator.name|first }}</span>
-                            </div>
-                        {% endif %}
-                        <div class="flex-1">
-                            <h3 class="font-medium text-gray-900 dark:text-white">{{ simulator.name }}</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ simulator.description|truncatewords:10 }}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-between items-center">
-                        <a href="{% url 'drivers:profiles_by_simulator' simulator.slug %}" 
-                           class="text-gray-600 dark:text-gray-400 hover:text-gray-500 text-sm">
-                            Browse Drivers
-                        </a>
-                        <a href="{% url 'dashboard:simulator_dashboard' simulator.slug %}" 
-                           class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium">
-                            Dashboard
-                        </a>
-                    </div>
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Available Simulators</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for simulator in simulators %}
+          <div class="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <div class="flex items-center space-x-3 mb-3">
+              {% if simulator.icon %}
+                <img src="{{ simulator.icon.url }}"
+                     alt="{{ simulator.name }}"
+                     class="w-10 h-10 rounded" />
+              {% else %}
+                <div class="w-10 h-10 bg-primary-500 rounded flex items-center justify-center">
+                  <span class="text-sm font-bold text-white">{{ simulator.name|first }}</span>
                 </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    {% if not user_profiles %}
-        <!-- No Profiles Message -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
-            <div class="max-w-md mx-auto">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Sim Profiles Linked</h3>
-                <p class="text-gray-500 dark:text-gray-400 mb-4">
-                    Link your sim racing profiles to access personalized dashboards and analytics.
-                </p>
-                <a href="{% url 'users:profile_sim_profiles' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                    Link Your Profiles
-                </a>
+              {% endif %}
+              <div class="flex-1">
+                <h3 class="font-medium text-gray-900 dark:text-white">{{ simulator.name }}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ simulator.description|truncatewords:10 }}</p>
+              </div>
             </div>
+            <div class="flex justify-between items-center">
+              <a href="{% url 'drivers:profiles_by_simulator' simulator.slug %}"
+                 class="text-gray-600 dark:text-gray-400 hover:text-gray-500 text-sm">Browse Drivers</a>
+              <a href="{% url 'dashboard:simulator_dashboard' simulator.slug %}"
+                 class="text-primary-600 dark:text-primary-400 hover:text-primary-500 text-sm font-medium">
+                Dashboard
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% if not user_profiles %}
+      <!-- No Profiles Message -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 text-center">
+        <div class="max-w-md mx-auto">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Sim Profiles Linked</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-4">
+            Link your sim racing profiles to access personalized dashboards and analytics.
+          </p>
+          <a href="{% url 'users:profile_sim_profiles' %}"
+             class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+            Link Your Profiles
+          </a>
         </div>
+      </div>
     {% endif %}
-</div>
-{% endblock %} 
+  </div>
+{% endblock %}

@@ -1,51 +1,44 @@
 <c-vars class="" show_badges="true" show_footer="true" />
-
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden {{ class }}">
-    <div class="p-6 pb-4">
-        <div class="flex items-start justify-between mb-3">
-            <div class="flex-1">
-                <!-- Title -->
-                <c-skeleton-text height="h-6" width="w-4/5" class="mb-1"></c-skeleton-text>
-                
-                {% if show_badges %}
-                <!-- Badges -->
-                <div class="flex items-center space-x-2 mb-2">
-                    <c-skeleton-text height="h-4" width="w-20" class="rounded-full"></c-skeleton-text>
-                    <c-skeleton-text height="h-4" width="w-16" class="rounded-full"></c-skeleton-text>
-                </div>
-                {% endif %}
-            </div>
-            
-            <!-- Simulator Icon -->
-            <div class="flex-shrink-0 ml-3">
-                <c-skeleton-circle size="w-8 h-8"></c-skeleton-circle>
-            </div>
-        </div>
-        
-        <!-- Track Information -->
-        <div class="mb-3">
-            <c-skeleton-text height="h-4" width="w-3/4" class="mb-1"></c-skeleton-text>
-            <c-skeleton-text height="h-3" width="w-1/2" class=""></c-skeleton-text>
-        </div>
-        
-        <!-- Series/Organizer Information -->
-        <div class="mb-3">
-            <c-skeleton-text height="h-4" width="w-2/3" class="mb-2"></c-skeleton-text>
-            <c-skeleton-text height="h-4" width="w-1/2" class=""></c-skeleton-text>
-        </div>
-        
-        <!-- Description -->
-        <c-skeleton-text height="h-4" width="w-full" class="mb-1"></c-skeleton-text>
-        <c-skeleton-text height="h-4" width="w-3/4" class=""></c-skeleton-text>
+  <div class="p-6 pb-4">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex-1">
+        <!-- Title -->
+        <c-skeleton-text height="h-6" width="w-4/5" class="mb-1"></c-skeleton-text>
+        {% if show_badges %}
+          <!-- Badges -->
+          <div class="flex items-center space-x-2 mb-2">
+            <c-skeleton-text height="h-4" width="w-20" class="rounded-full"></c-skeleton-text>
+            <c-skeleton-text height="h-4" width="w-16" class="rounded-full"></c-skeleton-text>
+          </div>
+        {% endif %}
+      </div>
+      <!-- Simulator Icon -->
+      <div class="flex-shrink-0 ml-3">
+        <c-skeleton-circle size="w-8 h-8"></c-skeleton-circle>
+      </div>
     </div>
-    
-    {% if show_footer %}
+    <!-- Track Information -->
+    <div class="mb-3">
+      <c-skeleton-text height="h-4" width="w-3/4" class="mb-1"></c-skeleton-text>
+      <c-skeleton-text height="h-3" width="w-1/2" class=""></c-skeleton-text>
+    </div>
+    <!-- Series/Organizer Information -->
+    <div class="mb-3">
+      <c-skeleton-text height="h-4" width="w-2/3" class="mb-2"></c-skeleton-text>
+      <c-skeleton-text height="h-4" width="w-1/2" class=""></c-skeleton-text>
+    </div>
+    <!-- Description -->
+    <c-skeleton-text height="h-4" width="w-full" class="mb-1"></c-skeleton-text>
+    <c-skeleton-text height="h-4" width="w-3/4" class=""></c-skeleton-text>
+  </div>
+  {% if show_footer %}
     <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
-        <div class="flex items-center justify-between">
-            <c-skeleton-text height="h-4" width="w-24" class=""></c-skeleton-text>
-            <c-skeleton-text height="h-3" width="w-32" class=""></c-skeleton-text>
-        </div>
-        <c-skeleton-text height="h-4" width="w-20" class="mt-2 rounded-full"></c-skeleton-text>
+      <div class="flex items-center justify-between">
+        <c-skeleton-text height="h-4" width="w-24" class=""></c-skeleton-text>
+        <c-skeleton-text height="h-3" width="w-32" class=""></c-skeleton-text>
+      </div>
+      <c-skeleton-text height="h-4" width="w-20" class="mt-2 rounded-full"></c-skeleton-text>
     </div>
-    {% endif %}
-</div> 
+  {% endif %}
+</div>

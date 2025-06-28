@@ -2,95 +2,97 @@
 
 <!-- Dropdown Results for Event Selection -->
 <div class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-b-md shadow-lg max-h-60 overflow-y-auto border-t-0 -mt-px">
-    {% for event in events %}
-        <div class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors"
-             onclick="selectEvent('{{ event.id }}', '{{ event.name|escapejs }}', '{{ event.simulator.name|escapejs }}', '{{ event.instances.first.start_time|date:"M d, Y"|escapejs }}')">
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ event.name }}</h4>
-                    {% if event.series %}
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ event.series.name }}</p>
-                    {% endif %}
-                    <div class="flex items-center space-x-2 mt-2">
-                        <!-- Simulator Badge -->
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-                            {{ event.simulator.name }}
-                        </span>
-                        <!-- Date Badge -->
-                        {% if event.instances.first %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-                                {{ event.instances.first.start_time|date:"M d, Y" }}
-                            </span>
-                        {% endif %}
-                        <!-- Event Type Badge -->
-                        {% if event.event_source == 'SERIES' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
-                                Official
-                            </span>
-                        {% elif event.event_source == 'CLUB' %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                                Club
-                            </span>
-                        {% endif %}
-                    </div>
-                    <!-- Track Info -->
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        <span>{{ event.sim_layout.sim_track.track_model.name }}</span>
-                        {% if event.sim_layout.name != event.sim_layout.sim_track.track_model.name %}
-                            <span class="ml-1">({{ event.sim_layout.name }})</span>
-                        {% endif %}
-                    </div>
-                </div>
-                <!-- Selection Icon -->
-                <div class="flex-shrink-0 ml-3">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </div>
-            </div>
-        </div>
-    {% empty %}
-        <div class="p-4 text-center text-gray-500 dark:text-gray-400">
-            {% if search_query %}
-                No upcoming events found matching "{{ search_query }}"
-            {% else %}
-                <!-- Empty search - show nothing or a subtle hint -->
+  {% for event in events %}
+    <div class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors"
+         onclick="selectEvent('{{ event.id }}', '{{ event.name|escapejs }}', '{{ event.simulator.name|escapejs }}', '{{ event.time_slots.first.start_time|date:"M d, Y"|escapejs }}')">
+      <div class="flex justify-between items-start">
+        <div class="flex-1">
+          <h4 class="font-medium text-gray-900 dark:text-white text-sm">{{ event.name }}</h4>
+          {% if event.series %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ event.series.name }}</p>{% endif %}
+          <div class="flex items-center space-x-2 mt-2">
+            <!-- Simulator Badge -->
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+              {{ event.simulator.name }}
+            </span>
+            <!-- Date Badge -->
+            {% if event.time_slots.first %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                {{ event.time_slots.first.start_time|date:"M d, Y" }}
+              </span>
             {% endif %}
+            <!-- Event Type Badge -->
+            {% if event.event_source == 'SERIES' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                Official
+              </span>
+            {% elif event.event_source == 'CLUB' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                Club
+              </span>
+            {% endif %}
+          </div>
+          <!-- Track Info -->
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <span>{{ event.sim_layout.sim_track.track_model.name }}</span>
+            {% if event.sim_layout.name != event.sim_layout.sim_track.track_model.name %}
+              <span class="ml-1">({{ event.sim_layout.name }})</span>
+            {% endif %}
+          </div>
         </div>
-    {% endfor %}
+        <!-- Selection Icon -->
+        <div class="flex-shrink-0 ml-3">
+          <svg class="w-4 h-4 text-gray-400"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="p-4 text-center text-gray-500 dark:text-gray-400">
+      {% if search_query %}
+        No upcoming events found matching "{{ search_query }}"
+      {% else %}
+        <!-- Empty search - show nothing or a subtle hint -->
+      {% endif %}
+    </div>
+  {% endfor %}
 </div>
-
 <script>
-function selectEvent(eventId, eventName, simulatorName, eventDate) {
+  function selectEvent(eventId, eventName, simulatorName, eventDate) {
     // Set the hidden field value
     const eventField = document.querySelector('input[name="event"]');
     if (eventField) {
-        eventField.value = eventId;
+      eventField.value = eventId;
     }
-    
+
     // Update the search input display
     const searchInput = document.querySelector('input[name="event_search"]');
     if (searchInput) {
-        searchInput.value = '';
+      searchInput.value = '';
     }
-    
+
     // Show selected event display
     const selectedDisplay = document.getElementById('selected-event-display');
     const selectedName = document.getElementById('selected-event-name');
     if (selectedDisplay && selectedName) {
-        selectedName.textContent = `${eventName} (${simulatorName} - ${eventDate})`;
-        selectedDisplay.classList.remove('hidden');
+      selectedName.textContent = `${eventName} (${simulatorName} - ${eventDate})`;
+      selectedDisplay.classList.remove('hidden');
     }
-    
+
     // Clear the dropdown
     const resultsContainer = document.getElementById('event-search-results');
     if (resultsContainer) {
-        resultsContainer.innerHTML = '';
+      resultsContainer.innerHTML = '';
     }
-    
+
     // Trigger change event for any listeners
     if (eventField) {
-        eventField.dispatchEvent(new Event('change', { bubbles: true }));
+      eventField.dispatchEvent(new Event('change', {
+        bubbles: true
+      }));
     }
-}
-</script> 
+  }
+</script>

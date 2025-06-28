@@ -1,10 +1,12 @@
 import logging
 import pickle
+
 from django.conf import settings
 from django.core.cache import cache
 from iracingdataapi.client import irDataClient
 
 logger = logging.getLogger(__name__)
+
 
 class IRacingAPIClient(irDataClient):
     """
@@ -12,7 +14,8 @@ class IRacingAPIClient(irDataClient):
     Subclasses irDataClient to add cache-based session restoration and validation.
     Phase 1: System account only.
     """
-    CACHE_KEY = 'iracing_session_system'
+
+    CACHE_KEY = "iracing_session_system"
     CACHE_TIMEOUT = 86400  # 24 hours
 
     @classmethod
@@ -38,16 +41,21 @@ class IRacingAPIClient(irDataClient):
                 # Validate session
                 try:
                     client.member_info()
-                    logger.info("iRacing session restored and validated from cache", extra={
-                        'auth_type': 'system',
-                        'cache_hit': True
-                    })
+                    logger.info(
+                        "iRacing session restored and validated from cache",
+                        extra={
+                            "auth_type": "system",
+                            "cache_hit": True,
+                        },
+                    )
                     restored = True
                 except Exception:
                     logger.warning("Cached session invalid, re-authenticating")
                     cache.delete(cls.CACHE_KEY)
             except Exception:
-                logger.exception("Failed to restore iRacing session from cache; re-authenticating")
+                logger.exception(
+                    "Failed to restore iRacing session from cache; re-authenticating"
+                )
                 cache.delete(cls.CACHE_KEY)
 
         if not restored:
@@ -60,12 +68,16 @@ class IRacingAPIClient(irDataClient):
                 return None
 
         # Always cache the latest cookies after login or restore
-        cache.set(cls.CACHE_KEY, pickle.dumps(client.session.cookies), cls.CACHE_TIMEOUT)
+        cache.set(
+            cls.CACHE_KEY, pickle.dumps(client.session.cookies), cls.CACHE_TIMEOUT
+        )
         return client
 
     def save_to_cache(self):
         """
         Saves the current session cookies to cache. For future extensibility.
         """
-        cache.set(self.CACHE_KEY, pickle.dumps(self.session.cookies), self.CACHE_TIMEOUT)
-        logger.info("Saved iRacing session cookies to cache") 
+        cache.set(
+            self.CACHE_KEY, pickle.dumps(self.session.cookies), self.CACHE_TIMEOUT
+        )
+        logger.info("Saved iRacing session cookies to cache")

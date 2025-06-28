@@ -24,7 +24,10 @@
             {% endif %}
             <div>
               <h1 class="text-xl font-semibold text-gray-900 dark:text-white">{{ club.name }} Dashboard</h1>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Club Dashboard{% if user_role %} • {{ user_role|title }}{% endif %}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Club Dashboard
+                {% if user_role %}• {{ user_role|title }}{% endif %}
+              </p>
             </div>
           </div>
           <!-- Right section -->
@@ -154,12 +157,12 @@
               </svg>
               Results
             </a>
-                          <!-- Settings (if admin/teams_manager) -->
-              {% if user_role == 'admin' or user_role == 'teams_manager' %}
-                <a href="{% url 'teams:club_dashboard_section' club.slug 'settings' %}"
-                   hx-get="{% url 'teams:club_dashboard_section' club.slug 'settings' %}"
-                   hx-target="#dashboard-content"
-                   hx-push-url="{% url 'teams:club_dashboard_section' club.slug 'settings' %}"
+            <!-- Settings (if admin/teams_manager) -->
+            {% if user_role == 'admin' or user_role == 'teams_manager' %}
+              <a href="{% url 'teams:club_dashboard_section' club.slug 'settings' %}"
+                 hx-get="{% url 'teams:club_dashboard_section' club.slug 'settings' %}"
+                 hx-target="#dashboard-content"
+                 hx-push-url="{% url 'teams:club_dashboard_section' club.slug 'settings' %}"
                  class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'settings' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
                 <svg class="w-5 h-5 mr-3"
                      fill="none"

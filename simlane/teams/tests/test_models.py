@@ -10,13 +10,14 @@ from django.test import TestCase
 from django.utils import timezone
 
 from simlane.sim.models import Event
-from simlane.sim.models import EventInstance
 from simlane.sim.models import Simulator
+from simlane.sim.models import TimeSlot
 from simlane.sim.models import Track
 from simlane.teams.models import Club
 from simlane.teams.models import ClubInvitation
 from simlane.teams.models import ClubMember
 from simlane.teams.models import Team
+
 # Removed imports: EventSignup, StintAssignment, TeamAllocation, TeamAllocationMember, TeamEventStrategy
 # These models have been removed in favor of enhanced participation system
 from simlane.users.models import User
@@ -199,7 +200,7 @@ class ModelValidationTest(TestCase):
             start_time=timezone.now() + timedelta(days=7),
             duration_minutes=180,
         )
-        event_instance = EventInstance.objects.create(
+        time_slot = TimeSlot.objects.create(
             event=event,
             session_type="RACE",
             start_time=event.start_time,
@@ -220,7 +221,7 @@ class ModelValidationTest(TestCase):
         )
         strategy = TeamEventStrategy.objects.create(
             team_allocation=allocation,
-            event_instance=event_instance,
+            time_slot=time_slot,
             strategy_name="Test Strategy",
         )
 

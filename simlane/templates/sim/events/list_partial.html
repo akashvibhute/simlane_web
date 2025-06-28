@@ -2,116 +2,121 @@
 
 <!-- Header -->
 <div class="mb-8">
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {% if is_upcoming_view %}Upcoming Events{% else %}Events{% endif %}
-            </h1>
-            <p class="text-gray-600 dark:text-gray-400">
-                {% if is_upcoming_view %}
-                    Discover upcoming sim racing events from official series, clubs, and the community
-                {% else %}
-                    Discover sim racing events from official series, clubs, and the community
-                {% endif %}
-            </p>
-        </div>
-        
-        <!-- View Toggle -->
-        <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            <a href="{% url 'events:events_list' %}" 
-               class="px-3 py-1.5 text-sm font-medium rounded-md {% if not is_upcoming_view %}bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors{% endif %}">
-                All Events
-            </a>
-            <a href="{% url 'events:upcoming_events_list' %}" 
-               class="px-3 py-1.5 text-sm font-medium rounded-md {% if is_upcoming_view %}bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors{% endif %}">
-                Upcoming Only
-            </a>
-        </div>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+        {% if is_upcoming_view %}
+          Upcoming Events
+        {% else %}
+          Events
+        {% endif %}
+      </h1>
+      <p class="text-gray-600 dark:text-gray-400">
+        {% if is_upcoming_view %}
+          Discover upcoming sim racing events from official series, clubs, and the community
+        {% else %}
+          Discover sim racing events from official series, clubs, and the community
+        {% endif %}
+      </p>
     </div>
+    <!-- View Toggle -->
+    <div class="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+      <a href="{% url 'events:events_list' %}"
+         class="px-3 py-1.5 text-sm font-medium rounded-md {% if not is_upcoming_view %}bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors{% endif %}">
+        All Events
+      </a>
+      <a href="{% url 'events:upcoming_events_list' %}"
+         class="px-3 py-1.5 text-sm font-medium rounded-md {% if is_upcoming_view %}bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors{% endif %}">
+        Upcoming Only
+      </a>
+    </div>
+  </div>
 </div>
-
 <!-- Search and Filters -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-    <form method="get"
-          hx-get="{% if is_upcoming_view %}{% url 'events:upcoming_events_list' %}{% else %}{% url 'events:events_list' %}{% endif %}"
-          hx-target="#events-container"
-          hx-push-url="true"
-          hx-indicator="#loading-indicator"
-          hx-trigger="change"
-          class="space-y-4">
-        <!-- Search Bar -->
-        <div class="flex gap-4 mb-4">
-            <div class="flex-1">
-                <input type="text" 
-                       name="q" 
-                       id="events-search-input"
-                       placeholder="{% if is_upcoming_view %}Search upcoming events...{% else %}Search events...{% endif %}" 
-                       value="{{ current_filters.q|default:'' }}"
-                       hx-get="{% if is_upcoming_view %}{% url 'events:upcoming_events_list' %}{% else %}{% url 'events:events_list' %}{% endif %}"
-                       hx-target="#events-container"
-                       hx-push-url="true"
-                       hx-indicator="#loading-indicator"
-                       hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
-                       class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-            </div>
-        </div>
-        <!-- Filters Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <!-- Simulator Filter -->
-            <div>
-                <label for="simulator" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Simulator</label>
-                <select name="simulator" id="simulator"
-                        class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                    <option value="">All Simulators</option>
-                    {% for simulator in simulators %}
-                        <option value="{{ simulator.slug }}" {% if current_filters.simulator == simulator.slug %}selected{% endif %}>
-                            {{ simulator.name }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <!-- Event Source Filter -->
-            <div>
-                <label for="source" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
-                <select name="source" id="source"
-                        class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                    <option value="">All Types</option>
-                    {% for source_key, source_label in event_sources %}
-                        <option value="{{ source_key }}" {% if current_filters.source == source_key %}selected{% endif %}>
-                            {{ source_label }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <!-- Status Filter -->
-            <div>
-                <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
-                <select name="status" id="status"
-                        class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                    <option value="">All Statuses</option>
-                    {% for status_key, status_label in event_statuses %}
-                        <option value="{{ status_key }}" {% if current_filters.status == status_key %}selected{% endif %}>
-                            {{ status_label }}
-                        </option>
-                    {% endfor %}
-                </select>
-            </div>
-        </div>
-    </form>
+  <form method="get"
+        hx-get="{% if is_upcoming_view %}{% url 'events:upcoming_events_list' %}{% else %}{% url 'events:events_list' %}{% endif %}"
+        hx-target="#events-container"
+        hx-push-url="true"
+        hx-indicator="#loading-indicator"
+        hx-trigger="change"
+        class="space-y-4">
+    <!-- Search Bar -->
+    <div class="flex gap-4 mb-4">
+      <div class="flex-1">
+        <input type="text"
+               name="q"
+               id="events-search-input"
+               placeholder="{% if is_upcoming_view %}Search upcoming events...{% else %}Search events...{% endif %}"
+               value="{{ current_filters.q|default:'' }}"
+               hx-get="{% if is_upcoming_view %}{% url 'events:upcoming_events_list' %}{% else %}{% url 'events:events_list' %}{% endif %}"
+               hx-target="#events-container"
+               hx-push-url="true"
+               hx-indicator="#loading-indicator"
+               hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
+               class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+      </div>
+    </div>
+    <!-- Filters Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Simulator Filter -->
+      <div>
+        <label for="simulator"
+               class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Simulator</label>
+        <select name="simulator"
+                id="simulator"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+          <option value="">All Simulators</option>
+          {% for simulator in simulators %}
+            <option value="{{ simulator.slug }}"
+                    {% if current_filters.simulator == simulator.slug %}selected{% endif %}>
+              {{ simulator.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      <!-- Event Source Filter -->
+      <div>
+        <label for="source"
+               class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
+        <select name="source"
+                id="source"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+          <option value="">All Types</option>
+          {% for source_key, source_label in event_sources %}
+            <option value="{{ source_key }}"
+                    {% if current_filters.source == source_key %}selected{% endif %}>{{ source_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <!-- Status Filter -->
+      <div>
+        <label for="status"
+               class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+        <select name="status"
+                id="status"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+          <option value="">All Statuses</option>
+          {% for status_key, status_label in event_statuses %}
+            <option value="{{ status_key }}"
+                    {% if current_filters.status == status_key %}selected{% endif %}>{{ status_label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </form>
 </div>
-
 <!-- Events Container with HTMX target -->
 {% include 'sim/events/events_list_partial.html' %}
-
 <!-- Page-specific JavaScript for events search validation -->
 <script>
-document.body.addEventListener('htmx:beforeRequest', function(evt) {
+  document.body.addEventListener('htmx:beforeRequest', function(evt) {
     var input = document.getElementById('events-search-input');
     if (input && evt.target === input) {
-        var val = input.value.trim();
-        if (val.length > 0 && val.length < 4) {
-            evt.preventDefault();
-        }
+      var val = input.value.trim();
+      if (val.length > 0 && val.length < 4) {
+        evt.preventDefault();
+      }
     }
-});
-</script> 
+  });
+</script>

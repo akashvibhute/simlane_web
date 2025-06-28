@@ -14,7 +14,7 @@ class AvailabilityCalendar {
             existingWindows: [],
             ...options
         };
-        
+
         this.availabilityWindows = [...this.options.existingWindows];
         this.calendar = null;
         this.init();
@@ -47,16 +47,16 @@ class AvailabilityCalendar {
             slotMaxTime: '24:00:00',
             allDaySlot: false,
             height: 600,
-            
+
             // Event handlers
             select: this.handleTimeSelection.bind(this),
             eventClick: this.handleEventClick.bind(this),
             eventChange: this.handleEventChange.bind(this),
-            
+
             // Style customization
             eventClassNames: 'availability-window',
             selectConstraint: this.getSelectConstraint(),
-            
+
             // Load existing availability windows
             events: this.formatWindowsForCalendar()
         });
@@ -100,7 +100,7 @@ class AvailabilityCalendar {
         if (window.can_drive) roles.push('Drive');
         if (window.can_spot) roles.push('Spot');
         if (window.can_strategize) roles.push('Strategy');
-        
+
         const preference = ['', 'Preferred', 'Good', 'OK', 'Last Resort', 'Emergency'][window.preference_level] || 'OK';
         return `${roles.join('/')} (${preference})`;
     }
@@ -109,7 +109,7 @@ class AvailabilityCalendar {
         // Color based on preference level (1 = best, 5 = worst)
         const colors = {
             1: '#22c55e', // green-500 - Preferred
-            2: '#84cc16', // lime-500 - Good  
+            2: '#84cc16', // lime-500 - Good
             3: '#eab308', // yellow-500 - OK
             4: '#f97316', // orange-500 - Last resort
             5: '#ef4444'  // red-500 - Emergency
@@ -132,10 +132,10 @@ class AvailabilityCalendar {
     handleEventChange(changeInfo) {
         // Update the window data when dragged/resized
         const event = changeInfo.event;
-        const windowIndex = this.availabilityWindows.findIndex(w => 
+        const windowIndex = this.availabilityWindows.findIndex(w =>
             (w.id && w.id == event.id) || (!w.id && event.id.startsWith('temp-'))
         );
-        
+
         if (windowIndex >= 0) {
             this.availabilityWindows[windowIndex].start_time = event.start.toISOString();
             this.availabilityWindows[windowIndex].end_time = event.end.toISOString();
@@ -149,7 +149,7 @@ class AvailabilityCalendar {
             end: selectionInfo.end,
             isNew: true
         });
-        
+
         document.body.appendChild(modal);
         modal.style.display = 'block';
     }
@@ -162,7 +162,7 @@ class AvailabilityCalendar {
             isNew: false,
             eventId: event.id
         };
-        
+
         const modal = this.createAvailabilityModal(windowData);
         document.body.appendChild(modal);
         modal.style.display = 'block';
@@ -176,7 +176,7 @@ class AvailabilityCalendar {
                 <h3 class="text-lg font-semibold mb-4">
                     ${data.isNew ? 'Add' : 'Edit'} Availability Window
                 </h3>
-                
+
                 <form id="availability-form">
                     <div class="space-y-4">
                         <!-- Time Display -->
@@ -186,7 +186,7 @@ class AvailabilityCalendar {
                                 ${this.formatTimeRange(data.start, data.end)}
                             </div>
                         </div>
-                        
+
                         <!-- Roles -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -194,26 +194,26 @@ class AvailabilityCalendar {
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="checkbox" name="can_drive" 
-                                           ${data.canDrive !== false ? 'checked' : ''} 
+                                    <input type="checkbox" name="can_drive"
+                                           ${data.canDrive !== false ? 'checked' : ''}
                                            class="rounded border-gray-300">
                                     <span class="ml-2">Driver</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="checkbox" name="can_spot" 
-                                           ${data.canSpot !== false ? 'checked' : ''} 
+                                    <input type="checkbox" name="can_spot"
+                                           ${data.canSpot !== false ? 'checked' : ''}
                                            class="rounded border-gray-300">
                                     <span class="ml-2">Spotter</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="checkbox" name="can_strategize" 
-                                           ${data.canStrategize === true ? 'checked' : ''} 
+                                    <input type="checkbox" name="can_strategize"
+                                           ${data.canStrategize === true ? 'checked' : ''}
                                            class="rounded border-gray-300">
                                     <span class="ml-2">Strategist</span>
                                 </label>
                             </div>
                         </div>
-                        
+
                         <!-- Preference Level -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -227,17 +227,17 @@ class AvailabilityCalendar {
                                 <option value="5" ${data.preferenceLevel === 5 ? 'selected' : ''}>Emergency Only</option>
                             </select>
                         </div>
-                        
+
                         <!-- Max Consecutive Stints -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Max Consecutive Stints
                             </label>
-                            <input type="number" name="max_consecutive_stints" min="1" max="10" 
+                            <input type="number" name="max_consecutive_stints" min="1" max="10"
                                    value="${data.maxConsecutiveStints || 1}"
                                    class="w-full rounded-md border-gray-300">
                         </div>
-                        
+
                         <!-- Preferred Stint Length -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -247,26 +247,26 @@ class AvailabilityCalendar {
                                    value="${data.preferredStintLength || 60}"
                                    class="w-full rounded-md border-gray-300">
                         </div>
-                        
+
                         <!-- Notes -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Notes
                             </label>
-                            <textarea name="notes" rows="2" 
+                            <textarea name="notes" rows="2"
                                       class="w-full rounded-md border-gray-300"
                                       placeholder="Any additional notes...">${data.notes || ''}</textarea>
                         </div>
                     </div>
-                    
+
                     <div class="flex justify-end space-x-3 mt-6">
                         ${!data.isNew ? `
-                            <button type="button" class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md" 
+                            <button type="button" class="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md"
                                     onclick="this.closest('.fixed').remove(); window.availabilityCalendar.deleteWindow('${data.eventId}')">
                                 Delete
                             </button>
                         ` : ''}
-                        <button type="button" class="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md" 
+                        <button type="button" class="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md"
                                 onclick="this.closest('.fixed').remove()">
                             Cancel
                         </button>
@@ -277,36 +277,36 @@ class AvailabilityCalendar {
                 </form>
             </div>
         `;
-        
+
         // Handle form submission
         modal.querySelector('#availability-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.saveAvailabilityWindow(modal, data);
         });
-        
+
         return modal;
     }
 
     formatTimeRange(start, end) {
-        const options = { 
-            weekday: 'short', 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
+        const options = {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
             minute: '2-digit',
             timeZoneName: 'short'
         };
-        
+
         const startStr = start.toLocaleString(undefined, options);
         const endStr = end.toLocaleString(undefined, options);
-        
+
         return `${startStr} - ${endStr}`;
     }
 
     saveAvailabilityWindow(modal, originalData) {
         const form = modal.querySelector('#availability-form');
         const formData = new FormData(form);
-        
+
         const windowData = {
             start_time: originalData.start.toISOString(),
             end_time: originalData.end.toISOString(),
@@ -318,12 +318,12 @@ class AvailabilityCalendar {
             preferred_stint_length: parseInt(formData.get('preferred_stint_length')),
             notes: formData.get('notes')
         };
-        
+
         if (originalData.isNew) {
             // Add new window
             windowData.id = `temp-${Date.now()}`;
             this.availabilityWindows.push(windowData);
-            
+
             // Add to calendar
             this.calendar.addEvent({
                 id: windowData.id,
@@ -344,13 +344,13 @@ class AvailabilityCalendar {
             });
         } else {
             // Update existing window
-            const windowIndex = this.availabilityWindows.findIndex(w => 
+            const windowIndex = this.availabilityWindows.findIndex(w =>
                 (w.id && w.id == originalData.eventId) || (!w.id && originalData.eventId.startsWith('temp-'))
             );
-            
+
             if (windowIndex >= 0) {
                 this.availabilityWindows[windowIndex] = { ...this.availabilityWindows[windowIndex], ...windowData };
-                
+
                 // Update calendar event
                 const event = this.calendar.getEventById(originalData.eventId);
                 if (event) {
@@ -367,26 +367,26 @@ class AvailabilityCalendar {
                 }
             }
         }
-        
+
         this.updateHiddenField();
         modal.remove();
-        
+
         // Clear calendar selection
         this.calendar.unselect();
     }
 
     deleteWindow(eventId) {
         // Remove from data
-        this.availabilityWindows = this.availabilityWindows.filter(w => 
+        this.availabilityWindows = this.availabilityWindows.filter(w =>
             !(w.id && w.id == eventId) && !(eventId.startsWith('temp-') && !w.id)
         );
-        
+
         // Remove from calendar
         const event = this.calendar.getEventById(eventId);
         if (event) {
             event.remove();
         }
-        
+
         this.updateHiddenField();
     }
 
@@ -395,7 +395,7 @@ class AvailabilityCalendar {
         if (hiddenField) {
             hiddenField.value = JSON.stringify(this.availabilityWindows);
         }
-        
+
         // Trigger custom event for other components to listen
         document.dispatchEvent(new CustomEvent('availabilityUpdated', {
             detail: { windows: this.availabilityWindows }
@@ -418,20 +418,20 @@ class AvailabilityCalendar {
                 </button>
             </div>
         `;
-        
+
         this.container.appendChild(controlPanel);
-        
+
         // Event listeners for control panel
         controlPanel.querySelector('#clear-all').addEventListener('click', () => {
             if (confirm('Are you sure you want to clear all availability windows?')) {
                 this.clearAllWindows();
             }
         });
-        
+
         controlPanel.querySelector('#preview-coverage').addEventListener('click', () => {
             this.showCoveragePreview();
         });
-        
+
         // Update counter when windows change
         document.addEventListener('availabilityUpdated', (e) => {
             controlPanel.querySelector('#window-count').textContent = e.detail.windows.length;
@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function() {
             eventEndDate: calendarContainer.dataset.eventEnd,
             existingWindows: JSON.parse(calendarContainer.dataset.existingWindows || '[]')
         };
-        
+
         window.availabilityCalendar = new AvailabilityCalendar('availability-input', options);
     }
-}); 
+});

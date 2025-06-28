@@ -12,7 +12,7 @@ async function loadD3Visualization() {
     try {
         // Only import the D3 modules we actually use
         const d3 = await import('d3');
-        
+
         // Make D3 available for our components
         window.d3 = d3;
         return true;
@@ -30,7 +30,7 @@ window.SimLane.initializeTeamFormationDashboard = async (containerId, options = 
     if (!window.d3) {
         await loadD3Visualization();
     }
-    
+
     const instance = new TeamFormationDashboard(containerId, options);
     window.teamFormationDashboard = instance;
     return instance;
@@ -39,11 +39,11 @@ window.SimLane.initializeTeamFormationDashboard = async (containerId, options = 
 // Auto-initialize on DOM ready
 document.addEventListener('DOMContentLoaded', async function() {
     const dashboards = document.querySelectorAll('[data-component="team-formation"]');
-    
+
     if (dashboards.length > 0) {
         // Load D3 only if we have dashboards
         await loadD3Visualization();
-        
+
         dashboards.forEach(element => {
             const options = {
                 eventId: element.dataset.eventId,
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 maxTeams: element.dataset.maxTeams ? parseInt(element.dataset.maxTeams) : null,
                 timezone: element.dataset.timezone || 'UTC'
             };
-            
+
             SimLane.initializeTeamFormationDashboard(element.id, options);
         });
     }
@@ -61,10 +61,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 document.addEventListener('htmx:afterSwap', async function(event) {
     const swappedContent = event.detail.elt;
     const dashboards = swappedContent.querySelectorAll('[data-component="team-formation"]');
-    
+
     if (dashboards.length > 0) {
         await loadD3Visualization();
-        
+
         dashboards.forEach(element => {
             const options = {
                 eventId: element.dataset.eventId,
@@ -72,7 +72,7 @@ document.addEventListener('htmx:afterSwap', async function(event) {
                 maxTeams: element.dataset.maxTeams ? parseInt(element.dataset.maxTeams) : null,
                 timezone: element.dataset.timezone || 'UTC'
             };
-            
+
             SimLane.initializeTeamFormationDashboard(element.id, options);
         });
     }
@@ -83,30 +83,30 @@ window.SimLane.createHeatmap = async function(containerId, data, options = {}) {
     if (!window.d3) {
         await loadD3Visualization();
     }
-    
+
     if (!window.d3) {
         console.error('D3.js required for heatmap visualization');
         return;
     }
-    
+
     const { select, scaleLinear, scaleOrdinal, axisBottom, axisLeft } = window.d3;
-    
+
     // D3 heatmap implementation
     const container = document.getElementById(containerId);
     const width = options.width || container.offsetWidth;
     const height = options.height || 400;
     const margin = { top: 50, right: 50, bottom: 100, left: 100 };
-    
+
     // Clear existing content
     select(container).selectAll('*').remove();
-    
+
     const svg = select(container)
         .append('svg')
         .attr('width', width)
         .attr('height', height);
-    
+
     // Create heatmap visualization
     // ... D3 implementation details ...
-    
+
     return svg.node();
-}; 
+};

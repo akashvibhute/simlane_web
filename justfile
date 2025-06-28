@@ -75,7 +75,7 @@ logs config *args:
 logs-web *args:
     @doppler run -- docker compose logs -f {{args}}
 
-# logs-full: View container logs for full config  
+# logs-full: View container logs for full config
 logs-full *args:
     @doppler run -- docker compose -f docker-compose.full.yml logs -f {{args}}
 

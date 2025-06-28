@@ -1,144 +1,155 @@
 {% extends "base.html" %}
+
 {% load static %}
 
 {% block title %}Driver Search Results - SimLane{% endblock %}
-
 {% block content %}
-<div class="space-y-6">
+  <div class="space-y-6">
     <!-- Header -->
     <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Driver Search Results</h1>
-        {% if query %}
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Results for "{{ query }}"
-            </p>
-        {% endif %}
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Driver Search Results</h1>
+      {% if query %}<p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Results for "{{ query }}"</p>{% endif %}
     </div>
-
     <!-- Search Form -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-        <form method="get" class="flex gap-4">
-            <div class="flex-1">
-                <input type="text" 
-                       name="q" 
-                       value="{{ query }}" 
-                       placeholder="Search drivers..."
-                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white">
-            </div>
-            <div>
-                <select name="simulator" class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white">
-                    <option value="">All Simulators</option>
-                    <!-- Note: This would need simulator options passed from the view -->
-                </select>
-            </div>
-            <button type="submit" class="btn-primary">
-                Search
-            </button>
-        </form>
+      <form method="get" class="flex gap-4">
+        <div class="flex-1">
+          <input type="text"
+                 name="q"
+                 value="{{ query }}"
+                 placeholder="Search drivers..."
+                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white" />
+        </div>
+        <div>
+          <select name="simulator"
+                  class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-white">
+            <option value="">All Simulators</option>
+            <!-- Note: This would need simulator options passed from the view -->
+          </select>
+        </div>
+        <button type="submit" class="btn-primary">Search</button>
+      </form>
     </div>
-
     <!-- Results -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {% for profile in page_obj %}
-            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition-shadow">
-                <div class="flex items-center space-x-3 mb-3">
-                    {% if profile.simulator.icon %}
-                        <img src="{{ profile.simulator.icon.url }}" alt="{{ profile.simulator.name }}" class="w-8 h-8 rounded">
-                    {% else %}
-                        <div class="w-8 h-8 bg-primary-500 rounded flex items-center justify-center">
-                            <span class="text-sm font-bold text-white">{{ profile.simulator.name|first }}</span>
-                        </div>
-                    {% endif %}
-                    <div class="flex-1">
-                        <h3 class="font-medium text-gray-900 dark:text-white">{{ profile.profile_name }}</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ profile.simulator.name }}</p>
-                    </div>
-                </div>
-                
-                {% if profile.sim_api_id %}
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">ID: {{ profile.sim_api_id }}</p>
-                {% endif %}
-                
-                <div class="flex space-x-2">
-                    <a href="{{ profile.get_absolute_url }}" class="flex-1 btn-primary btn-sm text-center">
-                        View Profile
-                    </a>
-                    {% if user.is_authenticated and not profile.linked_user %}
-                        <!-- Show link button for unlinked profiles when user is authenticated -->
-                        <a href="{% url 'drivers:profile_link' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}" 
-                           class="btn btn-sm border border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
-                           hx-boost="true"
-                           hx-target="body"
-                           title="Link to My Account">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                            </svg>
-                        </a>
-                    {% endif %}
-                </div>
+      {% for profile in page_obj %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition-shadow">
+          <div class="flex items-center space-x-3 mb-3">
+            {% if profile.simulator.icon %}
+              <img src="{{ profile.simulator.icon.url }}"
+                   alt="{{ profile.simulator.name }}"
+                   class="w-8 h-8 rounded" />
+            {% else %}
+              <div class="w-8 h-8 bg-primary-500 rounded flex items-center justify-center">
+                <span class="text-sm font-bold text-white">{{ profile.simulator.name|first }}</span>
+              </div>
+            {% endif %}
+            <div class="flex-1">
+              <h3 class="font-medium text-gray-900 dark:text-white">{{ profile.profile_name }}</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ profile.simulator.name }}</p>
             </div>
-        {% empty %}
-            <div class="col-span-full text-center py-12">
-                {% if query %}
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-4.418 0-8-3.134-8-7 0-3.866 3.582-7 8-7s8 3.134 8 7c0 1.76-.743 3.37-1.97 4.543-.413.394-.88.718-1.384.987L12 22l-2.646-2.47z"></path>
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No profiles found</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your search terms or create a profile manually.</p>
-                    {% if user.is_authenticated %}
-                        <div class="mt-6">
-                            <a href="{% url 'users:sim_profile_add' %}" 
-                               class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                </svg>
-                                Create Profile Manually
-                            </a>
-                        </div>
-                    {% endif %}
-                {% else %}
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Search for profiles</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Enter a profile name or ID to find available profiles to link.</p>
-                {% endif %}
-            </div>
-        {% endfor %}
+          </div>
+          {% if profile.sim_api_id %}
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">ID: {{ profile.sim_api_id }}</p>
+          {% endif %}
+          <div class="flex space-x-2">
+            <a href="{{ profile.get_absolute_url }}"
+               class="flex-1 btn-primary btn-sm text-center">View Profile</a>
+            {% if user.is_authenticated and not profile.linked_user %}
+              <!-- Show link button for unlinked profiles when user is authenticated -->
+              <a href="{% url 'drivers:profile_link' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}"
+                 class="btn btn-sm border border-primary-600 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+                 hx-boost="true"
+                 hx-target="body"
+                 title="Link to My Account">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1">
+                  </path>
+                </svg>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-span-full text-center py-12">
+          {% if query %}
+            <svg class="mx-auto h-12 w-12 text-gray-400"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-4.418 0-8-3.134-8-7 0-3.866 3.582-7 8-7s8 3.134 8 7c0 1.76-.743 3.37-1.97 4.543-.413.394-.88.718-1.384.987L12 22l-2.646-2.47z">
+              </path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No profiles found</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Try adjusting your search terms or create a profile manually.
+            </p>
+            {% if user.is_authenticated %}
+              <div class="mt-6">
+                <a href="{% url 'users:sim_profile_add' %}"
+                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                  <svg class="w-4 h-4 mr-2"
+                       fill="none"
+                       stroke="currentColor"
+                       viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </svg>
+                  Create Profile Manually
+                </a>
+              </div>
+            {% endif %}
+          {% else %}
+            <svg class="mx-auto h-12 w-12 text-gray-400"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">
+              </path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Search for profiles</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Enter a profile name or ID to find available profiles to link.
+            </p>
+          {% endif %}
+        </div>
+      {% endfor %}
     </div>
-
     <!-- Back to All Profiles -->
     <div class="text-center">
-        <a href="{% url 'drivers:profiles_list' %}" class="text-primary-600 dark:text-primary-400 hover:text-primary-500">
-            ← Back to all drivers
-        </a>
+      <a href="{% url 'drivers:profiles_list' %}"
+         class="text-primary-600 dark:text-primary-400 hover:text-primary-500">← Back to all drivers</a>
     </div>
-
     <!-- Pagination -->
     {% if page_obj.has_other_pages %}
-        <div class="flex justify-center mt-6">
-            <nav class="flex space-x-2">
-                {% if page_obj.has_previous %}
-                    <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}{% if from_profile %}&from_profile=1{% endif %}" 
-                       class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                       {% if from_profile %}hx-get="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}&from_profile=1" hx-target="#search-results-container" hx-swap="innerHTML"{% endif %}>
-                        Previous
-                    </a>
-                {% endif %}
-                
-                <span class="px-3 py-2 rounded-md bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
-                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                </span>
-                
-                {% if page_obj.has_next %}
-                    <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}{% if from_profile %}&from_profile=1{% endif %}" 
-                       class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                       {% if from_profile %}hx-get="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}&from_profile=1" hx-target="#search-results-container" hx-swap="innerHTML"{% endif %}>
-                        Next
-                    </a>
-                {% endif %}
-            </nav>
-        </div>
+      <div class="flex justify-center mt-6">
+        <nav class="flex space-x-2">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}{% if from_profile %}&from_profile=1{% endif %}"
+               class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+               {% if from_profile %}hx-get="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}
+               {% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}
+               from_profile="1"
+               "
+               hx-target="#search-results-container"
+               hx-swap="innerHTML"
+               {% endif %}>Previous</a>
+          {% endif %}
+          <span class="px-3 py-2 rounded-md bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+          </span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}{% if from_profile %}&from_profile=1{% endif %}"
+               class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+               {% if from_profile %}hx-get="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}
+               {% if selected_simulator %}&simulator={{ selected_simulator }}{% endif %}
+               from_profile="1"
+               "
+               hx-target="#search-results-container"
+               hx-swap="innerHTML"
+               {% endif %}>Next</a>
+          {% endif %}
+        </nav>
+      </div>
     {% endif %}
-</div>
-{% endblock %} 
+  </div>
+{% endblock %}

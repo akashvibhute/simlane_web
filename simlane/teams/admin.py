@@ -44,7 +44,15 @@ class ClubMemberAdmin(ModelAdmin):
 
 @admin.register(Team)
 class TeamAdmin(ModelAdmin):
-    list_display = ["name", "club", "owner_user", "owner_sim_profile", "is_active", "is_temporary", "created_at"]
+    list_display = [
+        "name",
+        "club",
+        "owner_user",
+        "owner_sim_profile",
+        "is_active",
+        "is_temporary",
+        "created_at",
+    ]
     list_filter = ["club", "is_active", "is_temporary", "is_public", "created_at"]
     search_fields = ["name", "description", "club__name", "owner_user__username"]
     readonly_fields = ["created_at", "updated_at"]
@@ -62,6 +70,7 @@ class TeamMemberAdmin(ModelAdmin):
 
 # NEW UNIFIED EVENT PARTICIPATION ADMIN
 
+
 @admin.register(EventParticipation)
 class EventParticipationAdmin(ModelAdmin):
     list_display = [
@@ -71,20 +80,20 @@ class EventParticipationAdmin(ModelAdmin):
         "status",
         "assigned_car",
         "team",
-        "created_at"
+        "created_at",
     ]
     list_filter = [
         "participation_type",
         "status",
         "event__simulator",
         "event__type",
-        "created_at"
+        "created_at",
     ]
     search_fields = [
         "user__username",
         "user__email",
         "team__name",
-        "event__name"
+        "event__name",
     ]
     readonly_fields = [
         "created_at",
@@ -93,7 +102,7 @@ class EventParticipationAdmin(ModelAdmin):
         "team_assigned_at",
         "entered_at",
         "confirmed_at",
-        "withdrawn_at"
+        "withdrawn_at",
     ]
     raw_id_fields = [
         "event",
@@ -103,70 +112,88 @@ class EventParticipationAdmin(ModelAdmin):
         "backup_car",
         "assigned_car",
         "assigned_class",
-        "signup_invitation"
+        "signup_invitation",
     ]
-    
+
     @admin.display(description="Participant")
     def get_participant_display(self, obj):
         if obj.user:
             return f"User: {obj.user.username}"
-        elif obj.team:
+        if obj.team:
             return f"Team: {obj.team.name}"
         return "No participant"
-    
+
     fieldsets = (
-        ("Participant Information", {
-            "fields": (
-                "event",
-                "user",
-                "team",
-                "participation_type",
-                "status",
-            )
-        }),
-        ("Car Selection", {
-            "fields": (
-                "preferred_car",
-                "backup_car",
-                "assigned_car",
-                "assigned_class",
-                "car_number",
-                "starting_position",
-            )
-        }),
-        ("Preferences", {
-            "fields": (
-                "experience_level",
-                "max_stint_duration",
-                "min_rest_duration",
-                "participant_timezone",
-            )
-        }),
-        ("Relationships", {
-            "fields": (
-                "club_event",
-                "signup_invitation",
-            )
-        }),
-        ("Additional Data", {
-            "fields": (
-                "notes",
-                "registration_data",
-            ),
-            "classes": ("collapse",)
-        }),
-        ("Timestamps", {
-            "fields": (
-                "signed_up_at",
-                "team_assigned_at",
-                "entered_at",
-                "confirmed_at",
-                "withdrawn_at",
-                "created_at",
-                "updated_at",
-            ),
-            "classes": ("collapse",)
-        }),
+        (
+            "Participant Information",
+            {
+                "fields": (
+                    "event",
+                    "user",
+                    "team",
+                    "participation_type",
+                    "status",
+                ),
+            },
+        ),
+        (
+            "Car Selection",
+            {
+                "fields": (
+                    "preferred_car",
+                    "backup_car",
+                    "assigned_car",
+                    "assigned_class",
+                    "car_number",
+                    "starting_position",
+                ),
+            },
+        ),
+        (
+            "Preferences",
+            {
+                "fields": (
+                    "experience_level",
+                    "max_stint_duration",
+                    "min_rest_duration",
+                    "participant_timezone",
+                ),
+            },
+        ),
+        (
+            "Relationships",
+            {
+                "fields": (
+                    "club_event",
+                    "signup_invitation",
+                ),
+            },
+        ),
+        (
+            "Additional Data",
+            {
+                "fields": (
+                    "notes",
+                    "registration_data",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": (
+                    "signed_up_at",
+                    "team_assigned_at",
+                    "entered_at",
+                    "confirmed_at",
+                    "withdrawn_at",
+                    "created_at",
+                    "updated_at",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
 
@@ -179,19 +206,19 @@ class AvailabilityWindowAdmin(ModelAdmin):
         "can_drive",
         "can_spot",
         "preference_level",
-        "created_at"
+        "created_at",
     ]
     list_filter = [
         "can_drive",
         "can_spot",
         "can_strategize",
         "preference_level",
-        "created_at"
+        "created_at",
     ]
     search_fields = [
         "participation__user__username",
         "participation__event__name",
-        "notes"
+        "notes",
     ]
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["participation"]
@@ -199,62 +226,78 @@ class AvailabilityWindowAdmin(ModelAdmin):
 
 # RACE STRATEGY AND PLANNING ADMIN
 
+
 @admin.register(RaceStrategy)
 class RaceStrategyAdmin(ModelAdmin):
     list_display = [
         "name",
         "team",
         "event",
-        "event_instance",
+        "time_slot",
         "is_active",
         "target_stint_length",
-        "created_at"
+        "created_at",
     ]
     list_filter = ["is_active", "team", "event", "created_at"]
     search_fields = ["name", "team__name", "event__name", "notes"]
     readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["team", "event", "event_instance", "created_by"]
-    
+    raw_id_fields = ["team", "event", "time_slot", "created_by"]
+
     fieldsets = (
-        ("Strategy Information", {
-            "fields": (
-                "team",
-                "event",
-                "event_instance",
-                "name",
-                "is_active",
-            )
-        }),
-        ("Timing Parameters", {
-            "fields": (
-                "target_stint_length",
-                "min_driver_rest",
-                "pit_stop_time",
-            )
-        }),
-        ("Fuel & Tire Strategy", {
-            "fields": (
-                "fuel_per_stint",
-                "fuel_tank_size",
-                "tire_change_frequency",
-                "tire_compound_strategy",
-            )
-        }),
-        ("Additional Information", {
-            "fields": (
-                "notes",
-                "strategy_data",
-            ),
-            "classes": ("collapse",)
-        }),
-        ("Metadata", {
-            "fields": (
-                "created_by",
-                "created_at",
-                "updated_at",
-            ),
-            "classes": ("collapse",)
-        }),
+        (
+            "Strategy Information",
+            {
+                "fields": (
+                    "team",
+                    "event",
+                    "time_slot",
+                    "name",
+                    "is_active",
+                ),
+            },
+        ),
+        (
+            "Timing Parameters",
+            {
+                "fields": (
+                    "target_stint_length",
+                    "min_driver_rest",
+                    "pit_stop_time",
+                ),
+            },
+        ),
+        (
+            "Fuel & Tire Strategy",
+            {
+                "fields": (
+                    "fuel_per_stint",
+                    "fuel_tank_size",
+                    "tire_change_frequency",
+                    "tire_compound_strategy",
+                ),
+            },
+        ),
+        (
+            "Additional Information",
+            {
+                "fields": (
+                    "notes",
+                    "strategy_data",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": (
+                    "created_by",
+                    "created_at",
+                    "updated_at",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
 
@@ -273,54 +316,72 @@ class StintPlanAdmin(ModelAdmin):
     search_fields = ["driver__username", "strategy__team__name", "notes"]
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["strategy", "driver"]
-    
+
     fieldsets = (
-        ("Stint Information", {
-            "fields": (
-                "strategy",
-                "driver",
-                "stint_number",
-                "status",
-            )
-        }),
-        ("Planned Timing", {
-            "fields": (
-                "planned_start_lap",
-                "planned_end_lap",
-                "planned_start_time",
-                "planned_duration",
-            )
-        }),
-        ("Actual Timing", {
-            "fields": (
-                "actual_start_lap",
-                "actual_end_lap",
-                "actual_start_time",
-                "actual_end_time",
-            )
-        }),
-        ("Performance", {
-            "fields": (
-                "avg_lap_time",
-                "fastest_lap_time",
-                "incidents_count",
-            ),
-            "classes": ("collapse",)
-        }),
-        ("Pit Instructions", {
-            "fields": (
-                "pit_instructions",
-                "notes",
-            ),
-            "classes": ("collapse",)
-        }),
-        ("Timestamps", {
-            "fields": (
-                "created_at",
-                "updated_at",
-            ),
-            "classes": ("collapse",)
-        }),
+        (
+            "Stint Information",
+            {
+                "fields": (
+                    "strategy",
+                    "driver",
+                    "stint_number",
+                    "status",
+                ),
+            },
+        ),
+        (
+            "Planned Timing",
+            {
+                "fields": (
+                    "planned_start_lap",
+                    "planned_end_lap",
+                    "planned_start_time",
+                    "planned_duration",
+                ),
+            },
+        ),
+        (
+            "Actual Timing",
+            {
+                "fields": (
+                    "actual_start_lap",
+                    "actual_end_lap",
+                    "actual_start_time",
+                    "actual_end_time",
+                ),
+            },
+        ),
+        (
+            "Performance",
+            {
+                "fields": (
+                    "avg_lap_time",
+                    "fastest_lap_time",
+                    "incidents_count",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Pit Instructions",
+            {
+                "fields": (
+                    "pit_instructions",
+                    "notes",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": (
+                    "created_at",
+                    "updated_at",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
     )
 
 
@@ -333,10 +394,15 @@ class EventSignupInvitationAdmin(ModelAdmin):
         "invitee_email",
         "status",
         "created_at",
-        "expires_at"
+        "expires_at",
     ]
     list_filter = ["status", "event", "created_at", "expires_at"]
-    search_fields = ["team_name", "invitee_email", "organizer_user__username", "event__name"]
+    search_fields = [
+        "team_name",
+        "invitee_email",
+        "organizer_user__username",
+        "event__name",
+    ]
     readonly_fields = ["token", "created_at", "responded_at"]
     raw_id_fields = ["event", "organizer_user", "invitee_user"]
 
@@ -441,65 +507,79 @@ class ClubEventSignupSheetAdmin(ModelAdmin):
         "is_open",
     ]
     raw_id_fields = ["club", "event", "created_by"]
-    
+
     @admin.display(description="Signups")
     def signup_count(self, obj):
         return obj.signup_count
-    
+
     @admin.display(description="Open", boolean=True)
     def is_open(self, obj):
         return obj.is_open
-    
+
     fieldsets = (
-        ("Event Information", {
-            "fields": (
-                "club",
-                "event",
-                "title",
-                "description",
-                "created_by",
-            )
-        }),
-        ("Signup Window", {
-            "fields": (
-                "signup_opens",
-                "signup_closes",
-                "status",
-                "is_open",
-            )
-        }),
-        ("Team Formation Settings", {
-            "fields": (
-                "max_teams",
-                "target_team_size",
-                "min_drivers_per_team",
-                "max_drivers_per_team",
-            )
-        }),
-        ("Requirements", {
-            "fields": (
-                "min_license_level",
-            ),
-            "classes": ("collapse",)
-        }),
-        ("Admin Notes", {
-            "fields": (
-                "notes_for_admins",
-            ),
-            "classes": ("collapse",)
-        }),
-        ("Metadata", {
-            "fields": (
-                "signup_count",
-                "created_at",
-                "updated_at",
-            ),
-            "classes": ("collapse",)
-        }),
+        (
+            "Event Information",
+            {
+                "fields": (
+                    "club",
+                    "event",
+                    "title",
+                    "description",
+                    "created_by",
+                ),
+            },
+        ),
+        (
+            "Signup Window",
+            {
+                "fields": (
+                    "signup_opens",
+                    "signup_closes",
+                    "status",
+                    "is_open",
+                ),
+            },
+        ),
+        (
+            "Team Formation Settings",
+            {
+                "fields": (
+                    "max_teams",
+                    "target_team_size",
+                    "min_drivers_per_team",
+                    "max_drivers_per_team",
+                ),
+            },
+        ),
+        (
+            "Requirements",
+            {
+                "fields": ("min_license_level",),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Admin Notes",
+            {
+                "fields": ("notes_for_admins",),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": (
+                    "signup_count",
+                    "created_at",
+                    "updated_at",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
     )
-    
+
     actions = ["open_signups", "close_signups", "cancel_signups"]
-    
+
     @admin.action(description="Open selected signup sheets")
     def open_signups(self, request, queryset):
         count = 0
@@ -508,11 +588,13 @@ class ClubEventSignupSheetAdmin(ModelAdmin):
                 sheet.open_signups()
                 count += 1
             except ValueError as e:
-                self.message_user(request, f"Could not open {sheet.title}: {str(e)}", level="ERROR")
-        
+                self.message_user(
+                    request, f"Could not open {sheet.title}: {e!s}", level="ERROR"
+                )
+
         if count:
             self.message_user(request, f"Opened {count} signup sheet(s)")
-    
+
     @admin.action(description="Close selected signup sheets")
     def close_signups(self, request, queryset):
         count = 0
@@ -521,12 +603,14 @@ class ClubEventSignupSheetAdmin(ModelAdmin):
                 sheet.close_signups()
                 count += 1
             except ValueError as e:
-                self.message_user(request, f"Could not close {sheet.title}: {str(e)}", level="ERROR")
-        
+                self.message_user(
+                    request, f"Could not close {sheet.title}: {e!s}", level="ERROR"
+                )
+
         if count:
             self.message_user(request, f"Closed {count} signup sheet(s)")
-    
+
     @admin.action(description="Cancel selected signup sheets")
     def cancel_signups(self, request, queryset):
-        count = queryset.update(status='cancelled')
+        count = queryset.update(status="cancelled")
         self.message_user(request, f"Cancelled {count} signup sheet(s)")

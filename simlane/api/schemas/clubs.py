@@ -4,10 +4,6 @@ from enum import Enum
 from pydantic import BaseModel
 from pydantic import validator
 
-from .sim import SimCarBase
-from .sim import SimTrackBase
-from .sim import SimulatorBase
-
 
 class ClubRole(str, Enum):
     OWNER = "OWNER"

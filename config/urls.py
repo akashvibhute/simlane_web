@@ -7,17 +7,18 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from django.urls import include
 from django.urls import path
 from django.views import defaults as default_views
-from django.views.generic import TemplateView, RedirectView
 
 from simlane.api.main import api
-from simlane.users.views import (
-    auth_verify_email_view,
-    auth_reset_password_view,
-    auth_reset_password_from_key_view,
-    auth_signup_view,
-    auth_socialaccount_login_error_view,
-)
-from simlane.sim.urls import cars_patterns, tracks_patterns, profiles_patterns, dashboard_patterns, events_patterns
+from simlane.sim.urls import cars_patterns
+from simlane.sim.urls import dashboard_patterns
+from simlane.sim.urls import events_patterns
+from simlane.sim.urls import profiles_patterns
+from simlane.sim.urls import tracks_patterns
+from simlane.users.views import auth_reset_password_from_key_view
+from simlane.users.views import auth_reset_password_view
+from simlane.users.views import auth_signup_view
+from simlane.users.views import auth_socialaccount_login_error_view
+from simlane.users.views import auth_verify_email_view
 
 urlpatterns = [
     # Django Admin, use {% url 'admin:index' %}
@@ -28,17 +29,29 @@ urlpatterns = [
     # Social auth providers
     path("accounts/garage61/", include("simlane.garage61_provider.urls")),
     # Auth endpoints for headless/web compatibility
-    path("auth/verify-email/<str:key>/", auth_verify_email_view, name="auth_verify_email"),
+    path(
+        "auth/verify-email/<str:key>/", auth_verify_email_view, name="auth_verify_email"
+    ),
     path("auth/reset-password/", auth_reset_password_view, name="auth_reset_password"),
-    path("auth/reset-password/<str:key>/", auth_reset_password_from_key_view, name="auth_reset_password_from_key"),
+    path(
+        "auth/reset-password/<str:key>/",
+        auth_reset_password_from_key_view,
+        name="auth_reset_password_from_key",
+    ),
     path("auth/signup/", auth_signup_view, name="auth_signup"),
-    path("auth/provider/callback/", auth_socialaccount_login_error_view, name="auth_socialaccount_login_error"),
+    path(
+        "auth/provider/callback/",
+        auth_socialaccount_login_error_view,
+        name="auth_socialaccount_login_error",
+    ),
     # Your stuff: custom urls includes go here
     path("", include("simlane.core.urls", namespace="core")),
     path("teams/", include("simlane.teams.urls", namespace="teams")),
     # Top-level drivers and dashboard
     path("drivers/", include((profiles_patterns, "drivers"), namespace="drivers")),
-    path("dashboard/", include((dashboard_patterns, "dashboard"), namespace="dashboard")),
+    path(
+        "dashboard/", include((dashboard_patterns, "dashboard"), namespace="dashboard")
+    ),
     # Top-level cars, tracks, and events pages
     path("cars/", include(cars_patterns)),
     path("tracks/", include(tracks_patterns)),

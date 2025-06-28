@@ -6,11 +6,6 @@ from pathlib import Path
 
 import environ
 
-from django.templatetags.static import static
-from django.urls import reverse_lazy
-from django.utils.translation import gettext_lazy as _
-
-
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent.parent
 # simlane/
 APPS_DIR = BASE_DIR / "simlane"
@@ -63,10 +58,10 @@ CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         "LOCATION": "",
-    }
+    },
 }
 
-# Session configuration 
+# Session configuration
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 14  # 2 weeks
 
 # URLs
@@ -374,20 +369,20 @@ SOCIALACCOUNT_PROVIDERS = {
         "AUTH_PARAMS": {
             "access_type": "online",
         },
-        'EMAIL_AUTHENTICATION': True,
+        "EMAIL_AUTHENTICATION": True,
         "APPS": [
             {
                 "client_id": env("DISCORD_CLIENT_ID"),
                 "secret": env("DISCORD_CLIENT_SECRET"),
-            }
-        ]
+            },
+        ],
     },
     "garage61": {
         "SCOPE": ["driving_data"],
         "AUTH_PARAMS": {
             "access_type": "online",
         },
-        'EMAIL_AUTHENTICATION': True
+        "EMAIL_AUTHENTICATION": True,
     },
 }
 
@@ -461,21 +456,22 @@ JWT_REFRESH_TOKEN_LIFETIME = 86400 * 7  # 7 days in seconds
 SEARCH_BACKEND = env("SEARCH_BACKEND", default="postgres")
 
 # Unfold Configuration
-# Load Unfold admin configuration from separate file
-from .unfold import UNFOLD
+# ------------------------------------------------------------------------------
+# Import Unfold admin configuration declared in `config/settings/unfold.py`
+# so that the dictionary is present in Django settings at runtime.
+from .unfold import UNFOLD  # noqa: F401
 
 # Channels/ASGI
 # ------------------------------------------------------------------------------
 # Use Channels for ASGI support and websockets
-ASGI_APPLICATION = 'config.asgi.application'
+ASGI_APPLICATION = "config.asgi.application"
 
 # Channel layer using Redis (migration-friendly: can be used by Phoenix/Elixir or other services later)
 CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [env('REDIS_URL', default='redis://redis:6379/0')],
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [env("REDIS_URL", default="redis://redis:6379/0")],
         },
     },
 }
-

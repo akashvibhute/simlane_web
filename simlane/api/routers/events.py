@@ -1,9 +1,9 @@
 # Legacy event API endpoints removed
-# 
+#
 # The following models and their associated API endpoints have been removed:
 # - TeamAllocation and TeamAllocationMember
 # - TeamEventStrategy and StintAssignment
-# 
+#
 # These have been replaced by the enhanced participation system:
 # - EventParticipation model for unified event participation
 # - AvailabilityWindow model for driver availability

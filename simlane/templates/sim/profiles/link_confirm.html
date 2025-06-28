@@ -7,112 +7,122 @@
     Unlink Profile - SimLane
   {% endif %}
 {% endblock title %}
-
 {% block content %}
-<div class="max-w-md mx-auto space-y-6">
+  <div class="max-w-md mx-auto space-y-6">
     <!-- Header -->
     <div class="text-center">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
-            {% if action == 'link' %}
-                Link Profile
-            {% else %}
-                Unlink Profile
-            {% endif %}
-        </h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            {% if action == 'link' %}
-                Confirm linking this profile to your account
-            {% else %}
-                Confirm unlinking this profile from your account
-            {% endif %}
-        </p>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+        {% if action == 'link' %}
+          Link Profile
+        {% else %}
+          Unlink Profile
+        {% endif %}
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+        {% if action == 'link' %}
+          Confirm linking this profile to your account
+        {% else %}
+          Confirm unlinking this profile from your account
+        {% endif %}
+      </p>
     </div>
-
     <!-- Profile Card -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div class="flex items-center space-x-4">
-            {% if profile.simulator.icon %}
-                <img src="{{ profile.simulator.icon.url }}" alt="{{ profile.simulator.name }}" class="w-12 h-12 rounded-lg">
-            {% else %}
-                <div class="w-12 h-12 bg-primary-500 rounded-lg flex items-center justify-center">
-                    <span class="text-sm font-bold text-white">{{ profile.simulator.name|first }}</span>
-                </div>
-            {% endif %}
-            
-            <div class="flex-1">
-                <h3 class="font-medium text-gray-900 dark:text-white">{{ profile.profile_name }}</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">{{ profile.simulator.name }}</p>
-                {% if profile.sim_api_id %}
-                    <p class="text-xs text-gray-400 dark:text-gray-500">ID: {{ profile.sim_api_id }}</p>
-                {% endif %}
-            </div>
+      <div class="flex items-center space-x-4">
+        {% if profile.simulator.icon %}
+          <img src="{{ profile.simulator.icon.url }}"
+               alt="{{ profile.simulator.name }}"
+               class="w-12 h-12 rounded-lg" />
+        {% else %}
+          <div class="w-12 h-12 bg-primary-500 rounded-lg flex items-center justify-center">
+            <span class="text-sm font-bold text-white">{{ profile.simulator.name|first }}</span>
+          </div>
+        {% endif %}
+        <div class="flex-1">
+          <h3 class="font-medium text-gray-900 dark:text-white">{{ profile.profile_name }}</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ profile.simulator.name }}</p>
+          {% if profile.sim_api_id %}
+            <p class="text-xs text-gray-400 dark:text-gray-500">ID: {{ profile.sim_api_id }}</p>
+          {% endif %}
         </div>
+      </div>
     </div>
-
     <!-- Confirmation Form -->
     <form method="post" class="space-y-4">
-        {% csrf_token %}
-        
-        {% if action == 'link' %}
-            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <div class="flex">
-                    <svg class="w-5 h-5 text-blue-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                    </svg>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">What happens when you link a profile?</h3>
-                        <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                            <ul class="list-disc list-inside space-y-1">
-                                <li>You can access personalized dashboard features</li>
-                                <li>Your statistics and achievements will be tracked</li>
-                                <li>You can join events using this profile</li>
-                                <li>The profile will be marked as "unverified" until you complete verification</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+      {% csrf_token %}
+      {% if action == 'link' %}
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div class="flex">
+            <svg class="w-5 h-5 text-blue-400 mt-0.5"
+                 fill="currentColor"
+                 viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd">
+              </path>
+            </svg>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">What happens when you link a profile?</h3>
+              <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                <ul class="list-disc list-inside space-y-1">
+                  <li>You can access personalized dashboard features</li>
+                  <li>Your statistics and achievements will be tracked</li>
+                  <li>You can join events using this profile</li>
+                  <li>The profile will be marked as "unverified" until you complete verification</li>
+                </ul>
+              </div>
             </div>
-        {% else %}
-            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                <div class="flex">
-                    <svg class="w-5 h-5 text-yellow-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">What happens when you unlink a profile?</h3>
-                        <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-                            <ul class="list-disc list-inside space-y-1">
-                                <li>You'll lose access to personalized features for this profile</li>
-                                <li>The profile will become available for other users to link</li>
-                                <li>Your dashboard data for this profile will be hidden</li>
-                                <li>You won't be able to use this profile for events</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
-        
-        <div class="flex space-x-3">
-            <button type="submit" 
-                    class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white {% if action == 'link' %}bg-primary-600 hover:bg-primary-700{% else %}bg-red-600 hover:bg-red-700{% endif %} focus:outline-none focus:ring-2 focus:ring-offset-2 {% if action == 'link' %}focus:ring-primary-500{% else %}focus:ring-red-500{% endif %}">
-                {% if action == 'link' %}
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                    </svg>
-                    Confirm Link
-                {% else %}
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464m1.414 1.414L8.464 8.464"></path>
-                    </svg>
-                    Confirm Unlink
-                {% endif %}
-            </button>
-            <a href="{% url 'drivers:profile_detail' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}" 
-               class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                Cancel
-            </a>
+          </div>
         </div>
+      {% else %}
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <div class="flex">
+            <svg class="w-5 h-5 text-yellow-400 mt-0.5"
+                 fill="currentColor"
+                 viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd">
+              </path>
+            </svg>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">What happens when you unlink a profile?</h3>
+              <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                <ul class="list-disc list-inside space-y-1">
+                  <li>You'll lose access to personalized features for this profile</li>
+                  <li>The profile will become available for other users to link</li>
+                  <li>Your dashboard data for this profile will be hidden</li>
+                  <li>You won't be able to use this profile for events</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      <div class="flex space-x-3">
+        <button type="submit"
+                class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white {% if action == 'link' %}bg-primary-600 hover:bg-primary-700{% else %}bg-red-600 hover:bg-red-700{% endif %} focus:outline-none focus:ring-2 focus:ring-offset-2 {% if action == 'link' %}focus:ring-primary-500{% else %}focus:ring-red-500{% endif %}">
+          {% if action == 'link' %}
+            <svg class="w-4 h-4 mr-2"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1">
+              </path>
+            </svg>
+            Confirm Link
+          {% else %}
+            <svg class="w-4 h-4 mr-2"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464m1.414 1.414L8.464 8.464">
+              </path>
+            </svg>
+            Confirm Unlink
+          {% endif %}
+        </button>
+        <a href="{% url 'drivers:profile_detail' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}"
+           class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+          Cancel
+        </a>
+      </div>
     </form>
-</div>
-{% endblock content %} 
+  </div>
+{% endblock content %}

@@ -1,25 +1,23 @@
 from django.contrib import admin
+from django.forms import ModelForm
+from django.forms.models import BaseInlineFormSet
 from django.utils.html import format_html
-from unfold.admin import ModelAdmin
-
-from .models import ContactMessage
+from django_celery_beat.admin import PeriodicTaskAdmin as BasePeriodicTaskAdmin
+from django_celery_beat.admin import PeriodicTaskForm
+from django_celery_beat.admin import TaskSelectWidget
 
 # Django Celery Beat Integration for Unfold
 # Based on: https://unfoldadmin.com/docs/integrations/django-celery-beat/
-from django_celery_beat.models import (
-    ClockedSchedule,
-    CrontabSchedule,
-    IntervalSchedule,
-    PeriodicTask,
-    SolarSchedule,
-)
-from django_celery_beat.admin import ClockedScheduleAdmin as BaseClockedScheduleAdmin
-from django_celery_beat.admin import CrontabScheduleAdmin as BaseCrontabScheduleAdmin
-from django_celery_beat.admin import PeriodicTaskAdmin as BasePeriodicTaskAdmin
-from django_celery_beat.admin import PeriodicTaskForm, TaskSelectWidget
-from unfold.widgets import UnfoldAdminSelectWidget, UnfoldAdminTextInputWidget
-from django.forms.models import BaseInlineFormSet
-from django.forms import ModelForm
+from django_celery_beat.models import ClockedSchedule
+from django_celery_beat.models import CrontabSchedule
+from django_celery_beat.models import IntervalSchedule
+from django_celery_beat.models import PeriodicTask
+from django_celery_beat.models import SolarSchedule
+from unfold.admin import ModelAdmin
+from unfold.widgets import UnfoldAdminSelectWidget
+from unfold.widgets import UnfoldAdminTextInputWidget
+
+from .models import ContactMessage
 
 # Unregister the default django-celery-beat admin classes
 admin.site.unregister(PeriodicTask)
@@ -42,39 +40,39 @@ class UnfoldPeriodicTaskForm(PeriodicTaskForm):
 
 class UnfoldCompatibleForm(ModelForm):
     """Form that strips out Unfold-specific kwargs."""
-    
+
     def __init__(self, *args, **kwargs):
         # Remove Unfold-specific kwargs that ModelForm doesn't expect
-        kwargs.pop('request', None)
+        kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
 
 
 class UnfoldBaseInlineFormSet(BaseInlineFormSet):
     """Custom formset that handles Unfold's additional parameters."""
-    
+
     def __init__(self, *args, **kwargs):
         # Remove Unfold-specific kwargs that BaseInlineFormSet doesn't expect
-        kwargs.pop('request', None)
+        kwargs.pop("request", None)
         super().__init__(*args, **kwargs)
 
 
 class IntervalScheduleForm(UnfoldCompatibleForm):
     """Custom form for IntervalSchedule that works with Unfold popups."""
-    
+
     class Meta:
         model = IntervalSchedule
-        fields = '__all__'
+        fields = "__all__"
 
 
 @admin.register(PeriodicTask)
 class PeriodicTaskAdmin(BasePeriodicTaskAdmin, ModelAdmin):
     form = UnfoldPeriodicTaskForm
-    
+
     def get_formsets_with_inlines(self, request, obj=None):
         """Override to handle Unfold compatibility."""
         for inline in self.get_inline_instances(request, obj):
             # Set custom formset for compatibility
-            if hasattr(inline, 'formset'):
+            if hasattr(inline, "formset"):
                 inline.formset = UnfoldBaseInlineFormSet
             yield inline.get_formset(request, obj), inline
 
@@ -82,56 +80,63 @@ class PeriodicTaskAdmin(BasePeriodicTaskAdmin, ModelAdmin):
 @admin.register(IntervalSchedule)
 class IntervalScheduleAdmin(ModelAdmin):
     form = IntervalScheduleForm
-    list_display = ['every', 'period']
-    list_filter = ['period']
-    search_fields = ['every']
+    list_display = ["every", "period"]
+    list_filter = ["period"]
+    search_fields = ["every"]
 
 
 class CrontabScheduleForm(UnfoldCompatibleForm):
     """Custom form for CrontabSchedule that works with Unfold popups."""
-    
+
     class Meta:
         model = CrontabSchedule
-        fields = '__all__'
+        fields = "__all__"
 
 
 class SolarScheduleForm(UnfoldCompatibleForm):
     """Custom form for SolarSchedule that works with Unfold popups."""
-    
+
     class Meta:
         model = SolarSchedule
-        fields = '__all__'
+        fields = "__all__"
 
 
 class ClockedScheduleForm(UnfoldCompatibleForm):
     """Custom form for ClockedSchedule that works with Unfold popups."""
-    
+
     class Meta:
         model = ClockedSchedule
-        fields = '__all__'
+        fields = "__all__"
 
 
 @admin.register(CrontabSchedule)
 class CrontabScheduleAdmin(ModelAdmin):
     form = CrontabScheduleForm
-    list_display = ['minute', 'hour', 'day_of_week', 'day_of_month', 'month_of_year', 'timezone']
-    list_filter = ['timezone']
-    search_fields = ['minute', 'hour', 'day_of_week', 'day_of_month', 'month_of_year']
+    list_display = [
+        "minute",
+        "hour",
+        "day_of_week",
+        "day_of_month",
+        "month_of_year",
+        "timezone",
+    ]
+    list_filter = ["timezone"]
+    search_fields = ["minute", "hour", "day_of_week", "day_of_month", "month_of_year"]
 
 
 @admin.register(SolarSchedule)
 class SolarScheduleAdmin(ModelAdmin):
     form = SolarScheduleForm
-    list_display = ['event', 'latitude', 'longitude']
-    search_fields = ['event', 'latitude', 'longitude']
+    list_display = ["event", "latitude", "longitude"]
+    search_fields = ["event", "latitude", "longitude"]
 
 
 @admin.register(ClockedSchedule)
 class ClockedScheduleAdmin(ModelAdmin):
     form = ClockedScheduleForm
-    list_display = ['clocked_time']
-    list_filter = [ 'clocked_time']
-    search_fields = ['clocked_time']
+    list_display = ["clocked_time"]
+    list_filter = ["clocked_time"]
+    search_fields = ["clocked_time"]
 
 
 @admin.register(ContactMessage)

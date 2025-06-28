@@ -4,22 +4,22 @@ Props:
 - car_class (required)
 - show_speed (boolean)
 {% endcomment %}
-
 <c-vars show_speed />
-
 <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
-    {% if car_class.icon_url %}
-        <img src="{{ car_class.icon_url }}" alt="{{ car_class.name }}" class="w-full h-32 object-contain bg-gray-50 dark:bg-gray-700 p-4">
-    {% else %}
-        <div class="w-full h-32 flex items-center justify-center bg-gray-50 dark:bg-gray-700 text-3xl">🚘</div>
-    {% endif %}
-    <div class="p-4 space-y-2">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white text-center">{{ car_class.name }}</h3>
-        <div class="flex justify-center">
-            <c-car-category-badge category="{{ car_class.category|default:'sports_car' }}" size="sm" />
-        </div>
-        {% if show_speed and car_class.relative_speed %}
-            <div class="text-center text-xs text-gray-500 dark:text-gray-400">Relative speed: {{ car_class.relative_speed }}</div>
-        {% endif %}
+  {% if car_class.icon_url %}
+    <img src="{{ car_class.icon_url }}"
+         alt="{{ car_class.name }}"
+         class="w-full h-32 object-contain bg-gray-50 dark:bg-gray-700 p-4" />
+  {% else %}
+    <div class="w-full h-32 flex items-center justify-center bg-gray-50 dark:bg-gray-700 text-3xl">🚘</div>
+  {% endif %}
+  <div class="p-4 space-y-2">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white text-center">{{ car_class.name }}</h3>
+    <div class="flex justify-center">
+      <c-car-category-badge category="{{ car_class.category|default:'sports_car' }}" size="sm" />
     </div>
-</div> 
+    {% if show_speed and car_class.relative_speed %}
+      <div class="text-center text-xs text-gray-500 dark:text-gray-400">Relative speed: {{ car_class.relative_speed }}</div>
+    {% endif %}
+  </div>
+</div>

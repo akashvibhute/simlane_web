@@ -64,4 +64,4 @@ if (window.isAuthenticated) {
   wsClient = new WSClient(wsUrl);
 }
 
-export default wsClient; 
+export default wsClient;

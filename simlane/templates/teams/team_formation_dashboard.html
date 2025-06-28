@@ -1,342 +1,338 @@
 {% extends "base.html" %}
+
 {% load static %}
 {% load webpack_loader %}
 
 {% block title %}Team Formation - {{ event.name }}{% endblock %}
-
 {% block content %}
-<div class="max-w-7xl mx-auto py-8">
+  <div class="max-w-7xl mx-auto py-8">
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-sm border mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-900">Team Formation</h1>
-                    <div class="mt-1 flex items-center space-x-4 text-sm text-gray-600">
-                        <span>🏁 {{ event.name }}</span>
-                        <span>📅 {{ event.start_date|date:"M d, Y" }}</span>
-                        <span>🏆 {{ club_event.club.name }}</span>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <!-- Live Status Indicator -->
-                    <div x-data="{ status: 'live' }" class="flex items-center space-x-2">
-                        <div class="flex items-center">
-                            <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                            <span class="ml-2 text-sm text-gray-600">Live Updates</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Actions -->
-                    <a href="{% url 'teams:club_event_detail' club_event.id %}" 
-                       class="text-sm text-gray-600 hover:text-gray-800">
-                        ← Back to Event
-                    </a>
-                </div>
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Team Formation</h1>
+            <div class="mt-1 flex items-center space-x-4 text-sm text-gray-600">
+              <span>🏁 {{ event.name }}</span>
+              <span>📅 {{ event.start_date|date:"M d, Y" }}</span>
+              <span>🏆 {{ club_event.club.name }}</span>
             </div>
-        </div>
-        
-        <!-- Workflow Status -->
-        <div class="px-6 py-4" x-data="workflowStatus()" x-init="init()">
-            <div class="flex items-center space-x-6">
-                <div class="flex items-center space-x-2">
-                    <div :class="getStatusColor('signup')" class="w-3 h-3 rounded-full"></div>
-                    <span class="text-sm font-medium">Signup Phase</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <div :class="getStatusColor('formation')" class="w-3 h-3 rounded-full"></div>
-                    <span class="text-sm font-medium">Team Formation</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <div :class="getStatusColor('finalized')" class="w-3 h-3 rounded-full"></div>
-                    <span class="text-sm font-medium">Teams Finalized</span>
-                </div>
-                <div class="ml-auto">
-                    <button x-show="canCloseSignup" 
-                            @click="closeSignupPhase()"
-                            class="text-sm bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700">
-                        Close Signup
-                    </button>
-                    <button x-show="canFinalizeTeams" 
-                            @click="finalizeTeams()"
-                            class="text-sm bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700">
-                        Finalize Teams
-                    </button>
-                </div>
+          </div>
+          <div class="flex items-center space-x-3">
+            <!-- Live Status Indicator -->
+            <div x-data="{ status: 'live' }" class="flex items-center space-x-2">
+              <div class="flex items-center">
+                <div class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span class="ml-2 text-sm text-gray-600">Live Updates</span>
+              </div>
             </div>
+            <!-- Actions -->
+            <a href="{% url 'teams:club_event_detail' club_event.id %}"
+               class="text-sm text-gray-600 hover:text-gray-800">← Back to Event</a>
+          </div>
         </div>
+      </div>
+      <!-- Workflow Status -->
+      <div class="px-6 py-4" x-data="workflowStatus()" x-init="init()">
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center space-x-2">
+            <div :class="getStatusColor('signup')" class="w-3 h-3 rounded-full"></div>
+            <span class="text-sm font-medium">Signup Phase</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <div :class="getStatusColor('formation')" class="w-3 h-3 rounded-full"></div>
+            <span class="text-sm font-medium">Team Formation</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <div :class="getStatusColor('finalized')" class="w-3 h-3 rounded-full"></div>
+            <span class="text-sm font-medium">Teams Finalized</span>
+          </div>
+          <div class="ml-auto">
+            <button x-show="canCloseSignup"
+                    @click="closeSignupPhase()"
+                    class="text-sm bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700">
+              Close Signup
+            </button>
+            <button x-show="canFinalizeTeams"
+                    @click="finalizeTeams()"
+                    class="text-sm bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700">
+              Finalize Teams
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
-
     <!-- Team Formation Dashboard Component -->
-    <div id="team-formation-dashboard" 
+    <div id="team-formation-dashboard"
          data-component="team-formation"
          data-event-id="{{ event.id }}"
          data-club-event-id="{{ club_event.id }}"
          data-team-size="3"
          data-timezone="{{ user.profile.timezone|default:'UTC' }}">
-        <!-- Dashboard content will be initialized here by JavaScript -->
+      <!-- Dashboard content will be initialized here by JavaScript -->
     </div>
-
     <!-- Real-time WebSocket Integration -->
     <div x-data="realtimeUpdates()" x-init="connect()">
-        <!-- Connection Status -->
-        <div x-show="!connected" 
-             class="fixed bottom-4 left-4 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg shadow-lg">
-            <div class="flex items-center space-x-2">
-                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span class="text-sm">Reconnecting...</span>
-            </div>
+      <!-- Connection Status -->
+      <div x-show="!connected"
+           class="fixed bottom-4 left-4 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg shadow-lg">
+        <div class="flex items-center space-x-2">
+          <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+            </path>
+          </svg>
+          <span class="text-sm">Reconnecting...</span>
         </div>
-
-        <!-- New Signup Notification -->
-        <div x-show="newSignups > 0" 
-             class="fixed top-4 right-4 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg shadow-lg">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium">
-                        <span x-text="newSignups"></span> new signup<span x-show="newSignups > 1">s</span> received
-                    </p>
-                </div>
-                <button @click="refreshData()" 
-                        class="ml-4 text-blue-600 hover:text-blue-800 text-sm font-medium">
-                    Refresh
-                </button>
-            </div>
+      </div>
+      <!-- New Signup Notification -->
+      <div x-show="newSignups > 0"
+           class="fixed top-4 right-4 bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg shadow-lg">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium">
+              <span x-text="newSignups"></span> new signup<span x-show="newSignups > 1">s</span> received
+            </p>
+          </div>
+          <button @click="refreshData()"
+                  class="ml-4 text-blue-600 hover:text-blue-800 text-sm font-medium">Refresh</button>
         </div>
+      </div>
     </div>
-</div>
-
-<!-- HTMX Integration for Server Actions -->
-<div hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  </div>
+  <!-- HTMX Integration for Server Actions -->
+  <div hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     <!-- Close Signup Phase -->
-    <div id="close-signup-action" 
+    <div id="close-signup-action"
          hx-post="{% url 'teams:close_signup_phase' club_event.id %}"
          hx-trigger="closeSignup from:body"
          hx-target="#team-formation-dashboard"
          hx-swap="none"
-         hx-on:htmx:after-request="handleSignupClosed">
-    </div>
-    
+         hx-on:htmx:after-request="handleSignupClosed"></div>
     <!-- Finalize Teams -->
-    <div id="finalize-teams-action" 
+    <div id="finalize-teams-action"
          hx-post="{% url 'teams:finalize_teams' club_event.id %}"
          hx-trigger="finalizeTeams from:body"
          hx-target="#team-formation-dashboard"
          hx-swap="none"
-         hx-on:htmx:after-request="handleTeamsFinalized">
-    </div>
-    
+         hx-on:htmx:after-request="handleTeamsFinalized"></div>
     <!-- Refresh Participant Data -->
-    <div id="refresh-data-action" 
+    <div id="refresh-data-action"
          hx-get="{% url 'teams:formation_dashboard_data' club_event.id %}"
          hx-trigger="refreshData from:body"
          hx-target="#team-formation-dashboard"
          hx-swap="none"
-         hx-on:htmx:after-request="handleDataRefresh">
-    </div>
-</div>
-
-<script>
-// Workflow Status Management
-function workflowStatus() {
-    return {
+         hx-on:htmx:after-request="handleDataRefresh"></div>
+  </div>
+  <script>
+    // Workflow Status Management
+    function workflowStatus() {
+      return {
         currentPhase: '{{ club_event.status }}',
-        signupCount: {{ participant_count|default:0 }},
-        teamCount: {{ team_count|default:0 }},
-        
-        get canCloseSignup() {
-            return this.currentPhase === 'signup_active' && this.signupCount > 0;
+        signupCount: {
+          {
+            participant_count |
+              default: 0
+          }
         },
-        
-        get canFinalizeTeams() {
-            return this.currentPhase === 'team_formation' && this.teamCount > 0;
+        teamCount: {
+          {
+            team_count |
+              default: 0
+          }
         },
-        
-        getStatusColor(phase) {
-            const phases = {
-                'signup': ['signup_active'],
-                'formation': ['signup_closed', 'team_formation'],
-                'finalized': ['teams_assigned', 'finalized']
-            };
-            
-            if (phases[phase].includes(this.currentPhase)) {
-                return 'bg-green-400';
-            } else if (phase === 'signup' && this.currentPhase === 'pending') {
-                return 'bg-gray-300';
-            } else {
-                return 'bg-gray-300';
-            }
-        },
-        
-        closeSignupPhase() {
-            if (confirm('Close the signup phase and move to team formation?')) {
-                htmx.trigger(document.body, 'closeSignup');
-            }
-        },
-        
-        finalizeTeams() {
-            if (confirm('Finalize team assignments? This action cannot be undone.')) {
-                htmx.trigger(document.body, 'finalizeTeams');
-            }
-        },
-        
-        init() {
-            // Listen for status updates from WebSocket
-            document.addEventListener('statusUpdate', (e) => {
-                this.currentPhase = e.detail.status;
-                this.signupCount = e.detail.signup_count;
-                this.teamCount = e.detail.team_count;
-            });
-        }
-    }
-}
 
-// Real-time Updates via WebSocket
-function realtimeUpdates() {
-    return {
+        get canCloseSignup() {
+          return this.currentPhase === 'signup_active' && this.signupCount > 0;
+        },
+
+        get canFinalizeTeams() {
+          return this.currentPhase === 'team_formation' && this.teamCount > 0;
+        },
+
+        getStatusColor(phase) {
+          const phases = {
+            'signup': ['signup_active'],
+            'formation': ['signup_closed', 'team_formation'],
+            'finalized': ['teams_assigned', 'finalized']
+          };
+
+          if (phases[phase].includes(this.currentPhase)) {
+            return 'bg-green-400';
+          } else if (phase === 'signup' && this.currentPhase === 'pending') {
+            return 'bg-gray-300';
+          } else {
+            return 'bg-gray-300';
+          }
+        },
+
+        closeSignupPhase() {
+          if (confirm('Close the signup phase and move to team formation?')) {
+            htmx.trigger(document.body, 'closeSignup');
+          }
+        },
+
+        finalizeTeams() {
+          if (confirm('Finalize team assignments? This action cannot be undone.')) {
+            htmx.trigger(document.body, 'finalizeTeams');
+          }
+        },
+
+        init() {
+          // Listen for status updates from WebSocket
+          document.addEventListener('statusUpdate', (e) => {
+            this.currentPhase = e.detail.status;
+            this.signupCount = e.detail.signup_count;
+            this.teamCount = e.detail.team_count;
+          });
+        }
+      }
+    }
+
+    // Real-time Updates via WebSocket
+    function realtimeUpdates() {
+      return {
         socket: null,
         connected: false,
         newSignups: 0,
         reconnectAttempts: 0,
         maxReconnectAttempts: 5,
-        
-        connect() {
-            try {
-                // Connect to WebSocket for real-time updates
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${protocol}//${window.location.host}/ws/events/{{ event.id }}/formation/`;
-                
-                this.socket = new WebSocket(wsUrl);
-                
-                this.socket.onopen = () => {
-                    console.log('WebSocket connected');
-                    this.connected = true;
-                    this.reconnectAttempts = 0;
-                };
-                
-                this.socket.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    this.handleMessage(data);
-                };
-                
-                this.socket.onclose = () => {
-                    console.log('WebSocket disconnected');
-                    this.connected = false;
-                    this.attemptReconnect();
-                };
-                
-                this.socket.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                    this.connected = false;
-                };
-            } catch (error) {
-                console.error('Failed to connect WebSocket:', error);
-                this.connected = false;
-            }
-        },
-        
-        handleMessage(data) {
-            switch (data.type) {
-                case 'new_signup':
-                    this.newSignups += 1;
-                    // Update dashboard if available
-                    if (window.teamFormationDashboard) {
-                        window.teamFormationDashboard.loadParticipantData();
-                    }
-                    break;
-                    
-                case 'status_update':
-                    document.dispatchEvent(new CustomEvent('statusUpdate', {
-                        detail: data.data
-                    }));
-                    break;
-                    
-                case 'team_created':
-                    // Refresh team suggestions
-                    if (window.teamFormationDashboard) {
-                        window.teamFormationDashboard.generateTeamSuggestions();
-                    }
-                    break;
-            }
-        },
-        
-        attemptReconnect() {
-            if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                this.reconnectAttempts++;
-                const delay = Math.pow(2, this.reconnectAttempts) * 1000; // Exponential backoff
-                
-                setTimeout(() => {
-                    console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-                    this.connect();
-                }, delay);
-            }
-        },
-        
-        refreshData() {
-            this.newSignups = 0;
-            htmx.trigger(document.body, 'refreshData');
-        },
-        
-        disconnect() {
-            if (this.socket) {
-                this.socket.close();
-                this.socket = null;
-            }
-        }
-    }
-}
 
-// HTMX Event Handlers
-function handleSignupClosed(event) {
-    if (event.detail.xhr.status === 200) {
+        connect() {
+          try {
+            // Connect to WebSocket for real-time updates
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/events/{{ event.id }}/formation/`;
+
+            this.socket = new WebSocket(wsUrl);
+
+            this.socket.onopen = () => {
+              console.log('WebSocket connected');
+              this.connected = true;
+              this.reconnectAttempts = 0;
+            };
+
+            this.socket.onmessage = (event) => {
+              const data = JSON.parse(event.data);
+              this.handleMessage(data);
+            };
+
+            this.socket.onclose = () => {
+              console.log('WebSocket disconnected');
+              this.connected = false;
+              this.attemptReconnect();
+            };
+
+            this.socket.onerror = (error) => {
+              console.error('WebSocket error:', error);
+              this.connected = false;
+            };
+          } catch (error) {
+            console.error('Failed to connect WebSocket:', error);
+            this.connected = false;
+          }
+        },
+
+        handleMessage(data) {
+          switch (data.type) {
+            case 'new_signup':
+              this.newSignups += 1;
+              // Update dashboard if available
+              if (window.teamFormationDashboard) {
+                window.teamFormationDashboard.loadParticipantData();
+              }
+              break;
+
+            case 'status_update':
+              document.dispatchEvent(new CustomEvent('statusUpdate', {
+                detail: data.data
+              }));
+              break;
+
+            case 'team_created':
+              // Refresh team suggestions
+              if (window.teamFormationDashboard) {
+                window.teamFormationDashboard.generateTeamSuggestions();
+              }
+              break;
+          }
+        },
+
+        attemptReconnect() {
+          if (this.reconnectAttempts < this.maxReconnectAttempts) {
+            this.reconnectAttempts++;
+            const delay = Math.pow(2, this.reconnectAttempts) * 1000; // Exponential backoff
+
+            setTimeout(() => {
+              console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+              this.connect();
+            }, delay);
+          }
+        },
+
+        refreshData() {
+          this.newSignups = 0;
+          htmx.trigger(document.body, 'refreshData');
+        },
+
+        disconnect() {
+          if (this.socket) {
+            this.socket.close();
+            this.socket = null;
+          }
+        }
+      }
+    }
+
+    // HTMX Event Handlers
+    function handleSignupClosed(event) {
+      if (event.detail.xhr.status === 200) {
         // Show success message
         const response = JSON.parse(event.detail.xhr.responseText);
         alert(`Signup phase closed. ${response.participants_moved} participants moved to team formation.`);
-        
+
         // Trigger status update
         document.dispatchEvent(new CustomEvent('statusUpdate', {
-            detail: { status: 'team_formation' }
+          detail: {
+            status: 'team_formation'
+          }
         }));
-    } else {
+      } else {
         alert('Failed to close signup phase. Please try again.');
+      }
     }
-}
 
-function handleTeamsFinalized(event) {
-    if (event.detail.xhr.status === 200) {
+    function handleTeamsFinalized(event) {
+      if (event.detail.xhr.status === 200) {
         const response = JSON.parse(event.detail.xhr.responseText);
         alert(`Teams finalized! ${response.teams_created} teams created.`);
-        
+
         // Redirect to event detail
         window.location.href = "{% url 'teams:club_event_detail' club_event.id %}";
-    } else {
+      } else {
         alert('Failed to finalize teams. Please try again.');
+      }
     }
-}
 
-function handleDataRefresh(event) {
-    if (event.detail.xhr.status === 200) {
+    function handleDataRefresh(event) {
+      if (event.detail.xhr.status === 200) {
         // Data refreshed, update dashboard
         if (window.teamFormationDashboard) {
-            window.teamFormationDashboard.loadParticipantData();
+          window.teamFormationDashboard.loadParticipantData();
         }
+      }
     }
-}
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    // Disconnect WebSocket
-    if (window.realtimeConnection) {
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      // Disconnect WebSocket
+      if (window.realtimeConnection) {
         window.realtimeConnection.disconnect();
-    }
-});
-</script>
+      }
+    });
+  </script>
 {% endblock %}
-
 {% block javascript %}
-    {{ block.super }}
-    {% render_bundle 'team-formation' 'js' %}
-{% endblock javascript %} 
+  {{ block.super }}
+  {% render_bundle 'team-formation' 'js' %}
+{% endblock javascript %}

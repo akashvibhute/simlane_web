@@ -1,17 +1,14 @@
 {% comment %} HTMX partial for driver search UI, grid, and pagination {% endcomment %}
 <div class="space-y-4">
-<!-- Header -->
-<div class="flex items-center justify-between">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sim Racing Drivers</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Discover sim racing drivers and their achievements
-        </p>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Sim Racing Drivers</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Discover sim racing drivers and their achievements</p>
     </div>
-</div>
-
-<!-- Search and Filters -->
-<div class="search-container">
+  </div>
+  <!-- Search and Filters -->
+  <div class="search-container">
     <form method="get"
           hx-get="{% url 'drivers:profiles_list' %}"
           hx-target="#profiles-container"
@@ -19,44 +16,47 @@
           hx-indicator="#loading-indicator"
           hx-trigger="change"
           class="space-y-4">
-        <!-- Search Bar -->
-        <div class="flex gap-4">
-            <div class="flex-1">
-                <input type="text"
-                       name="q"
-                       placeholder="Search drivers..."
-                       value="{{ request.GET.q }}"
-                       hx-get="{% url 'drivers:profiles_list' %}"
-                       hx-target="#profiles-container"
-                       hx-push-url="true"
-                       hx-indicator="#loading-indicator"
-                       hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
-                       class="form-input w-full">
-            </div>
-            <button type="submit" class="btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                Search
-            </button>
+      <!-- Search Bar -->
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <input type="text"
+                 name="q"
+                 placeholder="Search drivers..."
+                 value="{{ request.GET.q }}"
+                 hx-get="{% url 'drivers:profiles_list' %}"
+                 hx-target="#profiles-container"
+                 hx-push-url="true"
+                 hx-indicator="#loading-indicator"
+                 hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
+                 class="form-input w-full" />
         </div>
-        
-        <!-- Filters Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
-            <select name="simulator" class="form-select">
-                <option value="">All Simulators</option>
-                {% for simulator in simulators %}
-                    <option value="{{ simulator.slug }}" {% if request.GET.simulator == simulator.slug %}selected{% endif %}>
-                        {{ simulator.name }}
-                    </option>
-                {% endfor %}
-            </select>
-            </div>
+        <button type="submit" class="btn-primary">
+          <svg class="w-4 h-4 mr-2"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">
+            </path>
+          </svg>
+          Search
+        </button>
+      </div>
+      <!-- Filters Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-1 gap-4">
+          <select name="simulator" class="form-select">
+            <option value="">All Simulators</option>
+            {% for simulator in simulators %}
+              <option value="{{ simulator.slug }}"
+                      {% if request.GET.simulator == simulator.slug %}selected{% endif %}>
+                {{ simulator.name }}
+              </option>
+            {% endfor %}
+          </select>
         </div>
+      </div>
     </form>
-</div>
-
-<!-- Include profiles results partial -->
-{% include 'sim/profiles/profiles_results_partial.html' %}
+  </div>
+  <!-- Include profiles results partial -->
+  {% include 'sim/profiles/profiles_results_partial.html' %}
 </div>

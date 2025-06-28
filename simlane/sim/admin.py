@@ -5,25 +5,29 @@ from unfold.admin import ModelAdmin
 
 from .models import CarClass
 from .models import CarModel
+from .models import CarRestriction
 from .models import Event
 from .models import EventClass
-from .models import EventInstance
+from .models import EventResult
 from .models import EventSession
 from .models import LapTime
+from .models import ParticipantResult
 from .models import PitData
 from .models import ProfileRating
 from .models import RatingSystem
+from .models import Season
 from .models import Series
 from .models import SimCar
 from .models import SimLayout
 from .models import SimProfile
+from .models import SimProfileCarOwnership
+from .models import SimProfileTrackOwnership
 from .models import SimTrack
 from .models import Simulator
+from .models import TeamResult
+from .models import TimeSlot
 from .models import TrackModel
 from .models import WeatherForecast
-from .models import SimProfileCarOwnership, SimProfileTrackOwnership
-from .models import EventResult, TeamResult, ParticipantResult
-from .models import Season, RaceWeek, CarRestriction
 
 
 @admin.register(Simulator)
@@ -36,15 +40,27 @@ class SimulatorAdmin(ModelAdmin):
 
 @admin.register(SimProfile)
 class SimProfileAdmin(ModelAdmin):
-    list_display = ["profile_name", "linked_user", "simulator", "is_verified", "is_public", "last_active"]
+    list_display = [
+        "profile_name",
+        "linked_user",
+        "simulator",
+        "is_verified",
+        "is_public",
+        "last_active",
+    ]
     list_filter = ["simulator", "is_verified", "is_public", "created_at"]
-    search_fields = ["profile_name", "linked_user__username", "linked_user__email", "sim_api_id"]
+    search_fields = [
+        "profile_name",
+        "linked_user__username",
+        "linked_user__email",
+        "sim_api_id",
+    ]
     readonly_fields = ["created_at", "updated_at", "linked_at"]
     raw_id_fields = ["linked_user", "simulator"]
-    
+
     def get_queryset(self, request):
         """Optimize queryset for admin"""
-        return super().get_queryset(request).select_related('linked_user', 'simulator')
+        return super().get_queryset(request).select_related("linked_user", "simulator")
 
 
 @admin.register(PitData)
@@ -141,15 +157,23 @@ class EventSessionAdmin(ModelAdmin):
 
 @admin.register(EventClass)
 class EventClassAdmin(ModelAdmin):
-    list_display = ["name", "event", "car_class", "class_order", "min_entries", "max_entries", "inherit_series_restrictions"]
+    list_display = [
+        "name",
+        "event",
+        "car_class",
+        "class_order",
+        "min_entries",
+        "max_entries",
+        "inherit_series_restrictions",
+    ]
     list_filter = ["event", "car_class", "inherit_series_restrictions"]
     search_fields = ["name", "event__name", "car_class__name"]
     raw_id_fields = ["event", "car_class"]
     ordering = ["event", "class_order"]
 
 
-@admin.register(EventInstance)
-class EventInstanceAdmin(ModelAdmin):
+@admin.register(TimeSlot)
+class TimeSlotAdmin(ModelAdmin):
     list_display = [
         "event",
         "start_time",
@@ -208,7 +232,7 @@ class ProfileRatingAdmin(ModelAdmin):
 @admin.register(WeatherForecast)
 class WeatherForecastAdmin(ModelAdmin):
     list_display = [
-        "event_instance",
+        "time_slot",
         "timestamp",
         "air_temperature",
         "precipitation_chance",
@@ -220,54 +244,87 @@ class WeatherForecastAdmin(ModelAdmin):
         "allow_precipitation",
         "forecast_version",
     ]
-    search_fields = ["event_instance__event__name"]
+    search_fields = ["time_slot__event__name"]
     readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["event_instance"]
+    raw_id_fields = ["time_slot"]
     date_hierarchy = "timestamp"
 
 
 @admin.register(SimProfileCarOwnership)
 class SimProfileCarOwnershipAdmin(admin.ModelAdmin):
-    list_display = ('sim_profile', 'sim_car', 'is_favorite', 'acquired_at')
-    search_fields = ('sim_profile__sim_api_id', 'sim_profile__profile_name', 'sim_car__car_model__name', 'sim_car__simulator__name')
-    list_filter = ('is_favorite', 'sim_car__simulator')
-    autocomplete_fields = ['sim_profile', 'sim_car']
+    list_display = ("sim_profile", "sim_car", "is_favorite", "acquired_at")
+    search_fields = (
+        "sim_profile__sim_api_id",
+        "sim_profile__profile_name",
+        "sim_car__car_model__name",
+        "sim_car__simulator__name",
+    )
+    list_filter = ("is_favorite", "sim_car__simulator")
+    autocomplete_fields = ["sim_profile", "sim_car"]
 
 
 @admin.register(SimProfileTrackOwnership)
 class SimProfileTrackOwnershipAdmin(admin.ModelAdmin):
-    list_display = ('sim_profile', 'sim_track', 'is_favorite', 'acquired_at')
-    search_fields = ('sim_profile__sim_api_id', 'sim_profile__profile_name', 'sim_track__track_model__name', 'sim_track__simulator__name')
-    list_filter = ('is_favorite', 'sim_track__simulator')
-    autocomplete_fields = ['sim_profile', 'sim_track']
+    list_display = ("sim_profile", "sim_track", "is_favorite", "acquired_at")
+    search_fields = (
+        "sim_profile__sim_api_id",
+        "sim_profile__profile_name",
+        "sim_track__track_model__name",
+        "sim_track__simulator__name",
+    )
+    list_filter = ("is_favorite", "sim_track__simulator")
+    autocomplete_fields = ["sim_profile", "sim_track"]
 
 
 @admin.register(EventResult)
 class EventResultAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'event_instance', 'subsession_id', 'num_drivers', 'start_time', 'end_time', 'is_processed'
+        "id",
+        "time_slot",
+        "subsession_id",
+        "num_drivers",
+        "start_time",
+        "end_time",
+        "is_processed",
     )
-    search_fields = ('subsession_id', 'event_instance__id')
-    list_filter = ('is_processed', 'start_time')
-    readonly_fields = ('results_fetched_at',)
+    search_fields = ("subsession_id", "time_slot__id")
+    list_filter = ("is_processed", "start_time")
+    readonly_fields = ("results_fetched_at",)
 
 
 @admin.register(TeamResult)
 class TeamResultAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'event_result', 'team', 'finish_position', 'car_class_name', 'champ_points', 'is_dnf'
+        "id",
+        "event_result",
+        "team",
+        "finish_position",
+        "car_class_name",
+        "champ_points",
+        "is_dnf",
     )
-    search_fields = ('team__name', 'event_result__subsession_id')
-    list_filter = ('car_class_name', 'finish_position')
+    search_fields = ("team__name", "event_result__subsession_id")
+    list_filter = ("car_class_name", "finish_position")
 
 
 @admin.register(ParticipantResult)
 class ParticipantResultAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'sim_profile', 'event_result', 'team_result', 'finish_position', 'car_class_name', 'champ_points', 'is_dnf'
+        "id",
+        "sim_profile",
+        "event_result",
+        "team_result",
+        "finish_position",
+        "car_class_name",
+        "champ_points",
+        "is_dnf",
     )
-    search_fields = ('sim_profile__user__username', 'event_result__subsession_id', 'team_result__team__name')
-    list_filter = ('car_class_name', 'finish_position')
+    search_fields = (
+        "sim_profile__user__username",
+        "event_result__subsession_id",
+        "team_result__team__name",
+    )
+    list_filter = ("car_class_name", "finish_position")
 
 
 @admin.register(Season)
@@ -288,34 +345,10 @@ class SeasonAdmin(ModelAdmin):
     date_hierarchy = "start_date"
 
 
-@admin.register(RaceWeek)
-class RaceWeekAdmin(ModelAdmin):
-    list_display = [
-        "season",
-        "week_number",
-        "sim_layout",
-        "start_date",
-        "end_date",
-    ]
-    list_filter = [
-        "season__series",
-        "sim_layout__sim_track__simulator",
-        "start_date",
-    ]
-    search_fields = [
-        "season__series__name",
-        "sim_layout__sim_track__track_model__name",
-        "sim_layout__name",
-    ]
-    readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["season", "sim_layout"]
-    date_hierarchy = "start_date"
-
-
 @admin.register(CarRestriction)
 class CarRestrictionAdmin(ModelAdmin):
     list_display = [
-        "race_week",
+        "event",
         "sim_car",
         "max_pct_fuel_fill",
         "power_adjust_pct",
@@ -323,13 +356,13 @@ class CarRestrictionAdmin(ModelAdmin):
         "is_fixed_setup",
     ]
     list_filter = [
-        "race_week__season__series",
+        "event__series",
         "sim_car__simulator",
         "is_fixed_setup",
     ]
     search_fields = [
-        "race_week__season__series__name",
+        "event__series__name",
         "sim_car__car_model__name",
         "sim_car__sim_api_id",
     ]
-    raw_id_fields = ["race_week", "sim_car"]
+    raw_id_fields = ["event", "sim_car"]

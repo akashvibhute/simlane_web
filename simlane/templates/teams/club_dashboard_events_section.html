@@ -1,7 +1,8 @@
 {% comment %}Club Dashboard Events Section - HTMX tabs without client JS{% endcomment %}
 <div id="club-events-section" class="space-y-6">
   <!-- Tabs -->
-  <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1" role="tablist">
+  <div class="inline-flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1"
+       role="tablist">
     <a href="{% url 'teams:club_dashboard_section' club.slug 'events' %}?tab=upcoming"
        hx-get="{% url 'teams:club_dashboard_section' club.slug 'events' %}?tab=upcoming"
        hx-target="#club-events-section"
@@ -19,7 +20,6 @@
       Past
     </a>
   </div>
-
   <!-- Tab Content -->
   <div id="club-events-container" class="mt-6">
     {% if events_tab == 'past' %}
@@ -28,4 +28,4 @@
       {% include "teams/club_dashboard_events_tab_partial.html" with signup_list=upcoming_signup_sheets tab='upcoming' can_manage=can_manage_events %}
     {% endif %}
   </div>
-</div> 
+</div>

@@ -1,15 +1,16 @@
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.db import models, transaction
-from django.http import HttpResponse, HttpResponseForbidden, Http404, JsonResponse
-from django.shortcuts import render, redirect, get_object_or_404
+from django.db import models
+from django.db import transaction
+from django.http import Http404
+from django.http import HttpResponse
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect
+from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
-
-from datetime import timedelta
-
-from django.contrib.auth import get_user_model
 
 from .decorators import club_admin_required
 from .decorators import club_manager_required
@@ -24,9 +25,9 @@ from .models import ClubEventSignupSheet
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
+from .models import EventParticipation
 from .models import Team
 from .models import TeamMember
-from .models import EventParticipation
 
 User = get_user_model()
 
@@ -46,7 +47,7 @@ def clubs_dashboard(request):
         "team",
         "team__club",
     )
-    
+
     user_teams = []
     for team_member in team_memberships:
         # Get club membership role if team is in a club
@@ -92,21 +93,25 @@ def browse_clubs(request):
     all_clubs = (
         Club.objects.filter(is_active=True)
         .annotate(
-            member_count=models.Count('members', distinct=True),
-            team_count=models.Count('teams', filter=models.Q(teams__is_active=True), distinct=True)
+            member_count=models.Count("members", distinct=True),
+            team_count=models.Count(
+                "teams", filter=models.Q(teams__is_active=True), distinct=True
+            ),
         )
         .order_by("name")
     )
-    
+
     # Get user's current club memberships to exclude from browsing
-    user_club_ids = ClubMember.objects.filter(user=request.user).values_list('club_id', flat=True)
+    user_club_ids = ClubMember.objects.filter(user=request.user).values_list(
+        "club_id", flat=True
+    )
     available_clubs = all_clubs.exclude(id__in=user_club_ids)
-    
+
     context = {
-        'available_clubs': available_clubs,
-        'total_available_clubs': available_clubs.count(),
+        "available_clubs": available_clubs,
+        "total_available_clubs": available_clubs.count(),
     }
-    
+
     return render(request, "teams/browse_clubs.html", context)
 
 
@@ -118,12 +123,12 @@ def request_join_club(request, club_slug):
     except Club.DoesNotExist:
         messages.error(request, "Club not found or is not active.")
         return redirect("teams:browse_clubs")
-    
+
     # Check if user is already a member
     if ClubMember.objects.filter(user=request.user, club=club).exists():
         messages.info(request, f"You are already a member of {club.name}.")
         return redirect("teams:club_dashboard", club_slug=club.slug)
-    
+
     # Check if there's already a pending invitation
     existing_invitation = ClubInvitation.objects.filter(
         club=club,
@@ -132,25 +137,27 @@ def request_join_club(request, club_slug):
         declined_at__isnull=True,
         expires_at__gt=timezone.now(),
     ).first()
-    
+
     if existing_invitation:
-        messages.info(request, f"You already have a pending invitation to join {club.name}.")
+        messages.info(
+            request, f"You already have a pending invitation to join {club.name}."
+        )
         return redirect("teams:browse_clubs")
-    
+
     context = {
-        'club': club,
+        "club": club,
     }
-    
-    if request.method == 'POST':
+
+    if request.method == "POST":
         # For now, show a message that request was noted
         # In a full implementation, this could notify club admins
         messages.success(
-            request, 
+            request,
             f"Your interest in joining {club.name} has been noted. "
-            f"A club administrator may contact you."
+            f"A club administrator may contact you.",
         )
         return redirect("teams:browse_clubs")
-    
+
     return render(request, "teams/request_join_club.html", context)
 
 
@@ -176,7 +183,9 @@ def club_dashboard_section(request, club_slug, section="overview"):
         user_role = club_member.role
     except ClubMember.DoesNotExist:
         if not club.is_public:
-            return HttpResponseForbidden("This club is private. You must be a member to view it.")
+            return HttpResponseForbidden(
+                "This club is private. You must be a member to view it."
+            )
 
     # Get user's other clubs for navigation
     user_clubs = ClubMember.objects.filter(user=request.user).select_related("club")
@@ -196,7 +205,7 @@ def club_dashboard_section(request, club_slug, section="overview"):
     if request.user.is_authenticated:
         user_team_memberships = TeamMember.objects.filter(
             user=request.user,
-            team__club=club
+            team__club=club,
         ).select_related("team")
         user_teams_in_club = [tm.team for tm in user_team_memberships]
 
@@ -204,7 +213,7 @@ def club_dashboard_section(request, club_slug, section="overview"):
     recent_entries = (
         EventParticipation.objects.filter(
             team__club=club,
-            status__in=['confirmed', 'participated']
+            status__in=["confirmed", "participated"],
         )
         .select_related("event", "user", "assigned_car", "team")
         .order_by("-created_at")[:10]
@@ -212,6 +221,7 @@ def club_dashboard_section(request, club_slug, section="overview"):
 
     # Get events organized by this club (using Event.organizing_club)
     from simlane.sim.models import Event
+
     club_events = (
         Event.objects.filter(organizing_club=club)
         .select_related(
@@ -229,11 +239,9 @@ def club_dashboard_section(request, club_slug, section="overview"):
         try:
             club_member = ClubMember.objects.get(club=club, user=request.user)
             can_manage_events = club_member.can_manage_events()
-            recent_signup_sheets = (
-                club.event_signup_sheets
-                .select_related('event', 'created_by')
-                .order_by('-created_at')[:5]
-            )
+            recent_signup_sheets = club.event_signup_sheets.select_related(
+                "event", "created_by"
+            ).order_by("-created_at")[:5]
         except ClubMember.DoesNotExist:
             can_manage_events = False
     else:
@@ -242,20 +250,19 @@ def club_dashboard_section(request, club_slug, section="overview"):
     # === Events section specific context ===
     upcoming_signup_sheets = []
     past_signup_sheets = []
-    events_tab = request.GET.get('tab', 'upcoming')
-    if section == 'events':
+    events_tab = request.GET.get("tab", "upcoming")
+    if section == "events":
         signup_sheets_all = (
-            club.event_signup_sheets
-            .select_related('event')
+            club.event_signup_sheets.select_related("event")
             .annotate(
                 signup_count_annotated=models.Count(
-                    'event__participations',
+                    "event__participations",
                     filter=models.Q(
                         event__participations__signup_context_club=club,
                     ),
-                )
+                ),
             )
-            .order_by('-created_at')
+            .order_by("-created_at")
         )
         now = timezone.now()
         for ss in signup_sheets_all:
@@ -265,7 +272,7 @@ def club_dashboard_section(request, club_slug, section="overview"):
                 past_signup_sheets.append(ss)
 
         # For HTMX tab swap: if only tab content requested, return full events section
-        if request.headers.get('HX-Request') and request.GET.get('tab'):
+        if request.headers.get("HX-Request") and request.GET.get("tab"):
             # Re-render the entire events section so tabs update correctly
             return render(
                 request,
@@ -294,7 +301,7 @@ def club_dashboard_section(request, club_slug, section="overview"):
         "total_teams": club_teams.count(),
         "total_entries": EventParticipation.objects.filter(
             team__club=club,
-            status__in=['confirmed', 'participated']
+            status__in=["confirmed", "participated"],
         ).count(),
         "user_clubs": user_clubs,
         "is_public_view": user_role is None,
@@ -332,7 +339,7 @@ def club_create(request):
                 ClubMember.objects.create(
                     user=request.user,
                     club=club,
-                    role=ClubRole.ADMIN
+                    role=ClubRole.ADMIN,
                 )
 
                 messages.success(request, f"Club '{club.name}' created successfully!")
@@ -447,37 +454,45 @@ def club_invite_member(request, club_slug):
 def club_event_signup_create(request, club_slug):
     """Create an event signup sheet for the club"""
     club = request.club
-    
+
     if request.method == "POST":
         form = ClubEventSignupSheetForm(
-            request.POST, 
-            club=club, 
-            user=request.user
+            request.POST,
+            club=club,
+            user=request.user,
         )
         if form.is_valid():
             signup_sheet = form.save()
             messages.success(
-                request, 
+                request,
                 f"Signup sheet '{signup_sheet.title}' created successfully! "
-                f"{'It is now open for signups.' if signup_sheet.is_open else 'It will open at the scheduled time.'}"
+                f"{'It is now open for signups.' if signup_sheet.is_open else 'It will open at the scheduled time.'}",
             )
-            return redirect("teams:club_dashboard_section", club_slug=club.slug, section="events")
+            return redirect(
+                "teams:club_dashboard_section", club_slug=club.slug, section="events"
+            )
     else:
         form = ClubEventSignupSheetForm(club=club, user=request.user)
-    
+
     # Determine selected event for redisplay (if any)
     selected_event = None
     try:
-        event_id = form.data.get('event') if hasattr(form, 'data') else None
+        event_id = form.data.get("event") if hasattr(form, "data") else None
         if event_id:
             from simlane.sim.models import Event
-            selected_event = Event.objects.select_related('simulator').prefetch_related('instances').filter(id=event_id).first()
+
+            selected_event = (
+                Event.objects.select_related("simulator")
+                .prefetch_related("time_slots")
+                .filter(id=event_id)
+                .first()
+            )
     except Exception:
         selected_event = None
 
     # Import here to avoid circular import
     from simlane.sim.views import get_active_simulators
-    
+
     context = {
         "form": form,
         "club": club,
@@ -485,10 +500,10 @@ def club_event_signup_create(request, club_slug):
         "simulators": get_active_simulators(),
         "selected_event": selected_event,
     }
-    
+
     if request.headers.get("HX-Request"):
         return render(request, "teams/club_event_signup_create_modal.html", context)
-    
+
     return render(request, "teams/club_event_signup_create.html", context)
 
 
@@ -496,49 +511,54 @@ def club_event_signup_create(request, club_slug):
 def club_event_signup_bulk_create(request, club_slug):
     """Create multiple event signup sheets at once"""
     club = request.club
-    
+
     if request.method == "POST":
         form = ClubEventSignupBulkCreateForm(
             request.POST,
             club=club,
-            user=request.user
+            user=request.user,
         )
         if form.is_valid():
             created_sheets = form.create_signup_sheets()
-            
+
             # Success message with count
             count = len(created_sheets)
             if count == 1:
                 messages.success(
                     request,
-                    f"Created 1 signup sheet successfully!"
+                    "Created 1 signup sheet successfully!",
                 )
             else:
                 messages.success(
                     request,
-                    f"Created {count} signup sheets successfully!"
+                    f"Created {count} signup sheets successfully!",
                 )
-            
+
             # Show breakdown of what was created
             for sheet in created_sheets:
                 messages.info(
                     request,
-                    f"📝 {sheet.title} - {'Open now' if sheet.is_open else 'Opens ' + sheet.signup_opens.strftime('%b %d, %Y')}"
+                    (
+                        f"📝 {sheet.title} - "
+                        f"{'Open now' if sheet.is_open else 'Opens ' + sheet.signup_opens.strftime('%b %d, %Y')}"
+                    ),
                 )
-            
+
             return redirect("teams:club_event_signups", club_slug=club.slug)
     else:
         form = ClubEventSignupBulkCreateForm(club=club, user=request.user)
-    
+
     context = {
         "form": form,
         "club": club,
         "title": f"Bulk Create Event Signups - {club.name}",
     }
-    
+
     if request.headers.get("HX-Request"):
-        return render(request, "teams/club_event_signup_bulk_create_modal.html", context)
-    
+        return render(
+            request, "teams/club_event_signup_bulk_create_modal.html", context
+        )
+
     return render(request, "teams/club_event_signup_bulk_create.html", context)
 
 
@@ -546,44 +566,53 @@ def club_event_signup_bulk_create(request, club_slug):
 def club_event_signups(request, club_slug):
     """View all event signup sheets for the club"""
     club = request.club
-    
+
     # Get all signup sheets for this club
     signup_sheets = (
-        club.event_signup_sheets
-        .select_related('event', 'created_by')
+        club.event_signup_sheets.select_related("event", "created_by")
         .annotate(
             signup_count_annotated=models.Count(
-                'event__participations',
+                "event__participations",
                 filter=models.Q(
                     event__participations__signup_context_club=club,
-                    event__participations__status__in=['signed_up', 'team_formation', 'team_assigned', 'entered', 'confirmed']
-                )
-            )
+                    event__participations__status__in=[
+                        "signed_up",
+                        "team_formation",
+                        "team_assigned",
+                        "entered",
+                        "confirmed",
+                    ],
+                ),
+            ),
         )
-        .order_by('-created_at')
+        .order_by("-created_at")
     )
-    
+
     # Separate open and closed signups
     open_signups = []
     closed_signups = []
-    
+
     for sheet in signup_sheets:
         if sheet.is_open:
             open_signups.append(sheet)
         else:
             closed_signups.append(sheet)
-    
+
     context = {
         "club": club,
         "open_signups": open_signups,
         "closed_signups": closed_signups,
-        "user_role": request.club_member.role if hasattr(request, 'club_member') else None,
-        "can_manage": request.club_member.can_manage_events() if hasattr(request, 'club_member') else False,
+        "user_role": request.club_member.role
+        if hasattr(request, "club_member")
+        else None,
+        "can_manage": request.club_member.can_manage_events()
+        if hasattr(request, "club_member")
+        else False,
     }
-    
+
     if request.headers.get("HX-Request"):
         return render(request, "teams/club_event_signups_partial.html", context)
-    
+
     return render(request, "teams/club_event_signups.html", context)
 
 
@@ -623,13 +652,15 @@ def club_invitation_decline(request, token):
     """Process invitation decline"""
     try:
         invitation = ClubInvitation.objects.get(token=token)
-        
+
         if invitation.is_expired():
             messages.error(request, "This invitation has expired.")
             return redirect("teams:clubs_dashboard")
 
         invitation.decline()
-        messages.info(request, f"You have declined the invitation to join {invitation.club.name}.")
+        messages.info(
+            request, f"You have declined the invitation to join {invitation.club.name}."
+        )
 
         return redirect("teams:clubs_dashboard")
 
@@ -642,21 +673,28 @@ def club_invitation_decline(request, token):
 @login_required
 def stint_plan_update_legacy(request, allocation_id):
     """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(request, "Stint planning has been moved to the enhanced team formation system")
+    messages.warning(
+        request, "Stint planning has been moved to the enhanced team formation system"
+    )
     return redirect("teams:clubs_dashboard")
 
 
-@login_required  
+@login_required
 def stint_plan_export_legacy(request, allocation_id):
     """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(request, "Export functionality has been moved to the enhanced team formation system")
+    messages.warning(
+        request,
+        "Export functionality has been moved to the enhanced team formation system",
+    )
     return redirect("teams:clubs_dashboard")
 
 
 @login_required
 def stint_plan_partial_legacy(request, allocation_id):
     """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(request, "Stint planning has been moved to the enhanced team formation system")
+    messages.warning(
+        request, "Stint planning has been moved to the enhanced team formation system"
+    )
     return redirect("teams:clubs_dashboard")
 
 
@@ -677,6 +715,7 @@ def stint_plan_partial_legacy(request, allocation_id):
 # - event_signup: Sign up for an event (individual or team)
 # - event_team_formation: Form teams for an event
 
+
 # === EVENT SIGNUP SHEET DETAIL ===
 @club_member_required
 def club_event_signup_detail(request, club_slug, sheet_id):
@@ -691,7 +730,7 @@ def club_event_signup_detail(request, club_slug, sheet_id):
             "event__sim_layout__sim_track__track_model",
             "created_by",
         ).prefetch_related(
-            "event__instances",
+            "event__time_slots",
         ),
         id=sheet_id,
         club=club,
@@ -703,7 +742,11 @@ def club_event_signup_detail(request, club_slug, sheet_id):
         signup_context_club=club,
     ).select_related("user", "team", "assigned_car")
 
-    can_manage = request.club_member.can_manage_events() if hasattr(request, "club_member") else False
+    can_manage = (
+        request.club_member.can_manage_events()
+        if hasattr(request, "club_member")
+        else False
+    )
 
     context = {
         "club": club,
@@ -727,17 +770,24 @@ def club_event_signup_edit(request, club_slug, sheet_id):
 
     if request.method == "POST":
         form = ClubEventSignupSheetForm(
-            request.POST, instance=signup_sheet, club=club, user=request.user
+            request.POST,
+            instance=signup_sheet,
+            club=club,
+            user=request.user,
         )
         # Prevent event from being changed
-        form.fields.pop('event_search', None)
+        form.fields.pop("event_search", None)
         if form.is_valid():
             form.save()
             messages.success(request, "Signup sheet updated successfully.")
-            return redirect('teams:club_event_signup_detail', club_slug=club.slug, sheet_id=sheet_id)
+            return redirect(
+                "teams:club_event_signup_detail", club_slug=club.slug, sheet_id=sheet_id
+            )
     else:
-        form = ClubEventSignupSheetForm(instance=signup_sheet, club=club, user=request.user)
-        form.fields.pop('event_search', None)
+        form = ClubEventSignupSheetForm(
+            instance=signup_sheet, club=club, user=request.user
+        )
+        form.fields.pop("event_search", None)
 
     context = {
         "club": club,

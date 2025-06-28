@@ -120,7 +120,7 @@
                        fill="none"
                        stroke="currentColor"
                        viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                   </svg>
                   Bulk Create
                 </a>
@@ -171,9 +171,7 @@
                           </span>
                         {% endif %}
                       </div>
-                      <p class="text-sm text-gray-600 dark:text-gray-300">
-                        {{ sheet.event.name }}
-                      </p>
+                      <p class="text-sm text-gray-600 dark:text-gray-300">{{ sheet.event.name }}</p>
                       <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                         <span>{{ sheet.signup_count }} signups</span>
                         <span>•</span>
@@ -214,7 +212,7 @@
                          fill="none"
                          stroke="currentColor"
                          viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                     </svg>
                     Bulk Create
                   </a>
@@ -534,8 +532,7 @@
               <div>
                 {% comment %}
                 Event signup functionality will be implemented later
-                <a href="{% url 'teams:event_signup_create' club.slug %}"
-                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600">
+                <a href="{% url 'teams:event_signup_create' club.slug %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600">
                 {% endcomment %}
                 <a href="#"
                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 opacity-50 cursor-not-allowed"

@@ -99,7 +99,7 @@ class MediaGallery(models.Model):
     Generic gallery model for storing images related to any model.
     Can be used for cars, tracks, events, teams, etc.
     """
-    
+
     GALLERY_TYPE_CHOICES = [
         ("screenshots", "Screenshots"),
         ("photos", "Photos"),
@@ -110,59 +110,61 @@ class MediaGallery(models.Model):
         ("track_maps", "Track SVG Maps"),
         ("other", "Other"),
     ]
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    
+
     # Generic foreign key to link to any model
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.CharField(max_length=255)
-    content_object = GenericForeignKey('content_type', 'object_id')
-    
+    content_object = GenericForeignKey("content_type", "object_id")
+
     # Gallery details
     gallery_type = models.CharField(
         max_length=20,
         choices=GALLERY_TYPE_CHOICES,
         default="photos",
-        help_text="Type of gallery/images"
+        help_text="Type of gallery/images",
     )
     image = models.ImageField(
         upload_to="gallery/%Y/%m/",
-        help_text="Gallery image file"
+        help_text="Gallery image file",
     )
     caption = models.CharField(
         max_length=255,
         blank=True,
-        help_text="Optional image caption"
+        help_text="Optional image caption",
     )
     order = models.IntegerField(
         default=0,
-        help_text="Display order (lower numbers first)"
+        help_text="Display order (lower numbers first)",
     )
-    
+
     # Metadata from external APIs
     original_filename = models.CharField(
         max_length=255,
         blank=True,
-        help_text="Original filename from external source"
+        help_text="Original filename from external source",
     )
     original_url = models.URLField(
         blank=True,
-        help_text="Original URL where image was downloaded from"
+        help_text="Original URL where image was downloaded from",
     )
-    
+
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['order', 'created_at']
+        ordering = ["order", "created_at"]
         indexes = [
-            models.Index(fields=['content_type', 'object_id', 'order']),
-            models.Index(fields=['content_type', 'object_id']),
-            models.Index(fields=['gallery_type']),
+            models.Index(fields=["content_type", "object_id", "order"]),
+            models.Index(fields=["content_type", "object_id"]),
+            models.Index(fields=["gallery_type"]),
         ]
         verbose_name = "Media Gallery Item"
         verbose_name_plural = "Media Gallery Items"
 
     def __str__(self):
-        return f"{self.content_object} - {self.get_gallery_type_display()} ({self.order})"
+        return (
+            f"{self.content_object} - {self.get_gallery_type_display()} ({self.order})"
+        )

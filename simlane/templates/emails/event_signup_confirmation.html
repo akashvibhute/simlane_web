@@ -493,8 +493,8 @@
             {% for availability in signup_entry.availabilities.all %}
               <div class="availability-item">
                 <span>
-                  {{ availability.event_instance.session_type }} -
-                  {{ availability.event_instance.start_time|date:"M j, g:i A" }}
+                  {{ availability.time_slot.session_type }} -
+                  {{ availability.time_slot.start_time|date:"M j, g:i A" }}
                 </span>
                 <div class="availability-status">
                   <div class="availability-indicator {% if availability.available %}available{% else %}unavailable{% endif %}"></div>

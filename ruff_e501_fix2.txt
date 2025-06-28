@@ -1,0 +1,1390 @@
+simlane/api/auth.py:23:89: E501 Line too long (89 > 88)
+   |
+21 |         payload = self.create_access_token_payload(user)
+22 |
+23 |         # Use JWT_SECRET_KEY from settings if available, otherwise fallback to SECRET_KEY
+   |                                                                                         ^ E501
+24 |         secret_key = getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
+25 |         algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
+   |
+
+simlane/api/auth.py:51:89: E501 Line too long (89 > 88)
+   |
+49 |         payload = self.create_refresh_token_payload(user)
+50 |
+51 |         # Use JWT_SECRET_KEY from settings if available, otherwise fallback to SECRET_KEY
+   |                                                                                         ^ E501
+52 |         secret_key = getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
+53 |         algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
+   |
+
+simlane/api/auth.py:79:89: E501 Line too long (93 > 88)
+   |
+77 |         """Verify and decode a JWT token."""
+78 |         try:
+79 |             # Use JWT_SECRET_KEY from settings if available, otherwise fallback to SECRET_KEY
+   |                                                                                         ^^^^^ E501
+80 |             secret_key = getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
+81 |             algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
+   |
+
+simlane/api/main.py:20:89: E501 Line too long (93 > 88)
+   |
+18 |     def authenticate(self, request: HttpRequest, token: str) -> User | None:
+19 |         try:
+20 |             # Use JWT_SECRET_KEY from settings if available, otherwise fallback to SECRET_KEY
+   |                                                                                         ^^^^^ E501
+21 |             secret_key = getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY)
+22 |             algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
+   |
+
+simlane/api/schemas/events.py:2:89: E501 Line too long (91 > 88)
+  |
+1 | # Legacy event schemas removed (TeamAllocation, TeamEventStrategy, StintAssignment)
+2 | # These have been replaced by the enhanced EventParticipation and AvailabilityWindow system
+  |                                                                                         ^^^ E501
+3 | # Located in simlane/teams/models.py
+  |
+
+simlane/core/cache_utils.py:154:89: E501 Line too long (89 > 88)
+    |
+152 |                     self.cache.delete_many(keys_to_delete)
+153 |                     logger.info(
+154 |                         f"Invalidated {len(keys_to_delete)} cache entries for tag: {tag}"
+    |                                                                                         ^ E501
+155 |                     )
+156 |                 self.cache.delete(tag_key)
+    |
+
+simlane/core/forms.py:27:89: E501 Line too long (98 > 88)
+   |
+25 |                 attrs={
+26 |                     "class": (
+27 |                         "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+   |                                                                                         ^^^^^^^^^^ E501
+28 |                         "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+29 |                         "placeholder-gray-500 dark:placeholder-gray-400 "
+   |
+
+simlane/core/forms.py:31:89: E501 Line too long (92 > 88)
+   |
+29 |                         "placeholder-gray-500 dark:placeholder-gray-400 "
+30 |                         "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+31 |                         "focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+   |                                                                                         ^^^^ E501
+32 |                     ),
+33 |                     "placeholder": "Your full name",
+   |
+
+simlane/core/forms.py:39:89: E501 Line too long (98 > 88)
+   |
+37 |                 attrs={
+38 |                     "class": (
+39 |                         "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+   |                                                                                         ^^^^^^^^^^ E501
+40 |                         "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+41 |                         "placeholder-gray-500 dark:placeholder-gray-400 "
+   |
+
+simlane/core/forms.py:43:89: E501 Line too long (92 > 88)
+   |
+41 |                         "placeholder-gray-500 dark:placeholder-gray-400 "
+42 |                         "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+43 |                         "focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+   |                                                                                         ^^^^ E501
+44 |                     ),
+45 |                     "placeholder": "your.email@example.com",
+   |
+
+simlane/core/forms.py:51:89: E501 Line too long (98 > 88)
+   |
+49 |                 attrs={
+50 |                     "class": (
+51 |                         "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+   |                                                                                         ^^^^^^^^^^ E501
+52 |                         "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+53 |                         "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+   |
+
+simlane/core/forms.py:54:89: E501 Line too long (92 > 88)
+   |
+52 |                         "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+53 |                         "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+54 |                         "focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+   |                                                                                         ^^^^ E501
+55 |                     ),
+56 |                 },
+   |
+
+simlane/core/forms.py:61:89: E501 Line too long (98 > 88)
+   |
+59 |                 attrs={
+60 |                     "class": (
+61 |                         "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+   |                                                                                         ^^^^^^^^^^ E501
+62 |                         "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+63 |                         "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+   |
+
+simlane/core/forms.py:64:89: E501 Line too long (92 > 88)
+   |
+62 |                         "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+63 |                         "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+64 |                         "focus:border-blue-500 dark:focus:border-blue-400 transition-colors"
+   |                                                                                         ^^^^ E501
+65 |                     ),
+66 |                 },
+   |
+
+simlane/core/forms.py:71:89: E501 Line too long (98 > 88)
+   |
+69 |                 attrs={
+70 |                     "class": (
+71 |                         "w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg "
+   |                                                                                         ^^^^^^^^^^ E501
+72 |                         "bg-white dark:bg-gray-700 text-gray-900 dark:text-white "
+73 |                         "placeholder-gray-500 dark:placeholder-gray-400 "
+   |
+
+simlane/core/forms.py:75:89: E501 Line too long (108 > 88)
+   |
+73 |                         "placeholder-gray-500 dark:placeholder-gray-400 "
+74 |                         "focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 "
+75 |                         "focus:border-blue-500 dark:focus:border-blue-400 transition-colors resize-vertical"
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+76 |                     ),
+77 |                     "rows": 6,
+   |
+
+simlane/core/management/commands/cache_management.py:227:89: E501 Line too long (90 > 88)
+    |
+225 |                         )
+226 |                         self.stdout.write(
+227 |                             f"  Connected Clients: {info.get('connected_clients', 'N/A')}"
+    |                                                                                         ^^ E501
+228 |                         )
+229 |                         self.stdout.write(
+    |
+
+simlane/core/management/commands/cache_management.py:230:89: E501 Line too long (94 > 88)
+    |
+228 |                         )
+229 |                         self.stdout.write(
+230 |                             f"  Total Commands: {info.get('total_commands_processed', 'N/A')}"
+    |                                                                                         ^^^^^^ E501
+231 |                         )
+232 |                         self.stdout.write(
+    |
+
+simlane/core/management/commands/create_base_seed_data.py:176:89: E501 Line too long (92 > 88)
+    |
+174 |                             continue
+175 |
+176 |                         # Normalize similar types (e.g., f1/formula1/formulaone -> formula1)
+    |                                                                                         ^^^^ E501
+177 |                         if type_name in ["f1", "formulaone"]:
+178 |                             type_name = "formula1"
+    |
+
+simlane/core/management/commands/create_base_seed_data.py:398:89: E501 Line too long (91 > 88)
+    |
+396 |         created_sim_layouts = 0
+397 |
+398 |         # Group tracks by track_name since each API entry is actually a track configuration
+    |                                                                                         ^^^ E501
+399 |         tracks_by_name = {}
+400 |         for track in tracks:
+    |
+
+simlane/core/management/commands/create_base_seed_data.py:434:89: E501 Line too long (98 > 88)
+    |
+432 |                     track_model=track_model,
+433 |                     defaults={
+434 |                         "sim_api_id": f"track_{slugify(track_name)}",  # Use track name as base ID
+    |                                                                                         ^^^^^^^^^^ E501
+435 |                         "display_name": track_name,
+436 |                         "slug": slugify(f"iracing-{track_name}"),
+    |
+
+simlane/core/management/commands/create_base_seed_data.py:518:89: E501 Line too long (95 > 88)
+    |
+517 |     def _parse_location_country(self, location: str) -> str:
+518 |         """Parse country from location string (e.g., 'Lakeville, Connecticut, USA' -> 'USA')"""
+    |                                                                                         ^^^^^^^ E501
+519 |         if not location:
+520 |             return ""
+    |
+
+simlane/core/management/commands/debug_car_data.py:72:89: E501 Line too long (90 > 88)
+   |
+70 |                 self.stdout.write(f"    car_model: '{car_model}'")
+71 |                 self.stdout.write(
+72 |                     f"    → Suggested manufacturer: '{example['suggested_manufacturer']}'"
+   |                                                                                         ^^ E501
+73 |                 )
+74 |                 self.stdout.write(
+   |
+
+simlane/core/management/commands/debug_car_data.py:88:89: E501 Line too long (89 > 88)
+   |
+86 |             )
+87 |             self.stdout.write(
+88 |                 "  - manufacturer: Use car_make if available, else extract from car_name"
+   |                                                                                         ^ E501
+89 |             )
+90 |             self.stdout.write("  - base_specs: Use hp, car_weight, etc.")
+   |
+
+simlane/core/management/commands/debug_categories.py:102:89: E501 Line too long (90 > 88)
+    |
+100 |             self.stdout.write("\nCATEGORIES:")
+101 |             self.stdout.write(
+102 |                 f"  - Cars with multiple categories: {len(cars_with_multiple_categories)}"
+    |                                                                                         ^^ E501
+103 |             )
+104 |             self.stdout.write(
+    |
+
+simlane/core/management/commands/test_search.py:52:89: E501 Line too long (100 > 88)
+   |
+50 |             self.stdout.write(
+51 |                 self.style.SUCCESS(
+52 |                     f"\nFound {results['total_count']} results in {results['query_time_ms']:.1f}ms",
+   |                                                                                         ^^^^^^^^^^^^ E501
+53 |                 ),
+54 |             )
+   |
+
+simlane/core/search.py:286:89: E501 Line too long (89 > 88)
+    |
+284 |             type=instance._meta.model_name,
+285 |             title=str(instance),
+286 |             description=f"{instance._meta.verbose_name} from {instance._meta.app_label}",
+    |                                                                                         ^ E501
+287 |             url=f"/{instance._meta.app_label}/{instance._meta.model_name}/{instance.pk}/",
+288 |             metadata={},
+    |
+
+simlane/core/search.py:522:89: E501 Line too long (89 > 88)
+    |
+521 |     def reindex_all(self) -> bool:
+522 |         """For PostgreSQL, no reindexing needed - indexes are maintained automatically"""
+    |                                                                                         ^ E501
+523 |         return True
+    |
+
+simlane/iracing/auto_create.py:321:89: E501 Line too long (188 > 88)
+    |
+319 | …
+320 | …
+321 | ….get('series_id')}, season_id={results_data.get('season_id')}, subsession_id={results_data.get('subsession_id')}"
+    |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+322 | …
+    |
+
+simlane/iracing/auto_create.py:337:89: E501 Line too long (125 > 88)
+    |
+336 |     logger.info(
+337 |         f"Extracted data: series_id={series_id}, series_name={series_name}, season_id={season_id}, season_name={season_name}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+338 |     )
+    |
+
+simlane/iracing/auto_create.py:345:89: E501 Line too long (118 > 88)
+    |
+343 |         season_quarter = results_data.get("season_quarter")
+344 |         logger.info(
+345 |             f"Attempting to fetch season data for series_id={series_id}, year={season_year}, quarter={season_quarter}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+346 |         )
+347 |         if season_year and season_quarter:
+    |
+
+simlane/iracing/auto_create.py:359:89: E501 Line too long (117 > 88)
+    |
+357 |             else:
+358 |                 logger.error(
+359 |                     f"Could not fetch season for series_id={series_id}, year={season_year}, quarter={season_quarter}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+360 |                 )
+361 |         else:
+    |
+
+simlane/iracing/auto_create.py:363:89: E501 Line too long (106 > 88)
+    |
+361 |         else:
+362 |             logger.error(
+363 |                 f"Missing year/quarter info to fetch season. year={season_year}, quarter={season_quarter}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+364 |             )
+    |
+
+simlane/iracing/auto_create.py:367:89: E501 Line too long (104 > 88)
+    |
+366 |     if not season_id:
+367 |         msg = f"No season_id found or fetched for series_id={series_id} in results_data: {results_data}"
+    |                                                                                         ^^^^^^^^^^^^^^^^ E501
+368 |         logger.error(msg)
+369 |         raise ValueError(msg)
+    |
+
+simlane/iracing/auto_create.py:604:89: E501 Line too long (90 > 88)
+    |
+602 |                 # 5. Process all drivers/teams in the results
+603 |                 logger.info(
+604 |                     f"Calling process_results_participants for subsession {subsession_id}"
+    |                                                                                         ^^ E501
+605 |                 )
+606 |                 driver_counts = process_results_participants(
+    |
+
+simlane/iracing/iracing_api_client.py:25:89: E501 Line too long (103 > 88)
+   |
+23 |         """
+24 |         Returns an IRacingAPIClient with a persistent session for the system account.
+25 |         Restores session cookies from cache if available and valid, otherwise authenticates and caches.
+   |                                                                                         ^^^^^^^^^^^^^^^ E501
+26 |         """
+27 |         if not settings.IRACING_USERNAME or not settings.IRACING_PASSWORD:
+   |
+
+simlane/iracing/management/commands/fetch_iracing_events.py:120:89: E501 Line too long (102 > 88)
+    |
+118 |                     race_guide_data = iracing_service.get_season_race_guide()
+119 |                     self.stdout.write(
+120 |                         f"Fetched race guide with {len(race_guide_data.get('sessions', []))} sessions"
+    |                                                                                         ^^^^^^^^^^^^^^ E501
+121 |                     )
+    |
+
+simlane/iracing/management/commands/test_fetch_results.py:71:89: E501 Line too long (108 > 88)
+   |
+69 |                 self.stdout.write(f"Response type: {type(results)}")
+70 |                 self.stdout.write(
+71 |                     f"Top-level keys: {list(results.keys()) if isinstance(results, dict) else 'Not a dict'}"
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+72 |                 )
+   |
+
+simlane/iracing/management/commands/test_fetch_results.py:80:89: E501 Line too long (129 > 88)
+   |
+78 |                             if value and len(value) > 0:
+79 |                                 self.stdout.write(
+80 |                                     f"  First item keys: {list(value[0].keys()) if isinstance(value[0], dict) else 'Not a dict'}"
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+81 |                                 )
+82 |                         elif isinstance(value, dict):
+   |
+
+simlane/iracing/management/commands/test_fetch_user_races.py:8:89: E501 Line too long (103 > 88)
+   |
+ 7 | class Command(BaseCommand):
+ 8 |     help = "Test fetching recent races for the logged-in iRacing user and creating all relevant models"
+   |                                                                                         ^^^^^^^^^^^^^^^ E501
+ 9 |
+10 |     def add_arguments(self, parser):
+   |
+
+simlane/iracing/management/commands/test_fetch_user_races.py:27:89: E501 Line too long (89 > 88)
+   |
+25 |             self.stdout.write(self.style.ERROR("iRacing API service is not available!"))
+26 |             self.stdout.write(
+27 |                 "Please ensure IRACING_EMAIL and IRACING_PASSWORD are set in environment"
+   |                                                                                         ^ E501
+28 |             )
+29 |             return
+   |
+
+simlane/iracing/management/commands/test_fetch_user_races.py:80:89: E501 Line too long (99 > 88)
+   |
+78 |                 self.stdout.write(
+79 |                     self.style.WARNING(
+80 |                         f"Processed {processed_races} races, but encountered {len(errors)} errors."
+   |                                                                                         ^^^^^^^^^^^ E501
+81 |                     )
+82 |                 )
+   |
+
+simlane/iracing/management/commands/test_fetch_user_races.py:127:89: E501 Line too long (91 > 88)
+    |
+125 |                     self.stdout.write(
+126 |                         f"   • {time_slot.event.name}\n"
+127 |                         f"     Start: {time_slot.start_time.strftime('%Y-%m-%d %H:%M')} | "
+    |                                                                                         ^^^ E501
+128 |                         f"     Subsession: {time_slot.external_subsession_id}",
+129 |                     )
+    |
+
+simlane/iracing/management/commands/test_fetch_user_races.py:142:89: E501 Line too long (95 > 88)
+    |
+140 |                     self.stdout.write(
+141 |                         f"   • {series.name} (ID: {series.external_series_id})\n"
+142 |                         f"     Seasons: {season_count} | Category: {series.category or 'N/A'}",
+    |                                                                                         ^^^^^^^ E501
+143 |                     )
+    |
+
+simlane/iracing/management/commands/test_fetch_user_races.py:160:89: E501 Line too long (104 > 88)
+    |
+158 |                         f"   • {event.series.name} - Round {event.round_number}\n"
+159 |                         f"     Track: {event.sim_layout} | "
+160 |                         f"     Weather: {'Cached' if event.weather_forecast_data else 'URL Available'}",
+    |                                                                                         ^^^^^^^^^^^^^^^^ E501
+161 |                     )
+    |
+
+simlane/iracing/services.py:315:89: E501 Line too long (92 > 88)
+    |
+313 |         Args:
+314 |             start_from: ISO-8601 offset format timestamp. Defaults to current time.
+315 |             include_end_after_from: Include sessions that start before 'from' but end after.
+    |                                                                                         ^^^^ E501
+316 |
+317 |         Returns:
+    |
+
+simlane/iracing/services.py:345:89: E501 Line too long (97 > 88)
+    |
+344 |         Args:
+345 |             event_types: List of event type IDs (2: Practice, 3: Qualify, 4: Time Trial, 5: Race)
+    |                                                                                         ^^^^^^^^^ E501
+346 |
+347 |         Returns:
+    |
+
+simlane/iracing/services.py:373:89: E501 Line too long (101 > 88)
+    |
+372 |         Args:
+373 |             series_ids: List of series IDs to filter (optional) - Note: filtering happens client-side
+    |                                                                                         ^^^^^^^^^^^^^ E501
+374 |             include_series: Whether to include detailed series data (schedules, tracks, etc.)
+    |
+
+simlane/iracing/services.py:374:89: E501 Line too long (93 > 88)
+    |
+372 |         Args:
+373 |             series_ids: List of series IDs to filter (optional) - Note: filtering happens client-side
+374 |             include_series: Whether to include detailed series data (schedules, tracks, etc.)
+    |                                                                                         ^^^^^ E501
+375 |
+376 |         Returns:
+    |
+
+simlane/iracing/services.py:383:89: E501 Line too long (89 > 88)
+    |
+381 |             raise IRacingServiceError(msg)
+382 |         try:
+383 |             # The iRacing API series_seasons method only accepts include_series parameter
+    |                                                                                         ^ E501
+384 |             data = self.client.series_seasons(include_series=include_series)
+    |
+
+simlane/iracing/services.py:540:89: E501 Line too long (93 > 88)
+    |
+538 |     ) -> dict[str, Any] | None:
+539 |         """
+540 |         Fetch a season for a given series_id, year, and quarter using the series_seasons API.
+    |                                                                                         ^^^^^ E501
+541 |         Returns the season dict if found, else None.
+542 |         """
+    |
+
+simlane/iracing/tasks.py:850:89: E501 Line too long (91 > 88)
+    |
+848 |                 # These are often generic/summary events anyway
+849 |                 logger.debug(
+850 |                     "Skipping race guide session %s - no resolvable track layout for '%s'",
+    |                                                                                         ^^^ E501
+851 |                     session_id, track_name
+852 |                 )
+    |
+
+simlane/iracing/tasks.py:915:89: E501 Line too long (97 > 88)
+    |
+914 |         except Exception as e:
+915 |             error_msg = f"Error processing session {session.get('session_id', 'unknown')}: {e!s}"
+    |                                                                                         ^^^^^^^^^ E501
+916 |             logger.exception(error_msg)
+917 |             errors.append(error_msg)
+    |
+
+simlane/iracing/tasks.py:985:89: E501 Line too long (92 > 88)
+    |
+983 |             if not series_name and season_name:
+984 |                 series_name = season_name
+985 |                 # Common patterns to clean up: " - 2025 Season", " - Fixed", " - Open", etc.
+    |                                                                                         ^^^^ E501
+986 |                 import re
+    |
+
+simlane/iracing/tasks.py:1027:89: E501 Line too long (93 > 88)
+     |
+1025 |                     # Skip events without track/layout info in this case
+1026 |                     logger.warning(
+1027 |                         "No schedules found for series %s, skipping detailed event creation",
+     |                                                                                         ^^^^^ E501
+1028 |                         series_name,
+1029 |                     )
+     |
+
+simlane/iracing/tasks.py:1048:89: E501 Line too long (99 > 88)
+     |
+1046 |                     # Find the corresponding SimLayout
+1047 |                     try:
+1048 |                         # Direct lookup by layout_code which contains the track_id from iRacing API
+     |                                                                                         ^^^^^^^^^^^ E501
+1049 |                         sim_layout = SimLayout.objects.select_related("sim_track").get(
+1050 |                             layout_code=str(track_id),
+     |
+
+simlane/iracing/tasks.py:1081:89: E501 Line too long (95 > 88)
+     |
+1079 | …                     sim_layout = sim_layouts.first()
+1080 | …                     logger.warning(
+1081 | …                         "Could not find exact layout match for %s at %s, using %s",
+     |                                                                               ^^^^^^^ E501
+1082 | …                         config_name, track_name, sim_layout.name
+1083 | …                     )
+     |
+
+simlane/iracing/tasks.py:1086:89: E501 Line too long (147 > 88)
+     |
+1085 | …
+1086 | … not found for track {track_name} (ID: {track_id}). Track data may need to be synced first."
+     |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+1087 | …g)
+1088 | …)
+     |
+
+simlane/iracing/tasks.py:1092:89: E501 Line too long (113 > 88)
+     |
+1091 |                         except Exception as e:
+1092 |                             error_msg = f"Error finding SimLayout for track {track_name} (ID: {track_id}): {e!s}"
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+1093 |                             logger.warning(error_msg)
+1094 |                             errors.append(error_msg)
+     |
+
+simlane/iracing/tasks.py:1113:89: E501 Line too long (108 > 88)
+     |
+1112 |                     # Create unique identifier for this specific event round
+1113 |                     unique_key = f"{series_id}_{season_data.get('season_id', '')}_{round_number}_{track_id}"
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^ E501
+1114 |
+1115 |                     # Get start and end dates for the event round
+     |
+
+simlane/iracing/tasks.py:1160:89: E501 Line too long (119 > 88)
+     |
+1158 |                         "event_date": event_date,
+1159 |                         "status": EventStatus.SCHEDULED,
+1160 |                         "description": f"iRacing {series_name} - Round {round_number} at {track_name} ({config_name})",
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+1161 |                         "entry_requirements": schedule_metadata,
+1162 |                         "max_entries": schedule.get("max_entries"),
+     |
+
+simlane/iracing/tasks.py:1212:89: E501 Line too long (91 > 88)
+     |
+1210 | …                     # Determine class name
+1211 | …                     if len(car_class_ids) == 1:
+1212 | …                         # Single class - use car class name or "Main Class"
+     |                                                                           ^^^ E501
+1213 | …                         class_name = (
+1214 | …                             car_class.name
+     |
+
+simlane/iracing/tasks.py:1232:89: E501 Line too long (102 > 88)
+     |
+1230 | …                     defaults={
+1231 | …                         "name": class_name,
+1232 | …                         "class_order": i,  # 0=fastest, 1=second fastest, etc.
+     |                                                                   ^^^^^^^^^^^^^^ E501
+1233 | …                         "inherit_series_restrictions": True,
+1234 | …                     },
+     |
+
+simlane/iracing/tasks.py:1240:89: E501 Line too long (96 > 88)
+     |
+1238 | …                     if ec_created:
+1239 | …                         logger.debug(
+1240 | …                             f"Created EventClass: {class_name} for {event_name}"
+     |                                                                           ^^^^^^^^ E501
+1241 | …                         )
+1242 | …                     else:
+     |
+
+simlane/iracing/tasks.py:1248:89: E501 Line too long (96 > 88)
+     |
+1246 | …                     event_class.save()
+1247 | …                     logger.debug(
+1248 | …                         f"Updated EventClass: {class_name} for {event_name}"
+     |                                                                       ^^^^^^^^ E501
+1249 | …                     )
+     |
+
+simlane/iracing/tasks.py:1253:89: E501 Line too long (93 > 88)
+     |
+1251 | …                     except CarClass.DoesNotExist:
+1252 | …                         logger.warning(
+1253 | …                             "CarClass with sim_api_id %s not found for event %s",
+     |                                                                               ^^^^^ E501
+1254 | …                             class_id, event_name
+1255 | …                         )
+     |
+
+simlane/iracing/tasks.py:1258:89: E501 Line too long (91 > 88)
+     |
+1256 |                                     continue
+1257 |                         else:
+1258 |                             logger.debug("No car class IDs found for event %s", event_name)
+     |                                                                                         ^^^ E501
+1259 |
+1260 |                     except Exception as e:
+     |
+
+simlane/iracing/tasks.py:1262:89: E501 Line too long (90 > 88)
+     |
+1260 |                     except Exception as e:
+1261 |                         logger.error(
+1262 |                             f"Error creating EventClass instances for {event_name}: {e!s}"
+     |                                                                                         ^^ E501
+1263 |                         )
+     |
+
+simlane/iracing/tasks.py:1374:89: E501 Line too long (99 > 88)
+     |
+1373 |         except Exception as e:
+1374 |             error_msg = f"Error processing series {season_data.get('series_id', 'unknown')}: {e!s}"
+     |                                                                                         ^^^^^^^^^^^ E501
+1375 |             logger.exception(error_msg)
+1376 |             errors.append(error_msg)
+     |
+
+simlane/iracing/tasks.py:1384:89: E501 Line too long (98 > 88)
+     |
+1382 | def sync_iracing_owned_content(sim_profile_id):
+1383 |     """
+1384 |     Fetch owned cars and tracks for a SimProfile from the iRacing API and update ownership tables.
+     |                                                                                         ^^^^^^^^^^ E501
+1385 |     Sends a websocket event to the user group when done.
+1386 |     """
+     |
+
+simlane/iracing/tasks.py:1391:89: E501 Line too long (219 > 88)
+     |
+1389 | …
+1390 | …
+1391 | …e={member_info.get('display_name')}, car_packages={member_info.get('car_packages')}, track_packages={member_info.get('track_packages')}"
+     |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+1392 | …
+1393 | …
+     |
+
+simlane/iracing/tasks.py:1431:89: E501 Line too long (118 > 88)
+     |
+1429 |             SimProfileTrackOwnership.objects.bulk_create(track_ownerships)
+1430 |         logger.info(
+1431 |             f"[SYNC] Car ownerships created: {len(car_ownerships)}; Track ownerships created: {len(track_ownerships)}"
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+1432 |         )
+1433 |         # Notify user via websocket
+     |
+
+simlane/iracing/tasks.py:1657:89: E501 Line too long (106 > 88)
+     |
+1656 |             except Exception as e:
+1657 |                 error_msg = f"Error processing result for subsession {result.get('subsession_id')}: {e!s}"
+     |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+1658 |                 logger.error(error_msg)
+1659 |                 errors.append(error_msg)
+     |
+
+simlane/iracing/tasks.py:1721:89: E501 Line too long (118 > 88)
+     |
+1719 |             queued_count += 1
+1720 |             logger.info(
+1721 |                 f"Queued result fetching for TimeSlot {time_slot.id} (subsession: {time_slot.external_subsession_id})"
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+1722 |             )
+     |
+
+simlane/iracing/tasks.py:1812:89: E501 Line too long (90 > 88)
+     |
+1810 | def process_event_results(time_slot, results_data, simulator):
+1811 |     """
+1812 |     Process results data for an EventInstance (legacy, now handled in fetch_results_task).
+     |                                                                                         ^^ E501
+1813 |     """
+1814 |     logger.info(f"Processing results for TimeSlot {time_slot.id} (legacy stub)")
+     |
+
+simlane/iracing/tasks.py:1830:89: E501 Line too long (96 > 88)
+     |
+1828 |     "schedule": 300.0,  # 5 minutes in seconds
+1829 |     "enabled": True,
+1830 |     "description": "Periodically check for completed events and queue them for result fetching",
+     |                                                                                         ^^^^^^^^ E501
+1831 | }
+     |
+
+simlane/sim/management/commands/load_car_classes.py:44:89: E501 Line too long (92 > 88)
+   |
+42 |             self.stdout.write(
+43 |                 self.style.ERROR(
+44 |                     f"Simulator '{options['simulator']}' not found. Please create it first."
+   |                                                                                         ^^^^ E501
+45 |                 ),
+46 |             )
+   |
+
+simlane/sim/management/commands/load_car_classes.py:142:89: E501 Line too long (106 > 88)
+    |
+140 |                 self.stdout.write(
+141 |                     self.style.ERROR(
+142 |                         f"Error processing car class {car_class_data.get('car_class_id', 'unknown')}: {e}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^ E501
+143 |                     ),
+144 |                 )
+    |
+
+simlane/sim/management/commands/load_iracing_data.py:63:89: E501 Line too long (92 > 88)
+   |
+61 |             self.stdout.write(
+62 |                 self.style.ERROR(
+63 |                     f"Simulator '{options['simulator']}' not found. Please create it first."
+   |                                                                                         ^^^^ E501
+64 |                 ),
+65 |             )
+   |
+
+simlane/sim/management/commands/load_iracing_data.py:183:89: E501 Line too long (92 > 88)
+    |
+181 |                             continue
+182 |
+183 |                         # Normalize similar types (e.g., f1/formula1/formulaone -> formula1)
+    |                                                                                         ^^^^ E501
+184 |                         if type_name in ["f1", "formulaone"]:
+185 |                             type_name = "formula1"
+    |
+
+simlane/sim/management/commands/load_iracing_data.py:346:89: E501 Line too long (97 > 88)
+    |
+344 |                     created_sim_cars += 1
+345 |
+346 |                 # If this car is active, mark all other cars with the same package_id as inactive
+    |                                                                                         ^^^^^^^^^ E501
+347 |                 if is_active:
+348 |                     SimCar.objects.filter(
+    |
+
+simlane/sim/management/commands/load_iracing_data.py:386:89: E501 Line too long (91 > 88)
+    |
+384 |         updated_sim_layouts = 0
+385 |
+386 |         # Group tracks by track_name since each API entry is actually a track configuration
+    |                                                                                         ^^^ E501
+387 |         tracks_by_name = {}
+388 |         for track in tracks:
+    |
+
+simlane/sim/management/commands/load_iracing_data.py:562:89: E501 Line too long (99 > 88)
+    |
+560 |         self.stdout.write(
+561 |             self.style.SUCCESS(
+562 |                 f"Tracks: Created {created_track_models} models, {created_sim_tracks} sim tracks, "
+    |                                                                                         ^^^^^^^^^^^ E501
+563 |                 f"{created_sim_layouts} layouts. Updated {updated_track_models} models, "
+564 |                 f"{updated_sim_tracks} sim tracks, {updated_sim_layouts} layouts.",
+    |
+
+simlane/sim/management/commands/load_iracing_data.py:563:89: E501 Line too long (89 > 88)
+    |
+561 |             self.style.SUCCESS(
+562 |                 f"Tracks: Created {created_track_models} models, {created_sim_tracks} sim tracks, "
+563 |                 f"{created_sim_layouts} layouts. Updated {updated_track_models} models, "
+    |                                                                                         ^ E501
+564 |                 f"{updated_sim_tracks} sim tracks, {updated_sim_layouts} layouts.",
+565 |             ),
+    |
+
+simlane/sim/management/commands/load_iracing_data.py:630:89: E501 Line too long (95 > 88)
+    |
+629 |     def _parse_location_country(self, location: str) -> str:
+630 |         """Parse country from location string (e.g., 'Lakeville, Connecticut, USA' -> 'USA')"""
+    |                                                                                         ^^^^^^^ E501
+631 |         if not location:
+632 |             return ""
+    |
+
+simlane/sim/management/commands/load_iracing_data.py:709:89: E501 Line too long (89 > 88)
+    |
+707 |     ) -> ContentFile | None:
+708 |         """
+709 |         Download an image from iRacing and return a ContentFile for saving to ImageField.
+    |                                                                                         ^ E501
+710 |
+711 |         Args:
+    |
+
+simlane/sim/management/commands/load_iracing_data.py:727:89: E501 Line too long (95 > 88)
+    |
+725 |                 full_url = f"https://images-static.iracing.com{image_url}"
+726 |             elif not image_url.startswith("http"):
+727 |                 # Handle filenames like "skipbarberformula2000-small.jpg" using provided folder
+    |                                                                                         ^^^^^^^ E501
+728 |                 if folder:
+729 |                     full_url = f"https://images-static.iracing.com{folder}/{image_url}"
+    |
+
+simlane/sim/models.py:326:89: E501 Line too long (90 > 88)
+    |
+324 |         blank=True,
+325 |         default=list,
+326 |         help_text="Array of car sim_api_ids in this class (from cars_in_class API field)",
+    |                                                                                         ^^ E501
+327 |     )
+    |
+
+simlane/sim/models.py:652:89: E501 Line too long (111 > 88)
+    |
+651 |     def __str__(self):
+652 |         return f"{self.simulator.name}: {self.display_name or self.car_model.full_name or self.car_model.name}"
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^ E501
+    |
+
+simlane/sim/models.py:978:89: E501 Line too long (105 > 88)
+    |
+976 |         blank=True,
+977 |         default=list,
+978 |         help_text="Array of car class sim_api_ids allowed in this series (from car_class_ids API field)",
+    |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+979 |     )
+    |
+
+simlane/sim/models.py:1213:89: E501 Line too long (99 > 88)
+     |
+1211 |         blank=True,
+1212 |         default=list,
+1213 |         help_text="Array of car class sim_api_ids allowed in this event (overrides series if set)",
+     |                                                                                         ^^^^^^^^^^^ E501
+1214 |     )
+     |
+
+simlane/sim/models.py:1239:89: E501 Line too long (117 > 88)
+     |
+1237 |         null=True,
+1238 |         blank=True,
+1239 |         help_text="race_time_descriptors from API - e.g., {'first_session_time': '00:45:00', 'repeat_minutes': 120}",
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+1240 |     )
+     |
+
+simlane/sim/models.py:1246:89: E501 Line too long (114 > 88)
+     |
+1244 |         null=True,
+1245 |         blank=True,
+1246 |         help_text="Full weather configuration from iRacing API including forecast_options, weather_summary, etc.",
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+1247 |     )
+1248 |     weather_forecast_url = models.URLField(
+     |
+
+simlane/sim/models.py:1617:89: E501 Line too long (94 > 88)
+     |
+1616 |     def get_bop_restrictions(self, round_number=None):
+1617 |         """Get BOP restrictions for a given round_number (replaces legacy race_week logic)."""
+     |                                                                                         ^^^^^^ E501
+1618 |         if round_number is None:
+1619 |             round_number = self.event.round_number
+     |
+
+simlane/sim/models.py:1736:89: E501 Line too long (97 > 88)
+     |
+1734 |     @property
+1735 |     def weather_forecast(self):
+1736 |         """Return cached weather forecast JSON from the event (legacy RaceWeek logic removed)."""
+     |                                                                                         ^^^^^^^^^ E501
+1737 |         return self.event.weather_forecast_data
+     |
+
+simlane/sim/models.py:1866:89: E501 Line too long (101 > 88)
+     |
+1864 |     )
+1865 |     pressure = models.FloatField(
+1866 |         help_text="Atmospheric pressure in hectopascals/hPa (convert from simulator-specific units)",
+     |                                                                                         ^^^^^^^^^^^^^ E501
+1867 |     )
+     |
+
+simlane/sim/models.py:1871:89: E501 Line too long (92 > 88)
+     |
+1869 |     # Wind
+1870 |     wind_speed = models.FloatField(
+1871 |         help_text="Wind speed in meters per second (convert from simulator-specific units)",
+     |                                                                                         ^^^^ E501
+1872 |     )
+1873 |     wind_direction = models.IntegerField(
+     |
+
+simlane/sim/models.py:1882:89: E501 Line too long (90 > 88)
+     |
+1880 |     )
+1881 |     precipitation_amount = models.FloatField(
+1882 |         help_text="Precipitation rate in mm/hour (convert from simulator-specific units)",
+     |                                                                                         ^^ E501
+1883 |     )
+1884 |     allow_precipitation = models.BooleanField(
+     |
+
+simlane/sim/models.py:2197:89: E501 Line too long (99 > 88)
+     |
+2196 |     def __str__(self):
+2197 |         return f"Team Result: {self.team} - {self.event_result} (Position: {self.finish_position})"
+     |                                                                                         ^^^^^^^^^^^ E501
+2198 |
+2199 |     @property
+     |
+
+simlane/sim/models.py:2391:89: E501 Line too long (120 > 88)
+     |
+2389 |     def __str__(self):
+2390 |         if self.team_result:
+2391 |             return f"Participant: {self.sim_profile} - Team: {self.team_result.team} (Position: {self.finish_position})"
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+2392 |         return (
+2393 |             f"Participant: {self.sim_profile} - Solo (Position: {self.finish_position})"
+     |
+
+simlane/sim/models.py:2402:89: E501 Line too long (102 > 88)
+     |
+2400 |         if bool(self.team_result) == bool(self.event_result):
+2401 |             raise ValidationError(
+2402 |                 "Must have either team_result (team event) or event_result (solo event), but not both"
+     |                                                                                         ^^^^^^^^^^^^^^ E501
+2403 |             )
+     |
+
+simlane/sim/utils/image_downloader.py:165:89: E501 Line too long (95 > 88)
+    |
+163 |             except Exception as e:
+164 |                 logger.error(
+165 |                     f"Error saving screenshot {screenshot_name} for {car_model.full_name}: {e}"
+    |                                                                                         ^^^^^^^ E501
+166 |                 )
+167 |                 results["gallery_errors"] += 1
+    |
+
+simlane/sim/utils/image_downloader.py:251:89: E501 Line too long (89 > 88)
+    |
+249 |             results["skipped"] += 1
+250 |             logger.info(
+251 |                 f"Skipped small image for {sim_track.display_name} - file already exists"
+    |                                                                                         ^ E501
+252 |             )
+    |
+
+simlane/sim/utils/image_downloader.py:272:89: E501 Line too long (89 > 88)
+    |
+270 |             results["skipped"] += 1
+271 |             logger.info(
+272 |                 f"Skipped large image for {sim_track.display_name} - file already exists"
+    |                                                                                         ^ E501
+273 |             )
+    |
+
+simlane/sim/views.py:342:89: E501 Line too long (93 > 88)
+    |
+340 |             profile.link_to_user(request.user, verified=False)
+341 |             logger.info(
+342 |                 f"[PROFILE LINK] Linking profile id: {profile.id} for user {request.user.id}"
+    |                                                                                         ^^^^^ E501
+343 |             )
+344 |             # Trigger iRacing owned content sync in the background
+    |
+
+simlane/sim/views.py:348:89: E501 Line too long (97 > 88)
+    |
+346 |             messages.success(
+347 |                 request,
+348 |                 f"Successfully linked {profile.simulator.name} profile: {profile.profile_name}. "
+    |                                                                                         ^^^^^^^^^ E501
+349 |                 "Please verify your ownership to complete the process. Owned content is being synced.",
+350 |             )
+    |
+
+simlane/sim/views.py:349:89: E501 Line too long (103 > 88)
+    |
+347 |                 request,
+348 |                 f"Successfully linked {profile.simulator.name} profile: {profile.profile_name}. "
+349 |                 "Please verify your ownership to complete the process. Owned content is being synced.",
+    |                                                                                         ^^^^^^^^^^^^^^^ E501
+350 |             )
+351 |             return redirect(
+    |
+
+simlane/sim/views.py:621:89: E501 Line too long (89 > 88)
+    |
+620 |     if request.htmx:
+621 |         # Distinguish between initial HTMX load and subsequent filter/pagination requests
+    |                                                                                         ^ E501
+622 |         if request.GET:
+623 |             return render(request, "sim/cars/cars_list_partial.html", context)
+    |
+
+simlane/sim/views.py:723:89: E501 Line too long (105 > 88)
+    |
+721 |         )
+722 |
+723 |     # Prefetch sim_tracks and their simulators in a single query for all tracks on the page, with caching
+    |                                                                                         ^^^^^^^^^^^^^^^^^ E501
+724 |     track_ids = tuple(sorted(t.id for t in page_obj))
+725 |     cache_key = f"tracksimtracks:{'-'.join(str(tid) for tid in track_ids)}"
+    |
+
+simlane/sim/views.py:888:89: E501 Line too long (89 > 88)
+    |
+886 | @login_required
+887 | def refresh_iracing_owned_content(request):
+888 |     """HTMX endpoint to trigger iRacing owned content sync for the user's sim profile."""
+    |                                                                                         ^ E501
+889 |     sim_profile_id = request.POST.get("sim_profile_id")
+890 |     if not sim_profile_id:
+    |
+
+simlane/teams/forms.py:186:89: E501 Line too long (89 > 88)
+    |
+184 |                 "class": "form-input",
+185 |                 "rows": 3,
+186 |                 "placeholder": "Add a personal message to your invitation (optional)...",
+    |                                                                                         ^ E501
+187 |             },
+188 |         ),
+    |
+
+simlane/teams/forms.py:297:89: E501 Line too long (98 > 88)
+    |
+295 |         widgets = {
+296 |             "event": forms.HiddenInput(),  # Changed from Select to HiddenInput
+297 |             "title": forms.HiddenInput(),  # Changed to hidden - we'll generate this automatically
+    |                                                                                         ^^^^^^^^^^ E501
+298 |             "description": forms.Textarea(
+299 |                 attrs={
+    |
+
+simlane/teams/forms.py:302:89: E501 Line too long (97 > 88)
+    |
+300 |                     "class": "form-input",
+301 |                     "rows": 4,
+302 |                     "placeholder": "Provide details about this event signup for club members...",
+    |                                                                                         ^^^^^^^^^ E501
+303 |                 },
+304 |             ),
+    |
+
+simlane/teams/forms.py:359:89: E501 Line too long (96 > 88)
+    |
+357 |                     "class": "form-input",
+358 |                     "rows": 3,
+359 |                     "placeholder": "Internal notes for club admins (not visible to members)...",
+    |                                                                                         ^^^^^^^^ E501
+360 |                 },
+361 |             ),
+    |
+
+simlane/teams/forms.py:441:89: E501 Line too long (104 > 88)
+    |
+439 |                 if earliest_time_slot and signup_closes > earliest_time_slot.start_time:
+440 |                     raise ValidationError(
+441 |                         f"Signups must close before the event starts ({earliest_time_slot.start_time})",
+    |                                                                                         ^^^^^^^^^^^^^^^^ E501
+442 |                     )
+    |
+
+simlane/teams/forms.py:509:89: E501 Line too long (98 > 88)
+    |
+507 |             }
+508 |         ),
+509 |         help_text="Title template for signup sheets. Use {event_name} and {date} as placeholders",
+    |                                                                                         ^^^^^^^^^^ E501
+510 |     )
+    |
+
+simlane/teams/forms.py:813:89: E501 Line too long (96 > 88)
+    |
+813 | # Legacy form classes removed (EventSignupForm, EventSignupAvailabilityForm, TeamAllocationForm)
+    |                                                                                         ^^^^^^^^ E501
+814 | # These depended on removed models: EventSignup, EventSignupAvailability, TeamAllocation, TeamAllocationMember
+815 | # Use EnhancedEventSignupForm for new participation system
+    |
+
+simlane/teams/forms.py:814:89: E501 Line too long (110 > 88)
+    |
+813 | # Legacy form classes removed (EventSignupForm, EventSignupAvailabilityForm, TeamAllocationForm)
+814 | # These depended on removed models: EventSignup, EventSignupAvailability, TeamAllocation, TeamAllocationMember
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^ E501
+815 | # Use EnhancedEventSignupForm for new participation system
+    |
+
+simlane/teams/management/commands/create_test_participation.py:367:89: E501 Line too long (103 > 88)
+    |
+365 |         )
+366 |         self.stdout.write(
+367 |             f"Coverage: {covered_hours}/{total_hours} hours ({covered_hours / total_hours * 100:.0f}%)"
+    |                                                                                         ^^^^^^^^^^^^^^^ E501
+368 |         )
+    |
+
+simlane/teams/models.py:192:89: E501 Line too long (98 > 88)
+    |
+190 |         blank=True,
+191 |         null=True,
+192 |         help_text="Team ID from simulator (e.g., iRacing team ID). If present, team is imported.",
+    |                                                                                         ^^^^^^^^^^ E501
+193 |     )
+194 |     source_simulator = models.ForeignKey(
+    |
+
+simlane/teams/models.py:544:89: E501 Line too long (91 > 88)
+    |
+542 |         blank=True,
+543 |         related_name="event_signups",
+544 |         help_text="Which club this signup is associated with (for club-organized signups)",
+    |                                                                                         ^^^ E501
+545 |     )
+    |
+
+simlane/teams/models.py:676:89: E501 Line too long (92 > 88)
+    |
+674 |     )
+675 |
+676 |     # Legacy team allocation field removed - using direct team assignment in enhanced system
+    |                                                                                         ^^^^ E501
+677 |
+678 |     # For individual team formation
+    |
+
+simlane/teams/models.py:684:89: E501 Line too long (89 > 88)
+    |
+682 |         null=True,
+683 |         blank=True,
+684 |         help_text="Invitation that led to this signup (for individual-organized events)",
+    |                                                                                         ^ E501
+685 |     )
+    |
+
+simlane/teams/models.py:931:89: E501 Line too long (91 > 88)
+    |
+929 |                 raise ValidationError(
+930 |                     {
+931 |                         "__all__": "Availability window must be at least 15 minutes long.",
+    |                                                                                         ^^^ E501
+932 |                     }
+933 |                 )
+    |
+
+simlane/teams/models.py:940:89: E501 Line too long (100 > 88)
+    |
+938 |                 raise ValidationError(
+939 |                     {
+940 |                         "__all__": "Availability window duration must be a multiple of 15 minutes.",
+    |                                                                                         ^^^^^^^^^^^^ E501
+941 |                     }
+942 |                 )
+    |
+
+simlane/teams/models.py:953:89: E501 Line too long (123 > 88)
+    |
+951 |                     raise ValidationError(
+952 |                         {
+953 |                             "start_time": f"Availability window cannot start before event start time ({event.start_time})",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+954 |                         }
+955 |                     )
+    |
+
+simlane/teams/models.py:961:89: E501 Line too long (114 > 88)
+    |
+959 |                     raise ValidationError(
+960 |                         {
+961 |                             "end_time": f"Availability window cannot end after event end time ({event.end_time})",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+962 |                         }
+963 |                     )
+    |
+
+simlane/teams/models.py:978:89: E501 Line too long (96 > 88)
+    |
+976 |                     raise ValidationError(
+977 |                         {
+978 |                             "__all__": f"This availability window overlaps with another window "
+    |                                                                                         ^^^^^^^^ E501
+979 |                             f"({overlapping.start_time} to {overlapping.end_time}). "
+980 |                             f"Windows for the same participant cannot overlap.",
+    |
+
+simlane/teams/models.py:1521:89: E501 Line too long (96 > 88)
+     |
+1520 |     def __str__(self):
+1521 |         return f"Stint {self.stint_number} - {self.driver.username} ({self.strategy.team.name})"
+     |                                                                                         ^^^^^^^^ E501
+1522 |
+1523 |     def get_planned_end_time(self):
+     |
+
+simlane/teams/models.py:1616:89: E501 Line too long (109 > 88)
+     |
+1615 |     def __str__(self):
+1616 |         return f"Invitation from {self.organizer_user.username} to {self.invitee_email} for {self.team_name}"
+     |                                                                                         ^^^^^^^^^^^^^^^^^^^^^ E501
+1617 |
+1618 |     @staticmethod
+     |
+
+simlane/teams/models.py:1785:89: E501 Line too long (91 > 88)
+     |
+1783 |     title = models.CharField(
+1784 |         max_length=255,
+1785 |         help_text="Club-specific title for this signup (e.g., 'Team Endurance - Le Mans')",
+     |                                                                                         ^^^ E501
+1786 |     )
+1787 |     description = models.TextField(
+     |
+
+simlane/teams/services.py:486:89: E501 Line too long (102 > 88)
+    |
+484 |                     club=club,
+485 |                     is_temporary=not bool(club),
+486 |                     description=f"Auto-generated team with {rec['compatibility_score']:.1f}h overlap",
+    |                                                                                         ^^^^^^^^^^^^^^ E501
+487 |                 )
+    |
+
+simlane/teams/services.py:691:89: E501 Line too long (96 > 88)
+    |
+690 | # ===== LEGACY SERVICE COMPATIBILITY LAYER =====
+691 | # These services provide compatibility with existing views while transitioning to the new system
+    |                                                                                         ^^^^^^^^ E501
+    |
+
+simlane/teams/tests/test_models.py:21:89: E501 Line too long (104 > 88)
+   |
+19 | from simlane.teams.models import Team
+20 |
+21 | # Removed imports: EventSignup, StintAssignment, TeamAllocation, TeamAllocationMember, TeamEventStrategy
+   |                                                                                         ^^^^^^^^^^^^^^^^ E501
+22 | # These models have been removed in favor of enhanced participation system
+23 | from simlane.users.models import User
+   |
+
+simlane/teams/tests/test_models.py:152:89: E501 Line too long (98 > 88)
+    |
+152 | # Legacy model tests removed - EventSignup, TeamAllocation, StintAssignment models no longer exist
+    |                                                                                         ^^^^^^^^^^ E501
+153 | # Tests for enhanced participation system (EventParticipation, AvailabilityWindow) should be added here
+    |
+
+simlane/teams/tests/test_models.py:153:89: E501 Line too long (103 > 88)
+    |
+152 | # Legacy model tests removed - EventSignup, TeamAllocation, StintAssignment models no longer exist
+153 | # Tests for enhanced participation system (EventParticipation, AvailabilityWindow) should be added here
+    |                                                                                         ^^^^^^^^^^^^^^^ E501
+    |
+
+simlane/teams/urls.py:71:89: E501 Line too long (102 > 88)
+   |
+69 |     # These will be implemented as we build out the functionality
+70 |     # Event Organization (using Event.organizing_club)
+71 |     # path("<slug:club_slug>/organize-event/", views.club_organize_event, name="club_organize_event"),
+   |                                                                                         ^^^^^^^^^^^^^^ E501
+72 |     # path("<slug:club_slug>/events/", views.club_events_list, name="club_events_list"),
+73 |     # Team Management within Clubs
+   |
+
+simlane/teams/urls.py:75:89: E501 Line too long (94 > 88)
+   |
+73 |     # Team Management within Clubs
+74 |     # path("<slug:club_slug>/teams/", views.club_teams_list, name="club_teams_list"),
+75 |     # path("<slug:club_slug>/teams/create/", views.club_team_create, name="club_team_create"),
+   |                                                                                         ^^^^^^ E501
+76 |     # path("<slug:club_slug>/teams/<slug:team_slug>/", views.club_team_detail, name="club_team_detail"),
+77 |     # Race Planning & Strategy (direct Event integration)
+   |
+
+simlane/teams/urls.py:76:89: E501 Line too long (104 > 88)
+   |
+74 |     # path("<slug:club_slug>/teams/", views.club_teams_list, name="club_teams_list"),
+75 |     # path("<slug:club_slug>/teams/create/", views.club_team_create, name="club_team_create"),
+76 |     # path("<slug:club_slug>/teams/<slug:team_slug>/", views.club_team_detail, name="club_team_detail"),
+   |                                                                                         ^^^^^^^^^^^^^^^^ E501
+77 |     # Race Planning & Strategy (direct Event integration)
+78 |     # path("events/<uuid:event_id>/plan/", views.event_race_plan, name="event_race_plan"),
+   |
+
+simlane/teams/urls.py:78:89: E501 Line too long (90 > 88)
+   |
+76 |     # path("<slug:club_slug>/teams/<slug:team_slug>/", views.club_team_detail, name="club_team_detail"),
+77 |     # Race Planning & Strategy (direct Event integration)
+78 |     # path("events/<uuid:event_id>/plan/", views.event_race_plan, name="event_race_plan"),
+   |                                                                                         ^^ E501
+79 |     # path("events/<uuid:event_id>/signup/", views.event_signup, name="event_signup"),
+80 |     # path("events/<uuid:event_id>/teams/", views.event_team_formation, name="event_team_formation"),
+   |
+
+simlane/teams/urls.py:80:89: E501 Line too long (101 > 88)
+   |
+78 |     # path("events/<uuid:event_id>/plan/", views.event_race_plan, name="event_race_plan"),
+79 |     # path("events/<uuid:event_id>/signup/", views.event_signup, name="event_signup"),
+80 |     # path("events/<uuid:event_id>/teams/", views.event_team_formation, name="event_team_formation"),
+   |                                                                                         ^^^^^^^^^^^^^ E501
+81 | ]
+   |
+
+simlane/teams/utils.py:71:89: E501 Line too long (121 > 88)
+   |
+70 | # Legacy utility functions removed - these depended on EventSignup model
+71 | # Functions: balance_teams_by_skill, optimize_car_distribution, calculate_availability_overlap, suggest_team_compositions
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+72 | # These will need to be rewritten to use EventParticipation model
+   |
+
+simlane/teams/utils.py:766:89: E501 Line too long (91 > 88)
+    |
+764 |     def balanced_team_formation(event, team_size: int = 3) -> list[dict[str, Any]]:
+765 |         """
+766 |         Create balanced teams considering both availability and skill/experience diversity.
+    |                                                                                         ^^^ E501
+767 |         """
+768 |         participants = EventParticipation.objects.filter(
+    |
+
+simlane/teams/utils.py:828:89: E501 Line too long (91 > 88)
+    |
+826 |                 ) / max(len(team_overlaps), 1)
+827 |
+828 |                 # Combined score (lower variance = better balance, higher overlap = better)
+    |                                                                                         ^^^ E501
+829 |                 balance_score = avg_overlap / max(
+830 |                     exp_variance, 0.1
+    |
+
+simlane/teams/views.py:469:89: E501 Line too long (118 > 88)
+    |
+467 |                 request,
+468 |                 f"Signup sheet '{signup_sheet.title}' created successfully! "
+469 |                 f"{'It is now open for signups.' if signup_sheet.is_open else 'It will open at the scheduled time.'}",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+470 |             )
+471 |             return redirect(
+    |
+
+simlane/teams/views.py:541:88: E501 Line too long (129 > 88)
+    |
+539 |                 messages.info(
+540 |                     request,
+541 |                     f"📝 {sheet.title} - {'Open now' if sheet.is_open else 'Opens ' + sheet.signup_opens.strftime('%b %d, %Y')}",
+    |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ E501
+542 |                 )
+    |
+
+Found 146 errors.

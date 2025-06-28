@@ -1,163 +1,160 @@
 <!-- HTMX Partial: Team Suggestions -->
 <div id="team-suggestions-content" class="space-y-4">
-    {% if suggestions %}
-        {% for suggestion in suggestions %}
-            <div class="border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
-                 x-data="{ selected: false }" 
-                 :class="selected && 'border-blue-500 bg-blue-50'">
-                
-                <!-- Team Header -->
-                <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-3">
-                            <input type="checkbox" 
-                                   x-model="selected"
-                                   class="h-4 w-4 text-blue-600 rounded border-gray-300">
-                            <h4 class="font-medium text-gray-900">
-                                Team {{ forloop.counter|add:64|chr }}
-                            </h4>
-                            <span class="text-sm text-gray-500">
-                                ({{ suggestion.members|length }} members)
-                            </span>
-                        </div>
-                        
-                        <!-- Metrics -->
-                        <div class="flex items-center space-x-4 text-sm">
-                            <div class="flex items-center space-x-1">
-                                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span class="text-gray-700">{{ suggestion.total_overlap_hours|floatformat:1 }}h overlap</span>
-                            </div>
-                            <div class="flex items-center space-x-1">
-                                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span class="text-gray-700">{{ suggestion.balance_score|floatformat:0 }}% balanced</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Team Members -->
-                <div class="p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                        {% for member in suggestion.members %}
-                            <div class="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
-                                <div class="flex-shrink-0">
-                                    <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                                        <span class="text-xs font-medium text-white">
-                                            {{ member.first_name|slice:":1" }}{{ member.last_name|slice:":1" }}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium text-gray-900 truncate">
-                                        {{ member.first_name }} {{ member.last_name }}
-                                    </p>
-                                    <p class="text-xs text-gray-500">
-                                        {{ member.username }}
-                                    </p>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    
-                    <!-- Team Details -->
-                    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                            <dt class="text-gray-500">Recommended Car</dt>
-                            <dd class="font-medium text-gray-900">{{ suggestion.recommended_car|default:"Any" }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Avg Experience</dt>
-                            <dd class="font-medium text-gray-900">
-                                {% if suggestion.average_experience <= 1.5 %}Beginner
-                                {% elif suggestion.average_experience <= 2.5 %}Intermediate
-                                {% elif suggestion.average_experience <= 3.5 %}Advanced
-                                {% else %}Professional{% endif %}
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Total Availability</dt>
-                            <dd class="font-medium text-gray-900">{{ suggestion.total_availability_hours|floatformat:0 }}h</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Compatibility</dt>
-                            <dd class="font-medium text-gray-900">{{ suggestion.compatibility_score|floatformat:1 }}</dd>
-                        </div>
-                    </div>
-                    
-                    <!-- Car Preferences -->
-                    {% if suggestion.car_preferences %}
-                    <div class="mt-3 pt-3 border-t border-gray-100">
-                        <h5 class="text-xs font-medium text-gray-500 mb-2">Car Preferences</h5>
-                        <div class="flex flex-wrap gap-2">
-                            {% for car, count in suggestion.car_preferences.items %}
-                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                    {{ car }} ({{ count }})
-                                </span>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
+  {% if suggestions %}
+    {% for suggestion in suggestions %}
+      <div class="border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
+           x-data="{ selected: false }"
+           :class="selected && 'border-blue-500 bg-blue-50'">
+        <!-- Team Header -->
+        <div class="px-4 py-3 border-b border-gray-200 bg-gray-50 rounded-t-lg">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <input type="checkbox"
+                     x-model="selected"
+                     class="h-4 w-4 text-blue-600 rounded border-gray-300" />
+              <h4 class="font-medium text-gray-900">Team {{ forloop.counter|add:64|chr }}</h4>
+              <span class="text-sm text-gray-500">({{ suggestion.members|length }} members)</span>
             </div>
-        {% endfor %}
-        
-        <!-- Actions -->
-        <div class="mt-6 flex justify-end space-x-3">
-            <button type="button"
-                    class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    onclick="regenerateSuggestions()">
-                Regenerate Suggestions
-            </button>
-            <button type="button"
-                    class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    onclick="createSelectedTeams()">
-                Create Selected Teams
-            </button>
+            <!-- Metrics -->
+            <div class="flex items-center space-x-4 text-sm">
+              <div class="flex items-center space-x-1">
+                <svg class="w-4 h-4 text-green-500"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-gray-700">{{ suggestion.total_overlap_hours|floatformat:1 }}h overlap</span>
+              </div>
+              <div class="flex items-center space-x-1">
+                <svg class="w-4 h-4 text-blue-500"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-gray-700">{{ suggestion.balance_score|floatformat:0 }}% balanced</span>
+              </div>
+            </div>
+          </div>
         </div>
-        
-    {% else %}
-        <!-- No Suggestions -->
-        <div class="text-center py-12">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                      d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900">No Team Suggestions</h3>
-            <p class="mt-1 text-sm text-gray-500">
-                Click "Generate Teams" to create team suggestions based on availability overlap.
-            </p>
+        <!-- Team Members -->
+        <div class="p-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {% for member in suggestion.members %}
+              <div class="flex items-center space-x-3 p-2 rounded-lg bg-gray-50">
+                <div class="flex-shrink-0">
+                  <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span class="text-xs font-medium text-white">
+                      {{ member.first_name|slice:":1" }}{{ member.last_name|slice:":1" }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-gray-900 truncate">{{ member.first_name }} {{ member.last_name }}</p>
+                  <p class="text-xs text-gray-500">{{ member.username }}</p>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+          <!-- Team Details -->
+          <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div>
+              <dt class="text-gray-500">Recommended Car</dt>
+              <dd class="font-medium text-gray-900">
+                {{ suggestion.recommended_car|default:"Any" }}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-gray-500">Avg Experience</dt>
+              <dd class="font-medium text-gray-900">
+                {% if suggestion.average_experience <= 1.5 %}
+                  Beginner
+                {% elif suggestion.average_experience <= 2.5 %}
+                  Intermediate
+                {% elif suggestion.average_experience <= 3.5 %}
+                  Advanced
+                {% else %}
+                  Professional
+                {% endif %}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-gray-500">Total Availability</dt>
+              <dd class="font-medium text-gray-900">
+                {{ suggestion.total_availability_hours|floatformat:0 }}h
+              </dd>
+            </div>
+            <div>
+              <dt class="text-gray-500">Compatibility</dt>
+              <dd class="font-medium text-gray-900">
+                {{ suggestion.compatibility_score|floatformat:1 }}
+              </dd>
+            </div>
+          </div>
+          <!-- Car Preferences -->
+          {% if suggestion.car_preferences %}
+            <div class="mt-3 pt-3 border-t border-gray-100">
+              <h5 class="text-xs font-medium text-gray-500 mb-2">Car Preferences</h5>
+              <div class="flex flex-wrap gap-2">
+                {% for car, count in suggestion.car_preferences.items %}
+                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    {{ car }} ({{ count }})
+                  </span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
         </div>
-    {% endif %}
+      </div>
+    {% endfor %}
+    <!-- Actions -->
+    <div class="mt-6 flex justify-end space-x-3">
+      <button type="button"
+              class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              onclick="regenerateSuggestions()">Regenerate Suggestions</button>
+      <button type="button"
+              class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              onclick="createSelectedTeams()">Create Selected Teams</button>
+    </div>
+  {% else %}
+    <!-- No Suggestions -->
+    <div class="text-center py-12">
+      <svg class="mx-auto h-12 w-12 text-gray-400"
+           fill="none"
+           stroke="currentColor"
+           viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No Team Suggestions</h3>
+      <p class="mt-1 text-sm text-gray-500">
+        Click "Generate Teams" to create team suggestions based on availability overlap.
+      </p>
+    </div>
+  {% endif %}
 </div>
-
 <script>
-function regenerateSuggestions() {
+  function regenerateSuggestions() {
     if (window.teamFormationDashboard) {
-        window.teamFormationDashboard.generateTeamSuggestions();
+      window.teamFormationDashboard.generateTeamSuggestions();
     }
-}
+  }
 
-function createSelectedTeams() {
+  function createSelectedTeams() {
     // Get selected teams
     const selectedTeams = [];
     document.querySelectorAll('#team-suggestions-content input[type="checkbox"]:checked').forEach((checkbox, index) => {
-        // Get the suggestion data (would be stored in data attributes in real implementation)
-        selectedTeams.push(index);
+      // Get the suggestion data (would be stored in data attributes in real implementation)
+      selectedTeams.push(index);
     });
-    
+
     if (selectedTeams.length === 0) {
-        alert('Please select at least one team to create');
-        return;
+      alert('Please select at least one team to create');
+      return;
     }
-    
+
     if (window.teamFormationDashboard) {
-        window.teamFormationDashboard.createTeamsFromSuggestions();
+      window.teamFormationDashboard.createTeamsFromSuggestions();
     }
-}
-</script> 
+  }
+</script>

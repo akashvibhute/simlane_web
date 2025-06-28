@@ -21,7 +21,7 @@ async function loadFullCalendar() {
             import('@fullcalendar/daygrid'),
             import('@fullcalendar/timegrid')
         ]);
-        
+
         // Make FullCalendar available globally for our component
         window.FullCalendar = {
             Calendar,
@@ -31,7 +31,7 @@ async function loadFullCalendar() {
                 timeGrid: timeGridPlugin
             }
         };
-        
+
         return true;
     } catch (error) {
         console.warn('FullCalendar not available:', error);
@@ -47,7 +47,7 @@ window.SimLane.initializeAvailabilityCalendar = async (containerId, options = {}
     if (!window.FullCalendar) {
         await loadFullCalendar();
     }
-    
+
     const instance = new AvailabilityCalendar(containerId, options);
     window.availabilityCalendar = instance;
     return instance;
@@ -56,11 +56,11 @@ window.SimLane.initializeAvailabilityCalendar = async (containerId, options = {}
 // Auto-initialize on DOM ready
 document.addEventListener('DOMContentLoaded', async function() {
     const calendars = document.querySelectorAll('[data-component="availability-calendar"]');
-    
+
     if (calendars.length > 0) {
         // Load FullCalendar only if we have calendars
         await loadFullCalendar();
-        
+
         calendars.forEach(element => {
             const options = {
                 userTimezone: element.dataset.userTimezone || 'UTC',
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 eventEndDate: element.dataset.eventEnd,
                 existingWindows: JSON.parse(element.dataset.existingWindows || '[]')
             };
-            
+
             SimLane.initializeAvailabilityCalendar(element.id, options);
         });
     }
@@ -78,10 +78,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 document.addEventListener('htmx:afterSwap', async function(event) {
     const swappedContent = event.detail.elt;
     const calendars = swappedContent.querySelectorAll('[data-component="availability-calendar"]');
-    
+
     if (calendars.length > 0) {
         await loadFullCalendar();
-        
+
         calendars.forEach(element => {
             const options = {
                 userTimezone: element.dataset.userTimezone || 'UTC',
@@ -89,8 +89,8 @@ document.addEventListener('htmx:afterSwap', async function(event) {
                 eventEndDate: element.dataset.eventEnd,
                 existingWindows: JSON.parse(element.dataset.existingWindows || '[]')
             };
-            
+
             SimLane.initializeAvailabilityCalendar(element.id, options);
         });
     }
-}); 
+});

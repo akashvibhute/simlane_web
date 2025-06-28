@@ -1,98 +1,98 @@
 <!-- Global Search Component -->
-<div class="relative" x-data="{ open: false }" @click.outside="open = false">
-    <div class="relative">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-        </div>
-        <input
-            type="text"
-            name="search"
-            id="global-search"
-            class="form-input w-full pl-10 pr-16 py-2.5 text-sm transition-all duration-200 shadow-sm hover:shadow-md"
-            placeholder="Search users, events, teams..."
-            autocomplete="off"
-            hx-get="{% url 'core:search_htmx' %}"
-            hx-trigger="input changed delay:300ms, focus"
-            hx-target="#search-results"
-            hx-include="[name='search']"
-            hx-swap="innerHTML"
-            @input="open = $event.target.value.length > 0"
-            @focus="open = $event.target.value.length > 0"
-        >
-        <!-- Keyboard shortcut hint -->
-        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <kbd class="hidden sm:inline-flex items-center px-2 py-0.5 border border-gray-200 dark:border-gray-600 rounded text-xs font-medium bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
-                ⌘K
-            </kbd>
-        </div>
+<div class="relative"
+     x-data="{ open: false }"
+     @click.outside="open = false">
+  <div class="relative">
+    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      <svg class="h-5 w-5 text-gray-400"
+           fill="none"
+           stroke="currentColor"
+           viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">
+        </path>
+      </svg>
     </div>
-    
-    <!-- Search Results Dropdown -->
-    <div 
-        id="search-results" 
-        x-show="open"
-        x-transition:enter="transition ease-out duration-100"
-        x-transition:enter-start="transform opacity-0 scale-95"
-        x-transition:enter-end="transform opacity-100 scale-100"
-        x-transition:leave="transition ease-in duration-75"
-        x-transition:leave-start="transform opacity-100 scale-100"
-        x-transition:leave-end="transform opacity-0 scale-95"
-        class="relative"
-    >
-        <!-- Results will be populated by HTMX -->
+    <input type="text"
+           name="search"
+           id="global-search"
+           class="form-input w-full pl-10 pr-16 py-2.5 text-sm transition-all duration-200 shadow-sm hover:shadow-md"
+           placeholder="Search users, events, teams..."
+           autocomplete="off"
+           hx-get="{% url 'core:search_htmx' %}"
+           hx-trigger="input changed delay:300ms, focus"
+           hx-target="#search-results"
+           hx-include="[name='search']"
+           hx-swap="innerHTML"
+           @input="open = $event.target.value.length > 0"
+           @focus="open = $event.target.value.length > 0" />
+    <!-- Keyboard shortcut hint -->
+    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+      <kbd class="hidden sm:inline-flex items-center px-2 py-0.5 border border-gray-200 dark:border-gray-600 rounded text-xs font-medium bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+        ⌘K
+      </kbd>
     </div>
+  </div>
+  <!-- Search Results Dropdown -->
+  <div id="search-results"
+       x-show="open"
+       x-transition:enter="transition ease-out duration-100"
+       x-transition:enter-start="transform opacity-0 scale-95"
+       x-transition:enter-end="transform opacity-100 scale-100"
+       x-transition:leave="transition ease-in duration-75"
+       x-transition:leave-start="transform opacity-100 scale-100"
+       x-transition:leave-end="transform opacity-0 scale-95"
+       class="relative">
+    <!-- Results will be populated by HTMX -->
+  </div>
 </div>
-
 <!-- Add some JavaScript to handle the search interactions -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+  document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('global-search');
-    
+
     // Global keyboard shortcut (Cmd+K or Ctrl+K)
     document.addEventListener('keydown', function(e) {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-            e.preventDefault();
-            searchInput.focus();
-        }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInput.focus();
+      }
     });
-    
+
     // Handle Enter key to go to full search page
     searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const query = encodeURIComponent(this.value.trim());
-            if (query) {
-                window.location.href = `{% url 'core:search' %}?q=${query}`;
-            }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const query = encodeURIComponent(this.value.trim());
+        if (query) {
+          window.location.href = `{% url 'core:search' %}?q=${query}`;
         }
+      }
     });
-    
+
     // Handle escape key to close search
     searchInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            this.blur();
-            this.value = '';
-            // Clear the results
-            document.getElementById('search-results').innerHTML = '';
-        }
+      if (e.key === 'Escape') {
+        this.blur();
+        this.value = '';
+        // Clear the results
+        document.getElementById('search-results').innerHTML = '';
+      }
     });
-    
+
     // Update the HTMX request to include the query parameter
     searchInput.addEventListener('htmx:configRequest', function(e) {
-        e.detail.parameters.q = this.value;
+      e.detail.parameters.q = this.value;
     });
-    
+
     // Hide keyboard hint when focused
     searchInput.addEventListener('focus', function() {
-        const kbd = this.parentElement.querySelector('kbd');
-        if (kbd) kbd.style.opacity = '0';
+      const kbd = this.parentElement.querySelector('kbd');
+      if (kbd) kbd.style.opacity = '0';
     });
-    
+
     searchInput.addEventListener('blur', function() {
-        const kbd = this.parentElement.querySelector('kbd');
-        if (kbd) kbd.style.opacity = '1';
+      const kbd = this.parentElement.querySelector('kbd');
+      if (kbd) kbd.style.opacity = '1';
     });
-});
-</script> 
+  });
+</script>

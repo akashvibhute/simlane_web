@@ -14,11 +14,11 @@ export class TeamFormationDashboard {
             timezone: 'UTC',
             ...options
         };
-        
+
         this.participants = [];
         this.teamSuggestions = [];
         this.availabilityData = null;
-        
+
         this.init();
     }
 
@@ -125,7 +125,7 @@ export class TeamFormationDashboard {
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Max Teams</label>
-                                    <input type="number" id="max-teams" min="1" max="20" 
+                                    <input type="number" id="max-teams" min="1" max="20"
                                            value="${this.options.maxTeams || ''}" placeholder="No limit"
                                            class="w-full rounded-md border-gray-300">
                                 </div>
@@ -137,7 +137,7 @@ export class TeamFormationDashboard {
                                         <option value="manual">Manual Selection</option>
                                     </select>
                                 </div>
-                                <button id="generate-teams" 
+                                <button id="generate-teams"
                                         class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
                                     Generate Teams
                                 </button>
@@ -158,12 +158,12 @@ export class TeamFormationDashboard {
                         <div class="bg-white rounded-lg border p-6">
                             <h3 class="text-lg font-semibold mb-4">Actions</h3>
                             <div class="space-y-3">
-                                <button id="create-teams" 
+                                <button id="create-teams"
                                         class="w-full bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50"
                                         disabled>
                                     Create Teams
                                 </button>
-                                <button id="export-data" 
+                                <button id="export-data"
                                         class="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700">
                                     Export Data
                                 </button>
@@ -222,7 +222,7 @@ export class TeamFormationDashboard {
             const response = await this.fetchParticipantData();
             this.participants = response.participants || [];
             this.availabilityData = response.availability_data || null;
-            
+
             this.updateStats();
             this.renderParticipantList();
             this.renderAvailabilityHeatmap();
@@ -268,29 +268,29 @@ export class TeamFormationDashboard {
 
     updateStats() {
         document.getElementById('total-signups').textContent = this.participants.length;
-        
+
         const readyCount = this.participants.filter(p => p.status === 'signed_up').length;
         document.getElementById('ready-for-teams').textContent = readyCount;
-        
+
         document.getElementById('suggested-teams').textContent = this.teamSuggestions.length;
-        
+
         const avgOverlap = this.calculateAverageOverlap();
         document.getElementById('avg-overlap').textContent = `${avgOverlap.toFixed(1)}h`;
     }
 
     calculateAverageOverlap() {
         if (this.teamSuggestions.length === 0) return 0;
-        
+
         const totalOverlap = this.teamSuggestions.reduce((sum, team) => {
             return sum + (team.total_overlap_hours || 0);
         }, 0);
-        
+
         return totalOverlap / this.teamSuggestions.length;
     }
 
     renderParticipantList() {
         const listContainer = document.getElementById('participants-list');
-        
+
         if (this.participants.length === 0) {
             listContainer.innerHTML = `
                 <div class="p-6 text-center text-gray-500">
@@ -302,10 +302,10 @@ export class TeamFormationDashboard {
 
         listContainer.innerHTML = this.participants.map(participant => {
             const user = participant.user;
-            const displayName = user.first_name && user.last_name 
-                ? `${user.first_name} ${user.last_name}` 
+            const displayName = user.first_name && user.last_name
+                ? `${user.first_name} ${user.last_name}`
                 : user.username;
-            
+
             return `
                 <div class="px-6 py-4 hover:bg-gray-50">
                     <div class="flex items-center justify-between">
@@ -338,7 +338,7 @@ export class TeamFormationDashboard {
 
     renderAvailabilityHeatmap() {
         const heatmapContainer = document.getElementById('availability-heatmap');
-        
+
         if (!this.availabilityData || this.participants.length === 0) {
             heatmapContainer.innerHTML = `
                 <div class="text-center text-gray-500 py-8">
@@ -365,8 +365,8 @@ export class TeamFormationDashboard {
     async generateTeamSuggestions() {
         const algorithm = document.getElementById('formation-algorithm').value;
         const teamSize = parseInt(document.getElementById('team-size').value);
-        const maxTeams = document.getElementById('max-teams').value 
-            ? parseInt(document.getElementById('max-teams').value) 
+        const maxTeams = document.getElementById('max-teams').value
+            ? parseInt(document.getElementById('max-teams').value)
             : null;
 
         try {
@@ -381,13 +381,13 @@ export class TeamFormationDashboard {
             // Simulate team generation (would be HTMX request in real implementation)
             const suggestions = await this.fetchTeamSuggestions(algorithm, teamSize, maxTeams);
             this.teamSuggestions = suggestions;
-            
+
             this.renderTeamSuggestions();
             this.updateStats();
-            
+
             // Enable create teams button
             document.getElementById('create-teams').disabled = suggestions.length === 0;
-            
+
         } catch (error) {
             console.error('Error generating team suggestions:', error);
             this.showError('Failed to generate team suggestions');
@@ -401,7 +401,7 @@ export class TeamFormationDashboard {
                 // Mock team suggestions
                 const suggestions = [];
                 const availableParticipants = this.participants.filter(p => p.status === 'signed_up');
-                
+
                 if (availableParticipants.length >= teamSize) {
                     for (let i = 0; i < Math.min(Math.floor(availableParticipants.length / teamSize), maxTeams || 10); i++) {
                         const teamMembers = availableParticipants.slice(i * teamSize, (i + 1) * teamSize);
@@ -415,7 +415,7 @@ export class TeamFormationDashboard {
                         });
                     }
                 }
-                
+
                 resolve(suggestions);
             }, 1000);
         });
@@ -423,7 +423,7 @@ export class TeamFormationDashboard {
 
     renderTeamSuggestions() {
         const suggestionsContainer = document.getElementById('team-suggestions');
-        
+
         if (this.teamSuggestions.length === 0) {
             suggestionsContainer.innerHTML = `
                 <div class="text-center text-gray-500 py-8">
@@ -440,11 +440,11 @@ export class TeamFormationDashboard {
                     <h4 class="font-medium text-gray-900">Team ${String.fromCharCode(65 + index)}</h4>
                     <div class="text-sm text-gray-500">${team.total_overlap_hours.toFixed(1)}h overlap</div>
                 </div>
-                
+
                 <div class="space-y-2 mb-3">
                     ${team.members.map(member => {
-                        const displayName = member.user.first_name && member.user.last_name 
-                            ? `${member.user.first_name} ${member.user.last_name}` 
+                        const displayName = member.user.first_name && member.user.last_name
+                            ? `${member.user.first_name} ${member.user.last_name}`
                             : member.user.username;
                         return `
                             <div class="flex items-center space-x-2 text-sm">
@@ -457,7 +457,7 @@ export class TeamFormationDashboard {
                         `;
                     }).join('')}
                 </div>
-                
+
                 <div class="flex items-center justify-between text-xs text-gray-500">
                     <span>Car: ${team.recommended_car}</span>
                     <span>Balance: ${(team.balance_score * 100).toFixed(0)}%</span>
@@ -485,10 +485,10 @@ export class TeamFormationDashboard {
 
             // Simulate team creation (would be HTMX request)
             await this.submitTeamCreation();
-            
+
             // Success feedback
             this.showSuccess('Teams created successfully!');
-            
+
             // Refresh data
             await this.loadParticipantData();
 
@@ -522,14 +522,14 @@ export class TeamFormationDashboard {
 
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `team-formation-data-${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        
+
         URL.revokeObjectURL(url);
     }
 
@@ -539,7 +539,7 @@ export class TeamFormationDashboard {
         errorDiv.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
         errorDiv.textContent = message;
         document.body.appendChild(errorDiv);
-        
+
         setTimeout(() => {
             document.body.removeChild(errorDiv);
         }, 5000);
@@ -551,9 +551,9 @@ export class TeamFormationDashboard {
         successDiv.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
         successDiv.textContent = message;
         document.body.appendChild(successDiv);
-        
+
         setTimeout(() => {
             document.body.removeChild(successDiv);
         }, 5000);
     }
-} 
+}

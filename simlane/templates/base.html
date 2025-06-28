@@ -20,7 +20,11 @@
     </script>
     {% block head_scripts %}
       <script>
-        window.isAuthenticated = {{ request.user.is_authenticated|yesno:"true,false" }};
+        window.isAuthenticated = {
+          {
+            request.user.is_authenticated | yesno: "true,false"
+          }
+        };
       </script>
     {% endblock %}
   </head>

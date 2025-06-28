@@ -15,6 +15,8 @@ urlpatterns = [
     # Search URLs
     path("search/", views.search_page, name="search"),
     path("api/search/", views.search_api, name="search_api"),
-    path("api/search/suggestions/", views.search_suggestions, name="search_suggestions"),
+    path(
+        "api/search/suggestions/", views.search_suggestions, name="search_suggestions"
+    ),
     path("search/htmx/", views.search_htmx, name="search_htmx"),
 ]

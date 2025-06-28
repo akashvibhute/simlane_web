@@ -27,7 +27,7 @@ window.SimLane = {
                 return `${days}d ${remainingHours.toFixed(1)}h`;
             }
         },
-        
+
         formatTimezone: (timezoneStr) => {
             try {
                 const now = new Date();
@@ -37,7 +37,7 @@ window.SimLane = {
                 return timezoneStr;
             }
         },
-        
+
         debounce: (func, wait) => {
             let timeout;
             return function executedFunction(...args) {
@@ -88,17 +88,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (indicator) {
             // Store original display style
             indicator._originalDisplay = indicator.style.display;
-            
+
             // Hide initially
             indicator.style.display = 'none';
-            
+
             // Show after delay
             indicator._showTimeout = setTimeout(() => {
                 indicator.style.display = indicator._originalDisplay || '';
             }, 150);
         }
     });
-    
+
     document.body.addEventListener('htmx:afterRequest', function(evt) {
         const indicator = evt.detail.elt.querySelector('[data-loading-states]');
         if (indicator && indicator._showTimeout) {

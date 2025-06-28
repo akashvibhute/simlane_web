@@ -1,125 +1,96 @@
 <!-- Open Signups -->
 {% if open_signups %}
-<div class="mb-8">
+  <div class="mb-8">
     <h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Open Signups</h2>
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {% for sheet in open_signups %}
+      {% for sheet in open_signups %}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div class="mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {{ sheet.title }}
-                </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {{ sheet.event.name }}
-                </p>
-            </div>
-            
-            {% if sheet.description %}
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {{ sheet.description|truncatewords:20 }}
-            </p>
-            {% endif %}
-            
-            <div class="space-y-2 text-sm">
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-500 dark:text-gray-400">Signups:</span>
-                    <span class="font-medium text-gray-900 dark:text-gray-100">
-                                                 {{ sheet.signup_count }}
-                         {% if sheet.max_teams %}
-                         / {% widthratio sheet.max_teams 1 sheet.target_team_size %} max
-                         {% endif %}
-                    </span>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-500 dark:text-gray-400">Closes:</span>
-                    <span class="font-medium text-gray-900 dark:text-gray-100">
-                        {{ sheet.signup_closes|date:"M j, H:i" }}
-                    </span>
-                </div>
-                
+          <div class="mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ sheet.title }}</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ sheet.event.name }}</p>
+          </div>
+          {% if sheet.description %}
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">{{ sheet.description|truncatewords:20 }}</p>
+          {% endif %}
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-gray-500 dark:text-gray-400">Signups:</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100">
+                {{ sheet.signup_count }}
                 {% if sheet.max_teams %}
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-500 dark:text-gray-400">Teams:</span>
-                    <span class="font-medium text-gray-900 dark:text-gray-100">
-                        {{ sheet.max_teams }} max
-                    </span>
-                </div>
+                  / {% widthratio sheet.max_teams 1 sheet.target_team_size %} max
                 {% endif %}
+              </span>
             </div>
-            
-            <div class="mt-4 flex items-center justify-between">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    Open
-                </span>
-                
-                <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}" class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
-                    View Details →
-                </a>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-500 dark:text-gray-400">Closes:</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100">{{ sheet.signup_closes|date:"M j, H:i" }}</span>
             </div>
+            {% if sheet.max_teams %}
+              <div class="flex items-center justify-between">
+                <span class="text-gray-500 dark:text-gray-400">Teams:</span>
+                <span class="font-medium text-gray-900 dark:text-gray-100">{{ sheet.max_teams }} max</span>
+              </div>
+            {% endif %}
+          </div>
+          <div class="mt-4 flex items-center justify-between">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              Open
+            </span>
+            <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}"
+               class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+              View Details →
+            </a>
+          </div>
         </div>
-        {% endfor %}
+      {% endfor %}
     </div>
-</div>
+  </div>
 {% else %}
-<div class="mb-8">
+  <div class="mb-8">
     <h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Open Signups</h2>
     <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-8 text-center">
-        <p class="text-gray-600 dark:text-gray-400">No open signup sheets at the moment.</p>
-        {% if can_manage %}
+      <p class="text-gray-600 dark:text-gray-400">No open signup sheets at the moment.</p>
+      {% if can_manage %}
         <p class="mt-2 text-sm text-gray-500 dark:text-gray-500">
-            Create a signup sheet to allow members to register for events.
+          Create a signup sheet to allow members to register for events.
         </p>
-        {% endif %}
+      {% endif %}
     </div>
-</div>
+  </div>
 {% endif %}
-
 <!-- Closed/Past Signups -->
 {% if closed_signups %}
-<div>
+  <div>
     <h2 class="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">Closed Signups</h2>
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {% for sheet in closed_signups %}
+      {% for sheet in closed_signups %}
         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 opacity-75">
-            <div class="mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {{ sheet.title }}
-                </h3>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {{ sheet.event.name }}
-                </p>
+          <div class="mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ sheet.title }}</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ sheet.event.name }}</p>
+          </div>
+          <div class="space-y-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-gray-500 dark:text-gray-400">Final signups:</span>
+              <span class="font-medium text-gray-700 dark:text-gray-300">{{ sheet.signup_count }}</span>
             </div>
-            
-            <div class="space-y-2 text-sm">
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-500 dark:text-gray-400">Final signups:</span>
-                    <span class="font-medium text-gray-700 dark:text-gray-300">
-                        {{ sheet.signup_count }}
-                    </span>
-                </div>
-                
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-500 dark:text-gray-400">Closed:</span>
-                    <span class="font-medium text-gray-700 dark:text-gray-300">
-                        {{ sheet.signup_closes|date:"M j, H:i" }}
-                    </span>
-                </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-500 dark:text-gray-400">Closed:</span>
+              <span class="font-medium text-gray-700 dark:text-gray-300">{{ sheet.signup_closes|date:"M j, H:i" }}</span>
             </div>
-            
-            <div class="mt-4 flex items-center justify-between">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                    {{ sheet.status|capfirst }}
-                </span>
-                
-                <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}" class="text-sm font-medium text-gray-600 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300">
-                    View →
-                </a>
-            </div>
+          </div>
+          <div class="mt-4 flex items-center justify-between">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+              {{ sheet.status|capfirst }}
+            </span>
+            <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}"
+               class="text-sm font-medium text-gray-600 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300">
+              View →
+            </a>
+          </div>
         </div>
-        {% endfor %}
+      {% endfor %}
     </div>
-</div>
+  </div>
 {% endif %}
-
- 

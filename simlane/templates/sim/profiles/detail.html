@@ -1,198 +1,203 @@
 {% extends "base.html" %}
 
 {% block title %}{{ profile.profile_name }} - {{ profile.simulator.name }} - SimLane{% endblock %}
-
 {% block content %}
-<div class="space-y-6">
+  <div class="space-y-6">
     <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ profile.profile_name }}</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {{ profile.simulator.name }} Sim Profile
-            </p>
-        </div>
-        {% if request.user.is_authenticated and profile.linked_user == request.user %}
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ profile.profile_name }}</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ profile.simulator.name }} Sim Profile</p>
+      </div>
+      {% if request.user.is_authenticated and profile.linked_user == request.user %}
         <div class="flex items-center space-x-2">
-            <form id="refresh-owned-form" method="POST"
-                  hx-post="{% url 'sim:refresh_iracing_owned' %}"
-                  hx-target="#refresh-status"
-                  hx-indicator="#refresh-indicator">
-                {% csrf_token %}
-                <input type="hidden" name="sim_profile_id" value="{{ profile.id }}">
-                <button type="submit"
-                  class="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 bg-white hover:bg-primary-50 dark:bg-gray-800 dark:hover:bg-primary-900/20 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer"
-                  style="min-width: 120px;">
-                    <span>Refresh Owned</span>
-                    <span id="refresh-indicator" class="ml-2 htmx-indicator">
-                        <svg class="animate-spin h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                        </svg>
-                    </span>
-                </button>
-            </form>
-            <div id="refresh-status"></div>
+          <form id="refresh-owned-form"
+                method="POST"
+                hx-post="{% url 'sim:refresh_iracing_owned' %}"
+                hx-target="#refresh-status"
+                hx-indicator="#refresh-indicator">
+            {% csrf_token %}
+            <input type="hidden" name="sim_profile_id" value="{{ profile.id }}" />
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 bg-white hover:bg-primary-50 dark:bg-gray-800 dark:hover:bg-primary-900/20 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer"
+                    style="min-width: 120px">
+              <span>Refresh Owned</span>
+              <span id="refresh-indicator" class="ml-2 htmx-indicator">
+                <svg class="animate-spin h-4 w-4 text-primary-600"
+                     xmlns="http://www.w3.org/2000/svg"
+                     fill="none"
+                     viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+              </span>
+            </button>
+          </form>
+          <div id="refresh-status"></div>
         </div>
-        {% endif %}
+      {% endif %}
     </div>
     <!-- Profile Header -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div class="flex items-center space-x-4">
-            {% if profile.simulator.icon %}
-                <img src="{{ profile.simulator.icon.url }}" alt="{{ profile.simulator.name }}" class="w-16 h-16 rounded-lg">
-            {% else %}
-                <div class="w-16 h-16 bg-primary-500 rounded-lg flex items-center justify-center">
-                    <span class="text-lg font-bold text-white">{{ profile.simulator.name|first }}</span>
-                </div>
-            {% endif %}
-            
-            <div class="flex-1">
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ profile.profile_name }}</h1>
-                <p class="text-lg text-gray-600 dark:text-gray-400">{{ profile.simulator.name }}</p>
-                
-                {% if profile.linked_user %}
-                    <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                        {{ profile.linked_user.get_full_name|default:profile.linked_user.username }}
-                        {% if profile.is_verified %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100 ml-2">
-                                Verified
-                            </span>
-                        {% endif %}
-                    </p>
-                {% endif %}
-                
-                {% if profile.last_active %}
-                    <p class="text-sm text-gray-500 dark:text-gray-500">
-                        Last active: {{ profile.last_active|date:"M d, Y" }}
-                    </p>
-                {% endif %}
-            </div>
-            
-            <!-- Profile Actions -->
-            {% if user.is_authenticated %}
-                <div class="flex flex-col space-y-2">
-                    {% if profile.linked_user == user %}
-                        <!-- User owns this profile -->
-                        <div class="flex items-center space-x-2">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                </svg>
-                                Your Profile
-                            </span>
-                        </div>
-                        <a href="{% url 'drivers:profile_unlink' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}"
-                           class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464m1.414 1.414L8.464 8.464"></path>
-                            </svg>
-                            Unlink Profile
-                        </a>
-                        <a href="{% url 'users:profile_sim_profiles' %}"
-                           class="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            Manage Profiles
-                        </a>
-                    {% elif can_link %}
-                        <!-- User can link this profile -->
-                        <a href="{% url 'drivers:profile_link' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}"
-                           class="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                            </svg>
-                            Link to My Account
-                        </a>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-xs">
-                            Claim this profile as yours to access personalized features
-                        </p>
-                    {% elif profile.linked_user %}
-                        <!-- Profile is linked to someone else -->
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
-                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
-                            </svg>
-                            Already Claimed
-                        </span>
-                    {% endif %}
-                </div>
-            {% else %}
-                <!-- Not authenticated -->
-                <div class="text-center">
-                    <a href="{% url 'account_login' %}" 
-                       class="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                        Sign In to Link Profile
-                    </a>
-                </div>
-            {% endif %}
+      <div class="flex items-center space-x-4">
+        {% if profile.simulator.icon %}
+          <img src="{{ profile.simulator.icon.url }}"
+               alt="{{ profile.simulator.name }}"
+               class="w-16 h-16 rounded-lg" />
+        {% else %}
+          <div class="w-16 h-16 bg-primary-500 rounded-lg flex items-center justify-center">
+            <span class="text-lg font-bold text-white">{{ profile.simulator.name|first }}</span>
+          </div>
+        {% endif %}
+        <div class="flex-1">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ profile.profile_name }}</h1>
+          <p class="text-lg text-gray-600 dark:text-gray-400">{{ profile.simulator.name }}</p>
+          {% if profile.linked_user %}
+            <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+              {{ profile.linked_user.get_full_name|default:profile.linked_user.username }}
+              {% if profile.is_verified %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100 ml-2">
+                  Verified
+                </span>
+              {% endif %}
+            </p>
+          {% endif %}
+          {% if profile.last_active %}
+            <p class="text-sm text-gray-500 dark:text-gray-500">Last active: {{ profile.last_active|date:"M d, Y" }}</p>
+          {% endif %}
         </div>
+        <!-- Profile Actions -->
+        {% if user.is_authenticated %}
+          <div class="flex flex-col space-y-2">
+            {% if profile.linked_user == user %}
+              <!-- User owns this profile -->
+              <div class="flex items-center space-x-2">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                  <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd">
+                    </path>
+                  </svg>
+                  Your Profile
+                </span>
+              </div>
+              <a href="{% url 'drivers:profile_unlink' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}"
+                 class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <svg class="w-4 h-4 mr-2"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464m1.414 1.414L8.464 8.464">
+                  </path>
+                </svg>
+                Unlink Profile
+              </a>
+              <a href="{% url 'users:profile_sim_profiles' %}"
+                 class="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <svg class="w-4 h-4 mr-2"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                  </path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Manage Profiles
+              </a>
+            {% elif can_link %}
+              <!-- User can link this profile -->
+              <a href="{% url 'drivers:profile_link' profile.simulator.slug profile.sim_api_id|default:profile.profile_name %}"
+                 class="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                <svg class="w-4 h-4 mr-2"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1">
+                  </path>
+                </svg>
+                Link to My Account
+              </a>
+              <p class="text-xs text-gray-500 dark:text-gray-400 text-center max-w-xs">
+                Claim this profile as yours to access personalized features
+              </p>
+            {% elif profile.linked_user %}
+              <!-- Profile is linked to someone else -->
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd">
+                  </path>
+                </svg>
+                Already Claimed
+              </span>
+            {% endif %}
+          </div>
+        {% else %}
+          <!-- Not authenticated -->
+          <div class="text-center">
+            <a href="{% url 'account_login' %}"
+               class="inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+              Sign In to Link Profile
+            </a>
+          </div>
+        {% endif %}
+      </div>
     </div>
-
     <!-- Current Ratings -->
     {% if current_ratings %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Current Ratings</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {% for rating in current_ratings %}
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <h3 class="font-medium text-gray-900 dark:text-white">{{ rating.rating_system.name }}</h3>
-                        <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ rating.value|floatformat:0 }}</p>
-                        {% if rating.discipline %}
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ rating.get_discipline_display }}</p>
-                        {% endif %}
-                        <p class="text-xs text-gray-400 dark:text-gray-500">{{ rating.recorded_at|date:"M d, Y" }}</p>
-                    </div>
-                {% endfor %}
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Current Ratings</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for rating in current_ratings %}
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <h3 class="font-medium text-gray-900 dark:text-white">{{ rating.rating_system.name }}</h3>
+              <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ rating.value|floatformat:0 }}</p>
+              {% if rating.discipline %}
+                <p class="text-sm text-gray-500 dark:text-gray-400">{{ rating.get_discipline_display }}</p>
+              {% endif %}
+              <p class="text-xs text-gray-400 dark:text-gray-500">{{ rating.recorded_at|date:"M d, Y" }}</p>
             </div>
+          {% endfor %}
         </div>
+      </div>
     {% endif %}
-
     <!-- Recent Lap Times -->
     {% if recent_lap_times %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Lap Times</h2>
-            <div class="overflow-x-auto">
-                <table class="min-w-full table-auto">
-                    <thead>
-                        <tr class="border-b border-gray-200 dark:border-gray-700">
-                            <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Track</th>
-                            <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Lap Time</th>
-                            <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for lap_time in recent_lap_times %}
-                            <tr class="border-b border-gray-100 dark:border-gray-700">
-                                <td class="py-3 text-sm text-gray-900 dark:text-white">
-                                    {{ lap_time.sim_layout.sim_track.track_model.name }}
-                                    <br>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ lap_time.sim_layout.name }}</span>
-                                </td>
-                                <td class="py-3 text-sm font-mono text-gray-900 dark:text-white">
-                                    {% if lap_time.lap_time_ms %}
-                                        {{ lap_time.lap_time_ms|floatformat:3 }}ms
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td class="py-3 text-sm text-gray-500 dark:text-gray-400">
-                                    {{ lap_time.recorded_at|date:"M d, Y" }}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Lap Times</h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full table-auto">
+            <thead>
+              <tr class="border-b border-gray-200 dark:border-gray-700">
+                <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Track</th>
+                <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Lap Time</th>
+                <th class="text-left py-2 text-sm font-medium text-gray-500 dark:text-gray-400">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for lap_time in recent_lap_times %}
+                <tr class="border-b border-gray-100 dark:border-gray-700">
+                  <td class="py-3 text-sm text-gray-900 dark:text-white">
+                    {{ lap_time.sim_layout.sim_track.track_model.name }}
+                    <br />
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ lap_time.sim_layout.name }}</span>
+                  </td>
+                  <td class="py-3 text-sm font-mono text-gray-900 dark:text-white">
+                    {% if lap_time.lap_time_ms %}
+                      {{ lap_time.lap_time_ms|floatformat:3 }}ms
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                  <td class="py-3 text-sm text-gray-500 dark:text-gray-400">{{ lap_time.recorded_at|date:"M d, Y" }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
+      </div>
     {% endif %}
-
     <!-- Back to Profiles -->
     <div class="text-center">
-        <a href="{% url 'drivers:profiles_list' %}" class="text-primary-600 dark:text-primary-400 hover:text-primary-500">
-            ← Back to all drivers
-        </a>
+      <a href="{% url 'drivers:profiles_list' %}"
+         class="text-primary-600 dark:text-primary-400 hover:text-primary-500">← Back to all drivers</a>
     </div>
-</div>
-{% endblock %} 
+  </div>
+{% endblock %}

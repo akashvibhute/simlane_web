@@ -1,40 +1,43 @@
 {% comment %} HTMX partial for cars search UI, grid, and pagination {% endcomment %}
 <div class="space-y-4">
-<!-- Header -->
-<div class="flex items-center justify-between">
+  <!-- Header -->
+  <div class="flex items-center justify-between">
     <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Cars Database</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Browse all available cars across simulators
-        </p>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Cars Database</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Browse all available cars across simulators</p>
     </div>
     {% if request.user.is_authenticated and request.user.linked_sim_profiles.exists %}
-    <div class="flex items-center space-x-2">
-        <form id="refresh-owned-form" method="POST"
+      <div class="flex items-center space-x-2">
+        <form id="refresh-owned-form"
+              method="POST"
               hx-post="{% url 'sim:refresh_iracing_owned' %}"
               hx-target="#refresh-status"
               hx-indicator="#refresh-indicator">
-            {% csrf_token %}
-            <input type="hidden" name="sim_profile_id" value="{{ request.user.linked_sim_profiles.first.id }}">
-            <button type="submit"
-              class="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 bg-white hover:bg-primary-50 dark:bg-gray-800 dark:hover:bg-primary-900/20 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer"
-              style="min-width: 120px;">
-                <span>Refresh Owned</span>
-                <span id="refresh-indicator" class="ml-2 htmx-indicator">
-                    <svg class="animate-spin h-4 w-4 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                    </svg>
-                </span>
-            </button>
+          {% csrf_token %}
+          <input type="hidden"
+                 name="sim_profile_id"
+                 value="{{ request.user.linked_sim_profiles.first.id }}" />
+          <button type="submit"
+                  class="inline-flex items-center px-4 py-2 border border-primary-600 text-primary-600 bg-white hover:bg-primary-50 dark:bg-gray-800 dark:hover:bg-primary-900/20 font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 cursor-pointer"
+                  style="min-width: 120px">
+            <span>Refresh Owned</span>
+            <span id="refresh-indicator" class="ml-2 htmx-indicator">
+              <svg class="animate-spin h-4 w-4 text-primary-600"
+                   xmlns="http://www.w3.org/2000/svg"
+                   fill="none"
+                   viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+              </svg>
+            </span>
+          </button>
         </form>
         <div id="refresh-status"></div>
-    </div>
+      </div>
     {% endif %}
-</div>
-
-<!-- Search and Filters -->
-<div class="search-container">
+  </div>
+  <!-- Search and Filters -->
+  <div class="search-container">
     <form method="get"
           hx-get="{% url 'cars_list' %}"
           hx-target="#cars-container"
@@ -42,60 +45,57 @@
           hx-indicator="#loading-indicator"
           hx-trigger="change"
           class="space-y-4">
-        <!-- Search Bar -->
-        <div class="flex gap-4">
-            <div class="flex-1">
-                <input type="text" 
-                       name="q" 
-                       placeholder="Search cars..." 
-                       value="{{ search_query }}"
-                       hx-get="{% url 'cars_list' %}"
-                       hx-target="#cars-container"
-                       hx-push-url="true"
-                       hx-indicator="#loading-indicator"
-                       hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
-                       class="form-input w-full">
-            </div>
-            <button type="submit" class="btn-primary">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-                Search
-            </button>
+      <!-- Search Bar -->
+      <div class="flex gap-4">
+        <div class="flex-1">
+          <input type="text"
+                 name="q"
+                 placeholder="Search cars..."
+                 value="{{ search_query }}"
+                 hx-get="{% url 'cars_list' %}"
+                 hx-target="#cars-container"
+                 hx-push-url="true"
+                 hx-indicator="#loading-indicator"
+                 hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
+                 class="form-input w-full" />
         </div>
-        
-        <!-- Filters Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <select name="simulator" class="form-select">
-                <option value="">All Simulators</option>
-                {% for simulator in simulators %}
-                    <option value="{{ simulator.slug }}" {% if selected_simulator == simulator.slug %}selected{% endif %}>
-                        {{ simulator.name }}
-                    </option>
-                {% endfor %}
-            </select>
-            
-            <select name="class" class="form-select">
-                <option value="">All Classes</option>
-                {% for car_class in car_classes %}
-                    <option value="{{ car_class.slug }}" {% if selected_class == car_class.slug %}selected{% endif %}>
-                        {{ car_class.name }}
-                    </option>
-                {% endfor %}
-            </select>
-            
-            <select name="manufacturer" class="form-select">
-                <option value="">All Manufacturers</option>
-                {% for manufacturer in manufacturers %}
-                    <option value="{{ manufacturer }}" {% if selected_manufacturer == manufacturer %}selected{% endif %}>
-                        {{ manufacturer }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
+        <button type="submit" class="btn-primary">
+          <svg class="w-4 h-4 mr-2"
+               fill="none"
+               stroke="currentColor"
+               viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">
+            </path>
+          </svg>
+          Search
+        </button>
+      </div>
+      <!-- Filters Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <select name="simulator" class="form-select">
+          <option value="">All Simulators</option>
+          {% for simulator in simulators %}
+            <option value="{{ simulator.slug }}"
+                    {% if selected_simulator == simulator.slug %}selected{% endif %}>{{ simulator.name }}</option>
+          {% endfor %}
+        </select>
+        <select name="class" class="form-select">
+          <option value="">All Classes</option>
+          {% for car_class in car_classes %}
+            <option value="{{ car_class.slug }}"
+                    {% if selected_class == car_class.slug %}selected{% endif %}>{{ car_class.name }}</option>
+          {% endfor %}
+        </select>
+        <select name="manufacturer" class="form-select">
+          <option value="">All Manufacturers</option>
+          {% for manufacturer in manufacturers %}
+            <option value="{{ manufacturer }}"
+                    {% if selected_manufacturer == manufacturer %}selected{% endif %}>{{ manufacturer }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </form>
-</div>
-
-<!-- Include cars results partial -->
-{% include 'sim/cars/cars_list_partial.html' %}
+  </div>
+  <!-- Include cars results partial -->
+  {% include 'sim/cars/cars_list_partial.html' %}
 </div>

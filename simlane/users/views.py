@@ -213,9 +213,8 @@ def profile_view(request):
             "form": UserUpdateForm(instance=request.user),
         }
         return render(request, "users/profile/profile_content_partial.html", context)
-    else:
-        # For regular requests, redirect to general settings
-        return redirect("users:profile_general")
+    # For regular requests, redirect to general settings
+    return redirect("users:profile_general")
 
 
 @login_required
@@ -328,20 +327,23 @@ def auth_verify_email_view(request, key):
     """
     # Detect if this is an API request
     is_api_request = (
-        request.headers.get('Accept', '').startswith('application/json') or
-        request.headers.get('Content-Type', '').startswith('application/json') or
-        'api' in request.path.lower()
+        request.headers.get("Accept", "").startswith("application/json")
+        or request.headers.get("Content-Type", "").startswith("application/json")
+        or "api" in request.path.lower()
     )
-    
+
     if is_api_request:
         # For API requests, let the headless functionality handle it
         # This would typically be handled by allauth.headless
         from django.http import JsonResponse
-        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
-    else:
-        # For web requests, redirect to standard allauth email confirmation
-        from django.shortcuts import redirect
-        return redirect('account_confirm_email', key=key)
+
+        return JsonResponse(
+            {"error": "Use /api/auth/ endpoints for API authentication"}, status=400
+        )
+    # For web requests, redirect to standard allauth email confirmation
+    from django.shortcuts import redirect
+
+    return redirect("account_confirm_email", key=key)
 
 
 def auth_reset_password_view(request):
@@ -351,17 +353,20 @@ def auth_reset_password_view(request):
     """
     # Detect if this is an API request
     is_api_request = (
-        request.headers.get('Accept', '').startswith('application/json') or
-        request.headers.get('Content-Type', '').startswith('application/json') or
-        'api' in request.path.lower()
+        request.headers.get("Accept", "").startswith("application/json")
+        or request.headers.get("Content-Type", "").startswith("application/json")
+        or "api" in request.path.lower()
     )
-    
+
     if is_api_request:
         from django.http import JsonResponse
-        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
-    else:
-        from django.shortcuts import redirect
-        return redirect('account_reset_password')
+
+        return JsonResponse(
+            {"error": "Use /api/auth/ endpoints for API authentication"}, status=400
+        )
+    from django.shortcuts import redirect
+
+    return redirect("account_reset_password")
 
 
 def auth_reset_password_from_key_view(request, key):
@@ -370,17 +375,20 @@ def auth_reset_password_from_key_view(request, key):
     """
     # Detect if this is an API request
     is_api_request = (
-        request.headers.get('Accept', '').startswith('application/json') or
-        request.headers.get('Content-Type', '').startswith('application/json') or
-        'api' in request.path.lower()
+        request.headers.get("Accept", "").startswith("application/json")
+        or request.headers.get("Content-Type", "").startswith("application/json")
+        or "api" in request.path.lower()
     )
-    
+
     if is_api_request:
         from django.http import JsonResponse
-        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
-    else:
-        from django.shortcuts import redirect
-        return redirect('account_reset_password_from_key', key=key)
+
+        return JsonResponse(
+            {"error": "Use /api/auth/ endpoints for API authentication"}, status=400
+        )
+    from django.shortcuts import redirect
+
+    return redirect("account_reset_password_from_key", key=key)
 
 
 def auth_signup_view(request):
@@ -389,17 +397,20 @@ def auth_signup_view(request):
     """
     # Detect if this is an API request
     is_api_request = (
-        request.headers.get('Accept', '').startswith('application/json') or
-        request.headers.get('Content-Type', '').startswith('application/json') or
-        'api' in request.path.lower()
+        request.headers.get("Accept", "").startswith("application/json")
+        or request.headers.get("Content-Type", "").startswith("application/json")
+        or "api" in request.path.lower()
     )
-    
+
     if is_api_request:
         from django.http import JsonResponse
-        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
-    else:
-        from django.shortcuts import redirect
-        return redirect('account_signup')
+
+        return JsonResponse(
+            {"error": "Use /api/auth/ endpoints for API authentication"}, status=400
+        )
+    from django.shortcuts import redirect
+
+    return redirect("account_signup")
 
 
 def auth_socialaccount_login_error_view(request):
@@ -408,14 +419,17 @@ def auth_socialaccount_login_error_view(request):
     """
     # Detect if this is an API request
     is_api_request = (
-        request.headers.get('Accept', '').startswith('application/json') or
-        request.headers.get('Content-Type', '').startswith('application/json') or
-        'api' in request.path.lower()
+        request.headers.get("Accept", "").startswith("application/json")
+        or request.headers.get("Content-Type", "").startswith("application/json")
+        or "api" in request.path.lower()
     )
-    
+
     if is_api_request:
         from django.http import JsonResponse
-        return JsonResponse({'error': 'Use /api/auth/ endpoints for API authentication'}, status=400)
-    else:
-        from django.shortcuts import redirect
-        return redirect('socialaccount_login_error')
+
+        return JsonResponse(
+            {"error": "Use /api/auth/ endpoints for API authentication"}, status=400
+        )
+    from django.shortcuts import redirect
+
+    return redirect("socialaccount_login_error")

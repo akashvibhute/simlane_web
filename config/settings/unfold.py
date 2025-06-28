@@ -1,6 +1,7 @@
 """
 Unfold Admin Configuration
 """
+
 import json
 from datetime import timedelta
 
@@ -9,7 +10,6 @@ from django.templatetags.static import static
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-
 
 # Unfold Configuration
 UNFOLD = {
@@ -204,11 +204,6 @@ UNFOLD = {
                         "link": reverse_lazy("admin:sim_season_changelist"),
                     },
                     {
-                        "title": _("Race Weeks"),
-                        "icon": "view_week",
-                        "link": reverse_lazy("admin:sim_raceweek_changelist"),
-                    },
-                    {
                         "title": _("Event Sessions"),
                         "icon": "schedule",
                         "link": reverse_lazy("admin:sim_eventsession_changelist"),
@@ -219,9 +214,9 @@ UNFOLD = {
                         "link": reverse_lazy("admin:sim_eventclass_changelist"),
                     },
                     {
-                        "title": _("Event Instances"),
+                        "title": _("Event Time Slots"),
                         "icon": "calendar_today",
-                        "link": reverse_lazy("admin:sim_eventinstance_changelist"),
+                        "link": reverse_lazy("admin:sim_timeslot_changelist"),
                     },
                     {
                         "title": _("Car Restrictions"),
@@ -278,17 +273,23 @@ UNFOLD = {
                     {
                         "title": _("Event Participation"),
                         "icon": "how_to_reg",
-                        "link": reverse_lazy("admin:teams_eventparticipation_changelist"),
+                        "link": reverse_lazy(
+                            "admin:teams_eventparticipation_changelist"
+                        ),
                     },
                     {
                         "title": _("Event Signup Invitations"),
                         "icon": "send",
-                        "link": reverse_lazy("admin:teams_eventsignupinvitation_changelist"),
+                        "link": reverse_lazy(
+                            "admin:teams_eventsignupinvitation_changelist"
+                        ),
                     },
                     {
                         "title": _("Availability Windows"),
                         "icon": "access_time",
-                        "link": reverse_lazy("admin:teams_availabilitywindow_changelist"),
+                        "link": reverse_lazy(
+                            "admin:teams_availabilitywindow_changelist"
+                        ),
                     },
                 ],
             },
@@ -317,7 +318,9 @@ UNFOLD = {
                     {
                         "title": _("Discord Guilds"),
                         "icon": "forum",
-                        "link": reverse_lazy("admin:discord_bot_discordguild_changelist"),
+                        "link": reverse_lazy(
+                            "admin:discord_bot_discordguild_changelist"
+                        ),
                     },
                     {
                         "title": _("Bot Commands"),
@@ -327,7 +330,9 @@ UNFOLD = {
                     {
                         "title": _("Bot Settings"),
                         "icon": "settings",
-                        "link": reverse_lazy("admin:discord_bot_botsettings_changelist"),
+                        "link": reverse_lazy(
+                            "admin:discord_bot_botsettings_changelist"
+                        ),
                     },
                 ],
             },
@@ -339,7 +344,9 @@ UNFOLD = {
                     {
                         "title": _("Sync Logs"),
                         "icon": "sync",
-                        "link": reverse_lazy("admin:garage61_garage61synclog_changelist"),
+                        "link": reverse_lazy(
+                            "admin:garage61_garage61synclog_changelist"
+                        ),
                     },
                 ],
             },
@@ -351,17 +358,23 @@ UNFOLD = {
                     {
                         "title": _("Social Accounts"),
                         "icon": "account_box",
-                        "link": reverse_lazy("admin:socialaccount_socialaccount_changelist"),
+                        "link": reverse_lazy(
+                            "admin:socialaccount_socialaccount_changelist"
+                        ),
                     },
                     {
                         "title": _("Social Apps"),
                         "icon": "apps",
-                        "link": reverse_lazy("admin:socialaccount_socialapp_changelist"),
+                        "link": reverse_lazy(
+                            "admin:socialaccount_socialapp_changelist"
+                        ),
                     },
                     {
                         "title": _("Social Tokens"),
                         "icon": "vpn_key",
-                        "link": reverse_lazy("admin:socialaccount_socialtoken_changelist"),
+                        "link": reverse_lazy(
+                            "admin:socialaccount_socialtoken_changelist"
+                        ),
                     },
                     {
                         "title": _("Email Addresses"),
@@ -378,27 +391,37 @@ UNFOLD = {
                     {
                         "title": _("Periodic Tasks"),
                         "icon": "schedule",
-                        "link": reverse_lazy("admin:django_celery_beat_periodictask_changelist"),
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_periodictask_changelist"
+                        ),
                     },
                     {
                         "title": _("Cron Schedule"),
                         "icon": "access_time",
-                        "link": reverse_lazy("admin:django_celery_beat_crontabschedule_changelist"),
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_crontabschedule_changelist"
+                        ),
                     },
                     {
                         "title": _("Interval Schedule"),
                         "icon": "timer",
-                        "link": reverse_lazy("admin:django_celery_beat_intervalschedule_changelist"),
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_intervalschedule_changelist"
+                        ),
                     },
                     {
                         "title": _("Solar Schedule"),
                         "icon": "wb_sunny",
-                        "link": reverse_lazy("admin:django_celery_beat_solarschedule_changelist"),
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_solarschedule_changelist"
+                        ),
                     },
                     {
                         "title": _("Clocked Schedule"),
                         "icon": "alarm",
-                        "link": reverse_lazy("admin:django_celery_beat_clockedschedule_changelist"),
+                        "link": reverse_lazy(
+                            "admin:django_celery_beat_clockedschedule_changelist"
+                        ),
                     },
                 ],
             },
@@ -413,8 +436,12 @@ def dashboard_callback(request, context):
     template. It can be overridden in application by creating custom admin/index.html.
     """
     from simlane.core.models import ContactMessage
-    from simlane.sim.models import Event, Series, SimProfile
-    from simlane.teams.models import Club, EventParticipation, Team
+    from simlane.sim.models import Event
+    from simlane.sim.models import Series
+    from simlane.sim.models import SimProfile
+    from simlane.teams.models import Club
+    from simlane.teams.models import EventParticipation
+    from simlane.teams.models import Team
     from simlane.users.models import User
 
     # Get date range for the last 30 days
@@ -477,20 +504,25 @@ def dashboard_callback(request, context):
         participation_status_labels.append(status.title())
         participation_status_data.append(item["count"])
         participation_status_colors.append(
-            status_colors.get(status, "#9333ea")
+            status_colors.get(status, "#9333ea"),
         )  # default purple
 
     # User growth this month vs last month
     current_month_start = timezone.now().replace(
-        day=1, hour=0, minute=0, second=0, microsecond=0
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
     )
     last_month_start = (current_month_start - timedelta(days=1)).replace(day=1)
 
     current_month_users = User.objects.filter(
-        date_joined__gte=current_month_start
+        date_joined__gte=current_month_start,
     ).count()
     last_month_users = User.objects.filter(
-        date_joined__gte=last_month_start, date_joined__lt=current_month_start
+        date_joined__gte=last_month_start,
+        date_joined__lt=current_month_start,
     ).count()
 
     growth_percentage = 0
@@ -526,6 +558,6 @@ def dashboard_callback(request, context):
             "recent_users": recent_users,
             "recent_clubs": recent_clubs,
             "recent_events": recent_events,
-        }
+        },
     )
-    return context 
+    return context

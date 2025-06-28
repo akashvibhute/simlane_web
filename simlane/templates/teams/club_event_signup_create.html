@@ -1,540 +1,509 @@
 {% extends "base.html" %}
+
 {% load static %}
 
 {% block title %}{{ title }} | SimLane{% endblock %}
-
 {% block content %}
-<div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+  <div class="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
     <!-- Breadcrumb -->
     <nav class="mb-6">
-        <ol class="flex items-center space-x-2 text-sm">
-            <li>
-                <a href="{% url 'teams:clubs_dashboard' %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                    Clubs
-                </a>
-            </li>
-            <li>
-                <span class="text-gray-400 dark:text-gray-600">/</span>
-            </li>
-            <li>
-                <a href="{% url 'teams:club_dashboard' club.slug %}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                    {{ club.name }}
-                </a>
-            </li>
-            <li>
-                <span class="text-gray-400 dark:text-gray-600">/</span>
-            </li>
-            <li class="text-gray-900 dark:text-gray-100">Create Event Signup</li>
-        </ol>
+      <ol class="flex items-center space-x-2 text-sm">
+        <li>
+          <a href="{% url 'teams:clubs_dashboard' %}"
+             class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Clubs</a>
+        </li>
+        <li>
+          <span class="text-gray-400 dark:text-gray-600">/</span>
+        </li>
+        <li>
+          <a href="{% url 'teams:club_dashboard' club.slug %}"
+             class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">{{ club.name }}</a>
+        </li>
+        <li>
+          <span class="text-gray-400 dark:text-gray-600">/</span>
+        </li>
+        <li class="text-gray-900 dark:text-gray-100">Create Event Signup</li>
+      </ol>
     </nav>
-
     <!-- Header -->
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Create Event Signup</h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">
-            Create a signup sheet for club members to register their interest in an event.
-        </p>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Create Event Signup</h1>
+      <p class="mt-2 text-gray-600 dark:text-gray-400">
+        Create a signup sheet for club members to register their interest in an event.
+      </p>
     </div>
-
     <!-- Form -->
     <form method="post" class="space-y-6">
-        {% csrf_token %}
-        
-        <!-- Event Selection -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Event Selection</h2>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                <!-- Left Sidebar - Filters -->
-                <div class="lg:col-span-1">
-                    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        <h3 class="font-medium text-gray-900 dark:text-white mb-3">Filters</h3>
-                        <div>
-                            <label for="simulator_filter" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Simulator
-                            </label>
-                            <select name="simulator_filter" id="simulator_filter" class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
-                                <option value="">All Simulators</option>
-                                {% for simulator in simulators %}
-                                    <option value="{{ simulator.slug }}">{{ simulator.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Main Content -->
-                <div class="lg:col-span-3">
-                    <!-- Hidden Event Field -->
-                    {{ form.event }}
-                    
-                    <!-- Event Search Input -->
-                    <div class="mb-4 relative">
-                        <label for="{{ form.event_search.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Select Event
-                        </label>
-                        <div class="relative">
-                            <input type="text" 
-                                   name="q"
-                                   id="{{ form.event_search.id_for_label }}"
-                                   placeholder="Type at least 4 characters to search events..."
-                                   class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
-                                   autocomplete="off"
-                                   hx-get="{% url 'events:upcoming_events_list' %}?dropdown=1"
-                                   hx-trigger="input changed delay:300ms"
-                                   hx-target="#event-search-results"
-                                   hx-include="[name='simulator_filter']">
-                            
-                            <!-- Search Results Container - positioned to connect with input -->
-                            <div id="event-search-results" class="absolute z-50 w-full top-full">
-                                <!-- HTMX will populate this with dropdown results -->
-                            </div>
-                        </div>
-                        
-                        {% if form.event_search.help_text %}
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.event_search.help_text }}</p>
-                        {% endif %}
-                        {% if form.event_search.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.event_search.errors|first }}</p>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Search Results Container -->
-                    <div class="relative mb-4">
-                        <!-- This div is now moved up to be inside the input container -->
-                    </div>
-                    
-                    <!-- Selected Event Display (initially hidden) -->
-                    <div id="selected-event-display" class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg {% if not selected_event %}hidden{% endif %}">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="font-medium text-blue-900 dark:text-blue-100">Selected Event:</h4>
-                                <p id="selected-event-name" class="text-sm text-blue-700 dark:text-blue-200">
-                                    {% if selected_event %}
-                                        {{ selected_event.name }} ({{ selected_event.simulator.name }} - {{ selected_event.instances.first.start_time|date:"M d, Y" }})
-                                    {% endif %}
-                                </p>
-                            </div>
-                            <button type="button" onclick="clearSelection()" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Form Errors -->
-                    {% if form.event.errors %}
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.event.errors|first }}</p>
-                    {% endif %}
-                </div>
+      {% csrf_token %}
+      <!-- Event Selection -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Event Selection</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <!-- Left Sidebar - Filters -->
+          <div class="lg:col-span-1">
+            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+              <h3 class="font-medium text-gray-900 dark:text-white mb-3">Filters</h3>
+              <div>
+                <label for="simulator_filter"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Simulator</label>
+                <select name="simulator_filter"
+                        id="simulator_filter"
+                        class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm">
+                  <option value="">All Simulators</option>
+                  {% for simulator in simulators %}<option value="{{ simulator.slug }}">{{ simulator.name }}</option>{% endfor %}
+                </select>
+              </div>
             </div>
-        </div>
-
-        <!-- Signup Details -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Signup Details</h2>
-            
-            <div class="space-y-4">
-                <!-- Title -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Signup Title
-                    </label>
-                    
-                    <!-- Generated Title Preview -->
-                    <div id="title-preview" class="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-md border">
-                        <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Generated title:</div>
-                        <div id="generated-title" class="font-medium text-gray-900 dark:text-white">
-                            {% if selected_event %}
-                                {{ club.name }} - {{ selected_event.name }} - Signup{% if form.title_append.value %} - {{ form.title_append.value }}{% endif %}
-                            {% else %}
-                                {{ club.name }} - [Select an event] - Signup
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Hidden actual title field -->
-                    {{ form.title }}
-                    
-                    <!-- Optional append field -->
-                    <div>
-                        <label for="{{ form.title_append.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Additional text (optional)
-                        </label>
-                        {{ form.title_append }}
-                        {% if form.title_append.help_text %}
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.title_append.help_text }}</p>
-                        {% endif %}
-                        {% if form.title_append.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.title_append.errors|first }}</p>
-                        {% endif %}
-                    </div>
-                    
-                    {% if form.title.errors %}
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.title.errors|first }}</p>
-                    {% endif %}
+          </div>
+          <!-- Main Content -->
+          <div class="lg:col-span-3">
+            <!-- Hidden Event Field -->
+            {{ form.event }}
+            <!-- Event Search Input -->
+            <div class="mb-4 relative">
+              <label for="{{ form.event_search.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select Event</label>
+              <div class="relative">
+                <input type="text"
+                       name="q"
+                       id="{{ form.event_search.id_for_label }}"
+                       placeholder="Type at least 4 characters to search events..."
+                       class="w-full border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
+                       autocomplete="off"
+                       hx-get="{% url 'events:upcoming_events_list' %}?dropdown=1"
+                       hx-trigger="input changed delay:300ms"
+                       hx-target="#event-search-results"
+                       hx-include="[name='simulator_filter']" />
+                <!-- Search Results Container - positioned to connect with input -->
+                <div id="event-search-results" class="absolute z-50 w-full top-full">
+                  <!-- HTMX will populate this with dropdown results -->
                 </div>
-
-                <!-- Description -->
-                <div>
-                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Description
-                    </label>
-                    {{ form.description }}
-                    {% if form.description.help_text %}
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.description.help_text }}</p>
-                    {% endif %}
-                    {% if form.description.errors %}
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.description.errors|first }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Signup Window -->
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div>
-                        <label for="{{ form.signup_opens.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Signup Opens
-                        </label>
-                        {{ form.signup_opens }}
-                        {% if form.signup_opens.help_text %}
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.signup_opens.help_text }}</p>
-                        {% endif %}
-                        {% if form.signup_opens.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.signup_opens.errors|first }}</p>
-                        {% endif %}
-                    </div>
-
-                    <div>
-                        <label for="{{ form.signup_closes.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Signup Closes
-                        </label>
-                        {{ form.signup_closes }}
-                        {% if form.signup_closes.help_text %}
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.signup_closes.help_text }}</p>
-                        {% endif %}
-                        {% if form.signup_closes.errors %}
-                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.signup_closes.errors|first }}</p>
-                        {% endif %}
-                    </div>
-                </div>
+              </div>
+              {% if form.event_search.help_text %}
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.event_search.help_text }}</p>
+              {% endif %}
+              {% if form.event_search.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.event_search.errors|first }}</p>
+              {% endif %}
             </div>
-        </div>
-
-        <!-- Team Formation Settings -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Team Formation Settings</h2>
-            
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <!-- Max Teams -->
-                <div>
-                    <label for="{{ form.max_teams.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Maximum Teams
-                    </label>
-                    {{ form.max_teams }}
-                    {% if form.max_teams.help_text %}
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.max_teams.help_text }}</p>
-                    {% endif %}
-                    {% if form.max_teams.errors %}
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.max_teams.errors|first }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Target Team Size -->
-                <div>
-                    <label for="{{ form.target_team_size.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Target Team Size
-                    </label>
-                    {{ form.target_team_size }}
-                    {% if form.target_team_size.help_text %}
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.target_team_size.help_text }}</p>
-                    {% endif %}
-                    {% if form.target_team_size.errors %}
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.target_team_size.errors|first }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Min Drivers -->
-                <div>
-                    <label for="{{ form.min_drivers_per_team.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Minimum Drivers per Team
-                    </label>
-                    {{ form.min_drivers_per_team }}
-                    {% if form.min_drivers_per_team.help_text %}
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.min_drivers_per_team.help_text }}</p>
-                    {% endif %}
-                    {% if form.min_drivers_per_team.errors %}
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.min_drivers_per_team.errors|first }}</p>
-                    {% endif %}
-                </div>
-
-                <!-- Max Drivers -->
-                <div>
-                    <label for="{{ form.max_drivers_per_team.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Maximum Drivers per Team
-                    </label>
-                    {{ form.max_drivers_per_team }}
-                    {% if form.max_drivers_per_team.help_text %}
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.max_drivers_per_team.help_text }}</p>
-                    {% endif %}
-                    {% if form.max_drivers_per_team.errors %}
-                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.max_drivers_per_team.errors|first }}</p>
-                    {% endif %}
-                </div>
+            <!-- Search Results Container -->
+            <div class="relative mb-4">
+              <!-- This div is now moved up to be inside the input container -->
             </div>
+            <!-- Selected Event Display (initially hidden) -->
+            <div id="selected-event-display"
+                 class="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg {% if not selected_event %}hidden{% endif %}">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="font-medium text-blue-900 dark:text-blue-100">Selected Event:</h4>
+                  <p id="selected-event-name"
+                     class="text-sm text-blue-700 dark:text-blue-200">
+                    {% if selected_event %}
+                      {{ selected_event.name }} ({{ selected_event.simulator.name }} - {{ selected_event.time_slots.first.start_time|date:"M d, Y" }})
+                    {% endif %}
+                  </p>
+                </div>
+                <button type="button"
+                        onclick="clearSelection()"
+                        class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <!-- Form Errors -->
+            {% if form.event.errors %}
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.event.errors|first }}</p>
+            {% endif %}
+          </div>
         </div>
-
-        <!-- Requirements -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Requirements (Optional)</h2>
-            
+      </div>
+      <!-- Signup Details -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Signup Details</h2>
+        <div class="space-y-4">
+          <!-- Title -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Signup Title</label>
+            <!-- Generated Title Preview -->
+            <div id="title-preview"
+                 class="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-md border">
+              <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">Generated title:</div>
+              <div id="generated-title"
+                   class="font-medium text-gray-900 dark:text-white">
+                {% if selected_event %}
+                  {{ club.name }} - {{ selected_event.name }} - Signup
+                  {% if form.title_append.value %}- {{ form.title_append.value }}{% endif %}
+                {% else %}
+                  {{ club.name }} - [Select an event] - Signup
+                {% endif %}
+              </div>
+            </div>
+            <!-- Hidden actual title field -->
+            {{ form.title }}
+            <!-- Optional append field -->
             <div>
-                <label for="{{ form.min_license_level.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Minimum License Level
-                </label>
-                {{ form.min_license_level }}
-                {% if form.min_license_level.help_text %}
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.min_license_level.help_text }}</p>
-                {% endif %}
-                {% if form.min_license_level.errors %}
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.min_license_level.errors|first }}</p>
-                {% endif %}
+              <label for="{{ form.title_append.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Additional text (optional)
+              </label>
+              {{ form.title_append }}
+              {% if form.title_append.help_text %}
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.title_append.help_text }}</p>
+              {% endif %}
+              {% if form.title_append.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.title_append.errors|first }}</p>
+              {% endif %}
             </div>
-        </div>
-
-        <!-- Admin Notes -->
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Admin Notes (Optional)</h2>
-            
+            {% if form.title.errors %}
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.title.errors|first }}</p>
+            {% endif %}
+          </div>
+          <!-- Description -->
+          <div>
+            <label for="{{ form.description.id_for_label }}"
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+            {{ form.description }}
+            {% if form.description.help_text %}
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.description.help_text }}</p>
+            {% endif %}
+            {% if form.description.errors %}
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.description.errors|first }}</p>
+            {% endif %}
+          </div>
+          <!-- Signup Window -->
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-                <label for="{{ form.notes_for_admins.id_for_label }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Internal Notes
-                </label>
-                {{ form.notes_for_admins }}
-                {% if form.notes_for_admins.help_text %}
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.notes_for_admins.help_text }}</p>
-                {% endif %}
-                {% if form.notes_for_admins.errors %}
-                    <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.notes_for_admins.errors|first }}</p>
-                {% endif %}
+              <label for="{{ form.signup_opens.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Signup Opens</label>
+              {{ form.signup_opens }}
+              {% if form.signup_opens.help_text %}
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.signup_opens.help_text }}</p>
+              {% endif %}
+              {% if form.signup_opens.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.signup_opens.errors|first }}</p>
+              {% endif %}
             </div>
+            <div>
+              <label for="{{ form.signup_closes.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Signup Closes</label>
+              {{ form.signup_closes }}
+              {% if form.signup_closes.help_text %}
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.signup_closes.help_text }}</p>
+              {% endif %}
+              {% if form.signup_closes.errors %}
+                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.signup_closes.errors|first }}</p>
+              {% endif %}
+            </div>
+          </div>
         </div>
-
-        <!-- Form Actions -->
-        <div class="flex justify-end space-x-3">
-            <a href="{% url 'teams:club_dashboard' club.slug %}" 
-               class="btn btn-secondary">
-                Cancel
-            </a>
-            <button type="submit" class="btn btn-primary">
-                Create Signup Sheet
-            </button>
+      </div>
+      <!-- Team Formation Settings -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Team Formation Settings</h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <!-- Max Teams -->
+          <div>
+            <label for="{{ form.max_teams.id_for_label }}"
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Maximum Teams</label>
+            {{ form.max_teams }}
+            {% if form.max_teams.help_text %}
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.max_teams.help_text }}</p>
+            {% endif %}
+            {% if form.max_teams.errors %}
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.max_teams.errors|first }}</p>
+            {% endif %}
+          </div>
+          <!-- Target Team Size -->
+          <div>
+            <label for="{{ form.target_team_size.id_for_label }}"
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target Team Size</label>
+            {{ form.target_team_size }}
+            {% if form.target_team_size.help_text %}
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.target_team_size.help_text }}</p>
+            {% endif %}
+            {% if form.target_team_size.errors %}
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.target_team_size.errors|first }}</p>
+            {% endif %}
+          </div>
+          <!-- Min Drivers -->
+          <div>
+            <label for="{{ form.min_drivers_per_team.id_for_label }}"
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Minimum Drivers per Team
+            </label>
+            {{ form.min_drivers_per_team }}
+            {% if form.min_drivers_per_team.help_text %}
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.min_drivers_per_team.help_text }}</p>
+            {% endif %}
+            {% if form.min_drivers_per_team.errors %}
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.min_drivers_per_team.errors|first }}</p>
+            {% endif %}
+          </div>
+          <!-- Max Drivers -->
+          <div>
+            <label for="{{ form.max_drivers_per_team.id_for_label }}"
+                   class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Maximum Drivers per Team
+            </label>
+            {{ form.max_drivers_per_team }}
+            {% if form.max_drivers_per_team.help_text %}
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.max_drivers_per_team.help_text }}</p>
+            {% endif %}
+            {% if form.max_drivers_per_team.errors %}
+              <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.max_drivers_per_team.errors|first }}</p>
+            {% endif %}
+          </div>
         </div>
+      </div>
+      <!-- Requirements -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Requirements (Optional)</h2>
+        <div>
+          <label for="{{ form.min_license_level.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Minimum License Level</label>
+          {{ form.min_license_level }}
+          {% if form.min_license_level.help_text %}
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.min_license_level.help_text }}</p>
+          {% endif %}
+          {% if form.min_license_level.errors %}
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.min_license_level.errors|first }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <!-- Admin Notes -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Admin Notes (Optional)</h2>
+        <div>
+          <label for="{{ form.notes_for_admins.id_for_label }}"
+                 class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Internal Notes</label>
+          {{ form.notes_for_admins }}
+          {% if form.notes_for_admins.help_text %}
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.notes_for_admins.help_text }}</p>
+          {% endif %}
+          {% if form.notes_for_admins.errors %}
+            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.notes_for_admins.errors|first }}</p>
+          {% endif %}
+        </div>
+      </div>
+      <!-- Form Actions -->
+      <div class="flex justify-end space-x-3">
+        <a href="{% url 'teams:club_dashboard' club.slug %}"
+           class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary">Create Signup Sheet</button>
+      </div>
     </form>
-</div>
-
-<script>
-// Function called from dropdown template when event is selected
-function selectEvent(eventId, eventName, simulatorName, eventDate) {
-    // Set the hidden field value
-    const eventField = document.querySelector('input[name="event"]');
-    if (eventField) {
+  </div>
+  <script>
+    // Function called from dropdown template when event is selected
+    function selectEvent(eventId, eventName, simulatorName, eventDate) {
+      // Set the hidden field value
+      const eventField = document.querySelector('input[name="event"]');
+      if (eventField) {
         eventField.value = eventId;
-    }
-    
-    // Update the search input display
-    const searchInput = document.querySelector('input[name="q"]');
-    if (searchInput) {
+      }
+
+      // Update the search input display
+      const searchInput = document.querySelector('input[name="q"]');
+      if (searchInput) {
         searchInput.value = '';
-    }
-    
-    // Show selected event display
-    const selectedDisplay = document.getElementById('selected-event-display');
-    const selectedName = document.getElementById('selected-event-name');
-    if (selectedDisplay && selectedName) {
+      }
+
+      // Show selected event display
+      const selectedDisplay = document.getElementById('selected-event-display');
+      const selectedName = document.getElementById('selected-event-name');
+      if (selectedDisplay && selectedName) {
         selectedName.textContent = `${eventName} (${simulatorName} - ${eventDate})`;
         selectedDisplay.classList.remove('hidden');
-    }
-    
-    // Clear the dropdown
-    const resultsContainer = document.getElementById('event-search-results');
-    if (resultsContainer) {
+      }
+
+      // Clear the dropdown
+      const resultsContainer = document.getElementById('event-search-results');
+      if (resultsContainer) {
         resultsContainer.innerHTML = '';
-    }
-    
-    // Generate and update title
-    updateGeneratedTitle(eventName);
-    
-    // Trigger change event for any listeners
-    if (eventField) {
-        eventField.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-}
+      }
 
-// Function to update the generated title
-function updateGeneratedTitle(eventName = null) {
-    const clubName = "{{ club.name|escapejs }}";
-    const titleAppendInput = document.getElementById('{{ form.title_append.id_for_label }}');
-    const titleAppend = titleAppendInput ? titleAppendInput.value.trim() : '';
-    
-    let baseTitle;
-    if (eventName) {
+      // Generate and update title
+      updateGeneratedTitle(eventName);
+
+      // Trigger change event for any listeners
+      if (eventField) {
+        eventField.dispatchEvent(new Event('change', {
+          bubbles: true
+        }));
+      }
+    }
+
+    // Function to update the generated title
+    function updateGeneratedTitle(eventName = null) {
+      const clubName = "{{ club.name|escapejs }}";
+      const titleAppendInput = document.getElementById('{{ form.title_append.id_for_label }}');
+      const titleAppend = titleAppendInput ? titleAppendInput.value.trim() : '';
+
+      let baseTitle;
+      if (eventName) {
         baseTitle = `${clubName} - ${eventName} - Signup`;
-    } else {
+      } else {
         baseTitle = `${clubName} - [Select an event] - Signup`;
-    }
-    
-    let fullTitle = baseTitle;
-    if (titleAppend) {
-        fullTitle += ` - ${titleAppend}`;
-    }
-    
-    // Update the preview (but don't set the hidden field - server will generate it)
-    const generatedTitleElement = document.getElementById('generated-title');
-    if (generatedTitleElement) {
-        generatedTitleElement.textContent = fullTitle;
-    }
-}
+      }
 
-// Function to clear selection
-function clearSelection() {
-    // Clear the hidden field
-    const eventField = document.querySelector('input[name="event"]');
-    if (eventField) {
-        eventField.value = '';
+      let fullTitle = baseTitle;
+      if (titleAppend) {
+        fullTitle += ` - ${titleAppend}`;
+      }
+
+      // Update the preview (but don't set the hidden field - server will generate it)
+      const generatedTitleElement = document.getElementById('generated-title');
+      if (generatedTitleElement) {
+        generatedTitleElement.textContent = fullTitle;
+      }
     }
-    
-    // Clear the search input
-    const searchInput = document.querySelector('input[name="q"]');
-    if (searchInput) {
+
+    // Function to clear selection
+    function clearSelection() {
+      // Clear the hidden field
+      const eventField = document.querySelector('input[name="event"]');
+      if (eventField) {
+        eventField.value = '';
+      }
+
+      // Clear the search input
+      const searchInput = document.querySelector('input[name="q"]');
+      if (searchInput) {
         searchInput.value = '';
         searchInput.focus();
-    }
-    
-    // Hide selected event display
-    const selectedDisplay = document.getElementById('selected-event-display');
-    if (selectedDisplay) {
+      }
+
+      // Hide selected event display
+      const selectedDisplay = document.getElementById('selected-event-display');
+      if (selectedDisplay) {
         selectedDisplay.classList.add('hidden');
-    }
-    
-    // Reset title to default
-    updateGeneratedTitle();
-}
+      }
 
-// Handle simulator filter changes
-document.addEventListener('DOMContentLoaded', function() {
-    const simulatorFilter = document.getElementById('simulator_filter');
-    const searchInput = document.querySelector('input[name="q"]');
-    const titleAppendInput = document.getElementById('{{ form.title_append.id_for_label }}');
-    
-    if (simulatorFilter) {
+      // Reset title to default
+      updateGeneratedTitle();
+    }
+
+    // Handle simulator filter changes
+    document.addEventListener('DOMContentLoaded', function() {
+      const simulatorFilter = document.getElementById('simulator_filter');
+      const searchInput = document.querySelector('input[name="q"]');
+      const titleAppendInput = document.getElementById('{{ form.title_append.id_for_label }}');
+
+      if (simulatorFilter) {
         simulatorFilter.addEventListener('change', function() {
-            // Clear current results when filter changes
-            const resultsContainer = document.getElementById('event-search-results');
-            if (resultsContainer) {
-                resultsContainer.innerHTML = '';
-            }
-            
-            // Update the hx-get URL to include the simulator parameter
-            if (searchInput) {
-                const baseUrl = "{% url 'events:upcoming_events_list' %}?dropdown=1";
-                const simulatorParam = simulatorFilter.value ? `&simulator=${simulatorFilter.value}` : '';
-                searchInput.setAttribute('hx-get', baseUrl + simulatorParam);
-            }
-            
-            // Trigger search if there's text in the search input (and it's long enough)
-            if (searchInput && searchInput.value.trim().length >= 4) {
-                htmx.trigger(searchInput, 'input');
-            }
-        });
-    }
-    
-    // Handle title append field changes
-    if (titleAppendInput) {
-        titleAppendInput.addEventListener('input', function() {
-            // Get the current selected event name from the hidden field or selected display
-            const selectedEventDisplay = document.getElementById('selected-event-name');
-            let eventName = null;
-            
-            if (selectedEventDisplay && !selectedEventDisplay.textContent.includes('[Select an event]')) {
-                // Extract event name from the display text (format: "EventName (Simulator - Date)")
-                const displayText = selectedEventDisplay.textContent;
-                const match = displayText.match(/^([^(]+)/);
-                if (match) {
-                    eventName = match[1].trim();
-                }
-            }
-            
-            updateGeneratedTitle(eventName);
-        });
-    }
-});
+          // Clear current results when filter changes
+          const resultsContainer = document.getElementById('event-search-results');
+          if (resultsContainer) {
+            resultsContainer.innerHTML = '';
+          }
 
-// Prevent HTMX requests for short search terms (minimum 4 characters)
-document.body.addEventListener('htmx:beforeRequest', function(evt) {
-    var input = document.querySelector('input[name="q"]');
-    if (input && evt.target === input) {
+          // Update the hx-get URL to include the simulator parameter
+          if (searchInput) {
+            const baseUrl = "{% url 'events:upcoming_events_list' %}?dropdown=1";
+            const simulatorParam = simulatorFilter.value ? `&simulator=${simulatorFilter.value}` : '';
+            searchInput.setAttribute('hx-get', baseUrl + simulatorParam);
+          }
+
+          // Trigger search if there's text in the search input (and it's long enough)
+          if (searchInput && searchInput.value.trim().length >= 4) {
+            htmx.trigger(searchInput, 'input');
+          }
+        });
+      }
+
+      // Handle title append field changes
+      if (titleAppendInput) {
+        titleAppendInput.addEventListener('input', function() {
+          // Get the current selected event name from the hidden field or selected display
+          const selectedEventDisplay = document.getElementById('selected-event-name');
+          let eventName = null;
+
+          if (selectedEventDisplay && !selectedEventDisplay.textContent.includes('[Select an event]')) {
+            // Extract event name from the display text (format: "EventName (Simulator - Date)")
+            const displayText = selectedEventDisplay.textContent;
+            const match = displayText.match(/^([^(]+)/);
+            if (match) {
+              eventName = match[1].trim();
+            }
+          }
+
+          updateGeneratedTitle(eventName);
+        });
+      }
+    });
+
+    // Prevent HTMX requests for short search terms (minimum 4 characters)
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+      var input = document.querySelector('input[name="q"]');
+      if (input && evt.target === input) {
         var val = input.value.trim();
         if (val.length === 0) {
-            // Clear results if search is empty
-            evt.preventDefault();
-            const resultsContainer = document.getElementById('event-search-results');
-            if (resultsContainer) {
-                resultsContainer.innerHTML = '';
-            }
+          // Clear results if search is empty
+          evt.preventDefault();
+          const resultsContainer = document.getElementById('event-search-results');
+          if (resultsContainer) {
+            resultsContainer.innerHTML = '';
+          }
         } else if (val.length > 0 && val.length < 4) {
-            evt.preventDefault();
-            // Clear results if search term is too short
-            const resultsContainer = document.getElementById('event-search-results');
-            if (resultsContainer) {
-                resultsContainer.innerHTML = '<div class="absolute z-50 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg mt-1"><div class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">Type at least 4 characters to search...</div></div>';
-            }
+          evt.preventDefault();
+          // Clear results if search term is too short
+          const resultsContainer = document.getElementById('event-search-results');
+          if (resultsContainer) {
+            resultsContainer.innerHTML = '<div class="absolute z-50 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg mt-1"><div class="p-4 text-center text-gray-500 dark:text-gray-400 text-sm">Type at least 4 characters to search...</div></div>';
+          }
         }
-    }
-});
+      }
+    });
 
-// Clear search results when input is empty (single listener)
-document.getElementById('{{ form.event_search.id_for_label }}').addEventListener('input', function(e) {
-    if (e.target.value.length === 0) {
+    // Clear search results when input is empty (single listener)
+    document.getElementById('{{ form.event_search.id_for_label }}').addEventListener('input', function(e) {
+      if (e.target.value.length === 0) {
         document.getElementById('event-search-results').innerHTML = '';
+      }
+    });
+
+    // Initialize generated title on page load if event already selected (e.g., after form error)
+    {
+      %
+      if selected_event %
     }
-});
+    document.addEventListener('DOMContentLoaded', function() {
+      updateGeneratedTitle("{{ selected_event.name|escapejs }}");
+    });
+    {
+      % endif %
+    }
 
-// Initialize generated title on page load if event already selected (e.g., after form error)
-{% if selected_event %}
-document.addEventListener('DOMContentLoaded', function() {
-    updateGeneratedTitle("{{ selected_event.name|escapejs }}");
-});
-{% endif %}
+    // Add input styling for connected appearance
+    const searchInput = document.getElementById('{{ form.event_search.id_for_label }}');
+    const resultsContainer = document.getElementById('event-search-results');
 
-// Add input styling for connected appearance
-const searchInput = document.getElementById('{{ form.event_search.id_for_label }}');
-const resultsContainer = document.getElementById('event-search-results');
+    searchInput.addEventListener('focus', function() {
+      // Add border radius classes for connected appearance when focused
+      this.classList.add('rounded-b-none');
+    });
 
-searchInput.addEventListener('focus', function() {
-    // Add border radius classes for connected appearance when focused
-    this.classList.add('rounded-b-none');
-});
-
-searchInput.addEventListener('blur', function() {
-    // Delay removing the border radius to allow for dropdown interactions
-    setTimeout(() => {
+    searchInput.addEventListener('blur', function() {
+      // Delay removing the border radius to allow for dropdown interactions
+      setTimeout(() => {
         if (!resultsContainer.querySelector(':hover')) {
-            this.classList.remove('rounded-b-none');
+          this.classList.remove('rounded-b-none');
         }
-    }, 150);
-});
+      }, 150);
+    });
 
-// Make sure dropdown appears connected when results are shown
-htmx.on('htmx:afterSwap', function(evt) {
-    if (evt.detail.target.id === 'event-search-results') {
+    // Make sure dropdown appears connected when results are shown
+    htmx.on('htmx:afterSwap', function(evt) {
+      if (evt.detail.target.id === 'event-search-results') {
         const hasResults = evt.detail.target.children.length > 0;
         if (hasResults) {
-            searchInput.classList.add('rounded-b-none');
+          searchInput.classList.add('rounded-b-none');
         } else {
-            searchInput.classList.remove('rounded-b-none');
+          searchInput.classList.remove('rounded-b-none');
         }
-    }
-});
-</script>
-{% endblock %} 
+      }
+    });
+  </script>
+{% endblock %}

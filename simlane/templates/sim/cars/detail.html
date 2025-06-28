@@ -1,125 +1,125 @@
 {% extends "base.html" %}
 
 {% block title %}{{ car.manufacturer }} {{ car.name }} - SimLane{% endblock %}
-
 {% block content %}
-<div class="space-y-6">
+  <div class="space-y-6">
     <!-- Breadcrumb -->
     <nav class="flex text-sm text-gray-500 dark:text-gray-400">
-        <a href="{% url 'cars_list' %}" class="hover:text-primary-600 dark:hover:text-primary-400">Cars</a>
-        <span class="mx-2">/</span>
-        <span class="text-gray-900 dark:text-white">{{ car.manufacturer }} {{ car.name }}</span>
+      <a href="{% url 'cars_list' %}"
+         class="hover:text-primary-600 dark:hover:text-primary-400">Cars</a>
+      <span class="mx-2">/</span>
+      <span class="text-gray-900 dark:text-white">{{ car.manufacturer }} {{ car.name }}</span>
     </nav>
-
     <!-- Car Header -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="md:flex">
-            <!-- Car Image -->
-            <div class="md:w-1/2">
-                {% if car.default_image_url %}
-                    <img src="{{ car.default_image_url }}" alt="{{ car.manufacturer }} {{ car.name }}" class="w-full h-96 object-cover">
-                {% else %}
-                    <div class="w-full h-96 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                        <svg class="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
-                        </svg>
-                    </div>
-                {% endif %}
+      <div class="md:flex">
+        <!-- Car Image -->
+        <div class="md:w-1/2">
+          {% if car.default_image_url %}
+            <img src="{{ car.default_image_url }}"
+                 alt="{{ car.manufacturer }} {{ car.name }}"
+                 class="w-full h-96 object-cover" />
+          {% else %}
+            <div class="w-full h-96 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+              <svg class="w-24 h-24 text-gray-400"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z">
+                </path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0">
+                </path>
+              </svg>
             </div>
-            
-            <!-- Car Info -->
-            <div class="md:w-1/2 p-6">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                    {{ car.manufacturer }} {{ car.name }}
-                </h1>
-                
-                <div class="flex items-center gap-4 mb-6">
-                    <c-car-category-badge category="{{ car.category }}" size="md" />
-                    {% if car.release_year %}
-                        <span class="text-gray-500 dark:text-gray-400">{{ car.release_year }}</span>
-                    {% endif %}
-                </div>
-                
-                {# No per-category description #}
-                
-                {% if car.base_specs %}
-                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Specifications</h3>
-                        <dl class="grid grid-cols-2 gap-2 text-sm">
-                            {% for key, value in car.base_specs.items %}
-                                <dt class="text-gray-500 dark:text-gray-400">{{ key|title|cut:"_" }}:</dt>
-                                <dd class="text-gray-900 dark:text-white">{{ value }}</dd>
-                            {% endfor %}
-                        </dl>
-                    </div>
-                {% endif %}
-            </div>
+          {% endif %}
         </div>
+        <!-- Car Info -->
+        <div class="md:w-1/2 p-6">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">{{ car.manufacturer }} {{ car.name }}</h1>
+          <div class="flex items-center gap-4 mb-6">
+            <c-car-category-badge category="{{ car.category }}" size="md" />
+            {% if car.release_year %}<span class="text-gray-500 dark:text-gray-400">{{ car.release_year }}</span>{% endif %}
+          </div>
+          {# No per-category description #}
+          {% if car.base_specs %}
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <h3 class="font-semibold text-gray-900 dark:text-white mb-3">Specifications</h3>
+              <dl class="grid grid-cols-2 gap-2 text-sm">
+                {% for key, value in car.base_specs.items %}
+                  <dt class="text-gray-500 dark:text-gray-400">{{ key|title|cut:"_" }}:</dt>
+                  <dd class="text-gray-900 dark:text-white">
+                    {{ value }}
+                  </dd>
+                {% endfor %}
+              </dl>
+            </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
-
     <!-- Simulator Availability -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Available in Simulators</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {% for sim_car in car.sim_cars.all %}
-                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                    <div class="flex items-center gap-3 mb-3">
-                        {% if sim_car.simulator.icon %}
-                            <img src="{{ sim_car.simulator.icon.url }}" alt="{{ sim_car.simulator.name }}" class="w-10 h-10 rounded">
-                        {% else %}
-                            <div class="w-10 h-10 bg-primary-500 rounded flex items-center justify-center">
-                                <span class="text-lg font-bold text-white">{{ sim_car.simulator.name|first }}</span>
-                            </div>
-                        {% endif %}
-                        <div>
-                            <h3 class="font-medium text-gray-900 dark:text-white">{{ sim_car.simulator.name }}</h3>
-                            {% if sim_car.bop_version %}
-                                <p class="text-sm text-gray-500 dark:text-gray-400">BOP: {{ sim_car.bop_version }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    {% if sim_car.pit_data %}
-                        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                            <p>Fuel: {{ sim_car.pit_data.fuel_unit }}</p>
-                            <p>Tire change: {{ sim_car.pit_data.tire_change_all_four_sec }}s</p>
-                        </div>
-                    {% endif %}
-                    
-                    <div class="mt-3 flex items-center justify-between">
-                        <span class="text-sm {% if sim_car.is_active %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
-                            {% if sim_car.is_active %}Active{% else %}Inactive{% endif %}
-                        </span>
-                    </div>
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Available in Simulators</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for sim_car in car.sim_cars.all %}
+          <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+            <div class="flex items-center gap-3 mb-3">
+              {% if sim_car.simulator.icon %}
+                <img src="{{ sim_car.simulator.icon.url }}"
+                     alt="{{ sim_car.simulator.name }}"
+                     class="w-10 h-10 rounded" />
+              {% else %}
+                <div class="w-10 h-10 bg-primary-500 rounded flex items-center justify-center">
+                  <span class="text-lg font-bold text-white">{{ sim_car.simulator.name|first }}</span>
                 </div>
-            {% empty %}
-                <p class="text-gray-500 dark:text-gray-400 col-span-full">No simulator data available.</p>
-            {% endfor %}
-        </div>
+              {% endif %}
+              <div>
+                <h3 class="font-medium text-gray-900 dark:text-white">{{ sim_car.simulator.name }}</h3>
+                {% if sim_car.bop_version %}
+                  <p class="text-sm text-gray-500 dark:text-gray-400">BOP: {{ sim_car.bop_version }}</p>
+                {% endif %}
+              </div>
+            </div>
+            {% if sim_car.pit_data %}
+              <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <p>Fuel: {{ sim_car.pit_data.fuel_unit }}</p>
+                <p>Tire change: {{ sim_car.pit_data.tire_change_all_four_sec }}s</p>
+              </div>
+            {% endif %}
+            <div class="mt-3 flex items-center justify-between">
+              <span class="text-sm {% if sim_car.is_active %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %}">
+                {% if sim_car.is_active %}
+                  Active
+                {% else %}
+                  Inactive
+                {% endif %}
+              </span>
+            </div>
+          </div>
+        {% empty %}
+          <p class="text-gray-500 dark:text-gray-400 col-span-full">No simulator data available.</p>
+        {% endfor %}
+      </div>
     </div>
-
     <!-- Related Cars -->
     {% if related_cars %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Related Cars</h2>
-            
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {% for related_car in related_cars|slice:":8" %}
-                    <a href="{% url 'car_detail' related_car.slug %}" 
-                       class="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                        <h4 class="font-medium text-gray-900 dark:text-white text-sm mb-1">
-                            {{ related_car.manufacturer }} {{ related_car.name }}
-                        </h4>
-                        <c-car-category-badge category="{{ related_car.category }}" size="sm" />
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {{ related_car.simulator_count }} simulator{{ related_car.simulator_count|pluralize }}
-                        </p>
-                    </a>
-                {% endfor %}
-            </div>
+      <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Related Cars</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {% for related_car in related_cars|slice:":8" %}
+            <a href="{% url 'car_detail' related_car.slug %}"
+               class="block p-3 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+              <h4 class="font-medium text-gray-900 dark:text-white text-sm mb-1">
+                {{ related_car.manufacturer }} {{ related_car.name }}
+              </h4>
+              <c-car-category-badge category="{{ related_car.category }}" size="sm" />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {{ related_car.simulator_count }} simulator{{ related_car.simulator_count|pluralize }}
+              </p>
+            </a>
+          {% endfor %}
         </div>
+      </div>
     {% endif %}
-</div>
-{% endblock %} 
+  </div>
+{% endblock %}

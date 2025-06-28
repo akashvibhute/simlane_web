@@ -6,13 +6,14 @@
       <!-- Logo and Description -->
       <div class="md:col-span-1">
         <div class="flex items-center mb-4">
-          <img src="{% static 'images/logo.svg' %}" alt="SimLane" class="h-8 dark:invert dark:hue-rotate-180" />
+          <img src="{% static 'images/logo.svg' %}"
+               alt="SimLane"
+               class="h-8 dark:invert dark:hue-rotate-180" />
         </div>
         <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
           Your ultimate simracing companion. Track your progress, analyze your performance, and connect with fellow racers.
         </p>
       </div>
-      
       <!-- Browse Section -->
       <div>
         <h3 class="text-gray-900 dark:text-white font-semibold mb-4">Browse</h3>
@@ -26,24 +27,23 @@
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">All Tracks</a>
           </li>
           <li>
-                                                    <a href="{% url 'drivers:profiles_list' %}"
-                       class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Drivers</a>
+            <a href="{% url 'drivers:profiles_list' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Drivers</a>
           </li>
           <li>
-                                                    <a href="{% url 'drivers:profiles_by_simulator' simulator_slug='iracing' %}"
-                       class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">iRacing Drivers</a>
+            <a href="{% url 'drivers:profiles_by_simulator' simulator_slug='iracing' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">iRacing Drivers</a>
           </li>
           <li>
-                                                    <a href="{% url 'drivers:profiles_by_simulator' simulator_slug='assetto-corsa-competizione' %}"
-                       class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">ACC Drivers</a>
+            <a href="{% url 'drivers:profiles_by_simulator' simulator_slug='assetto-corsa-competizione' %}"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">ACC Drivers</a>
           </li>
           <li>
-                                <a href="{% url 'dashboard:dashboard_home' %}"
+            <a href="{% url 'dashboard:dashboard_home' %}"
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Sim Dashboard</a>
           </li>
         </ul>
       </div>
-      
       <!-- Quick Links -->
       <div>
         <h3 class="text-gray-900 dark:text-white font-semibold mb-4">Quick Links</h3>
@@ -67,10 +67,10 @@
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Search</a>
           </li>
           {% if user.is_authenticated %}
-          <li>
-            <a href="{% url 'teams:clubs_dashboard' %}"
-               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Clubs</a>
-          </li>
+            <li>
+              <a href="{% url 'teams:clubs_dashboard' %}"
+                 class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Clubs</a>
+            </li>
           {% endif %}
         </ul>
       </div>

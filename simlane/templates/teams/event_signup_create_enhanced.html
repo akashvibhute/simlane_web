@@ -1,266 +1,240 @@
 {% extends "base.html" %}
+
 {% load static %}
 {% load webpack_loader %}
 
 {% block title %}Sign Up for {{ event.name }}{% endblock %}
-
 {% block content %}
-<div class="max-w-4xl mx-auto py-8">
+  <div class="max-w-4xl mx-auto py-8">
     <!-- Event Header -->
     <div class="bg-white rounded-lg shadow-sm border mb-6">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h1 class="text-2xl font-bold text-gray-900">{{ event.name }}</h1>
-            <div class="mt-2 flex items-center space-x-4 text-sm text-gray-600">
-                <span>📅 {{ event.start_date|date:"M d, Y" }}</span>
-                <span>🏁 {{ event.track.name }}</span>
-                <span>🚗 {{ event.car_class.name }}</span>
-                {% if event.duration_hours %}
-                    <span>⏱️ {{ event.duration_hours }}h</span>
-                {% endif %}
-            </div>
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h1 class="text-2xl font-bold text-gray-900">{{ event.name }}</h1>
+        <div class="mt-2 flex items-center space-x-4 text-sm text-gray-600">
+          <span>📅 {{ event.start_date|date:"M d, Y" }}</span>
+          <span>🏁 {{ event.track.name }}</span>
+          <span>🚗 {{ event.car_class.name }}</span>
+          {% if event.duration_hours %}<span>⏱️ {{ event.duration_hours }}h</span>{% endif %}
         </div>
-        
-        {% if event.description %}
+      </div>
+      {% if event.description %}
         <div class="px-6 py-4">
-            <p class="text-gray-700">{{ event.description }}</p>
+          <p class="text-gray-700">{{ event.description }}</p>
         </div>
-        {% endif %}
+      {% endif %}
     </div>
-
     <!-- Signup Form -->
-    <form hx-post="{% url 'teams:event_signup' event.id %}" 
-          hx-target="#form-container" 
+    <form hx-post="{% url 'teams:event_signup' event.id %}"
+          hx-target="#form-container"
           hx-swap="outerHTML"
           class="space-y-6">
-        
-        <div id="form-container">
-            {% csrf_token %}
-            
-            <!-- Basic Preferences -->
-            <div class="bg-white rounded-lg shadow-sm border">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">Basic Preferences</h2>
-                    <p class="text-sm text-gray-600 mt-1">Tell us about your car preferences and experience level</p>
-                </div>
-                
-                <div class="px-6 py-4 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Preferred Car -->
-                        <div>
-                            <label for="{{ form.preferred_car.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                Preferred Car
-                            </label>
-                            {{ form.preferred_car }}
-                            {% if form.preferred_car.help_text %}
-                                <p class="text-xs text-gray-500 mt-1">{{ form.preferred_car.help_text }}</p>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- Backup Car -->
-                        <div>
-                            <label for="{{ form.backup_car.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                Backup Car
-                            </label>
-                            {{ form.backup_car }}
-                            {% if form.backup_car.help_text %}
-                                <p class="text-xs text-gray-500 mt-1">{{ form.backup_car.help_text }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Experience Level -->
-                    <div>
-                        <label for="{{ form.experience_level.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                            Experience Level
-                        </label>
-                        {{ form.experience_level }}
-                        {% if form.experience_level.help_text %}
-                            <p class="text-xs text-gray-500 mt-1">{{ form.experience_level.help_text }}</p>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Stint Preferences -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="{{ form.max_stint_duration.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                Max Stint Duration (minutes)
-                            </label>
-                            {{ form.max_stint_duration }}
-                        </div>
-                        
-                        <div>
-                            <label for="{{ form.min_rest_duration.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                                Min Rest Between Stints (minutes)
-                            </label>
-                            {{ form.min_rest_duration }}
-                        </div>
-                    </div>
-                </div>
+      <div id="form-container">
+        {% csrf_token %}
+        <!-- Basic Preferences -->
+        <div class="bg-white rounded-lg shadow-sm border">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold">Basic Preferences</h2>
+            <p class="text-sm text-gray-600 mt-1">Tell us about your car preferences and experience level</p>
+          </div>
+          <div class="px-6 py-4 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Preferred Car -->
+              <div>
+                <label for="{{ form.preferred_car.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 mb-1">Preferred Car</label>
+                {{ form.preferred_car }}
+                {% if form.preferred_car.help_text %}
+                  <p class="text-xs text-gray-500 mt-1">{{ form.preferred_car.help_text }}</p>
+                {% endif %}
+              </div>
+              <!-- Backup Car -->
+              <div>
+                <label for="{{ form.backup_car.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 mb-1">Backup Car</label>
+                {{ form.backup_car }}
+                {% if form.backup_car.help_text %}
+                  <p class="text-xs text-gray-500 mt-1">{{ form.backup_car.help_text }}</p>
+                {% endif %}
+              </div>
             </div>
-
-            <!-- Availability Calendar -->
-            <div class="bg-white rounded-lg shadow-sm border">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">Your Availability</h2>
-                    <p class="text-sm text-gray-600 mt-1">
-                        Select the time periods when you're available to participate. 
-                        You can specify different roles (driver, spotter, strategist) and preference levels.
-                    </p>
-                </div>
-                
-                <div class="px-6 py-4">
-                    <!-- Timezone Selector -->
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Your Timezone
-                        </label>
-                        <select id="user-timezone" class="w-full md:w-auto rounded-md border-gray-300">
-                            <option value="UTC">UTC</option>
-                            <option value="US/Eastern">US Eastern</option>
-                            <option value="US/Central">US Central</option>
-                            <option value="US/Mountain">US Mountain</option>
-                            <option value="US/Pacific">US Pacific</option>
-                            <option value="Europe/London">Europe/London</option>
-                            <option value="Europe/Paris">Europe/Paris</option>
-                            <option value="Europe/Berlin">Europe/Berlin</option>
-                            <option value="Australia/Sydney">Australia/Sydney</option>
-                        </select>
-                    </div>
-                    
-                    <!-- Availability Calendar Component -->
-                    <div id="availability-input" 
-                         data-component="availability-calendar"
-                         data-user-timezone="{{ user.profile.timezone|default:'UTC' }}"
-                         data-event-start="{{ event.start_date|date:'c' }}"
-                         data-event-end="{{ event.end_date|date:'c' }}"
-                         data-existing-windows="[]">
-                        <!-- Calendar will be initialized here -->
-                    </div>
-                    
-                    <!-- Hidden field to store availability data -->
-                    <input type="hidden" name="availability_data" id="availability-data" value="">
-                </div>
+            <!-- Experience Level -->
+            <div>
+              <label for="{{ form.experience_level.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 mb-1">Experience Level</label>
+              {{ form.experience_level }}
+              {% if form.experience_level.help_text %}
+                <p class="text-xs text-gray-500 mt-1">{{ form.experience_level.help_text }}</p>
+              {% endif %}
             </div>
-
-            <!-- Additional Notes -->
-            <div class="bg-white rounded-lg shadow-sm border">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold">Additional Information</h2>
-                </div>
-                
-                <div class="px-6 py-4">
-                    <div>
-                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                            Notes & Comments
-                        </label>
-                        {{ form.notes }}
-                        <p class="text-xs text-gray-500 mt-1">
-                            Any additional information about your availability, preferences, or special requirements.
-                        </p>
-                    </div>
-                </div>
+            <!-- Stint Preferences -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="{{ form.max_stint_duration.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 mb-1">Max Stint Duration (minutes)</label>
+                {{ form.max_stint_duration }}
+              </div>
+              <div>
+                <label for="{{ form.min_rest_duration.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 mb-1">Min Rest Between Stints (minutes)</label>
+                {{ form.min_rest_duration }}
+              </div>
             </div>
-
-            <!-- Form Actions -->
-            <div class="flex justify-end space-x-4">
-                <a href="{% url 'teams:event_detail' event.id %}" 
-                   class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
-                    Cancel
-                </a>
-                <button type="submit" 
-                        class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                        id="submit-btn">
-                    Sign Up for Event
-                </button>
-            </div>
+          </div>
         </div>
+        <!-- Availability Calendar -->
+        <div class="bg-white rounded-lg shadow-sm border">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold">Your Availability</h2>
+            <p class="text-sm text-gray-600 mt-1">
+              Select the time periods when you're available to participate.
+              You can specify different roles (driver, spotter, strategist) and preference levels.
+            </p>
+          </div>
+          <div class="px-6 py-4">
+            <!-- Timezone Selector -->
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Your Timezone</label>
+              <select id="user-timezone"
+                      class="w-full md:w-auto rounded-md border-gray-300">
+                <option value="UTC">UTC</option>
+                <option value="US/Eastern">US Eastern</option>
+                <option value="US/Central">US Central</option>
+                <option value="US/Mountain">US Mountain</option>
+                <option value="US/Pacific">US Pacific</option>
+                <option value="Europe/London">Europe/London</option>
+                <option value="Europe/Paris">Europe/Paris</option>
+                <option value="Europe/Berlin">Europe/Berlin</option>
+                <option value="Australia/Sydney">Australia/Sydney</option>
+              </select>
+            </div>
+            <!-- Availability Calendar Component -->
+            <div id="availability-input"
+                 data-component="availability-calendar"
+                 data-user-timezone="{{ user.profile.timezone|default:'UTC' }}"
+                 data-event-start="{{ event.start_date|date:'c' }}"
+                 data-event-end="{{ event.end_date|date:'c' }}"
+                 data-existing-windows="[]">
+              <!-- Calendar will be initialized here -->
+            </div>
+            <!-- Hidden field to store availability data -->
+            <input type="hidden"
+                   name="availability_data"
+                   id="availability-data"
+                   value="" />
+          </div>
+        </div>
+        <!-- Additional Notes -->
+        <div class="bg-white rounded-lg shadow-sm border">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold">Additional Information</h2>
+          </div>
+          <div class="px-6 py-4">
+            <div>
+              <label for="{{ form.notes.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 mb-2">Notes & Comments</label>
+              {{ form.notes }}
+              <p class="text-xs text-gray-500 mt-1">
+                Any additional information about your availability, preferences, or special requirements.
+              </p>
+            </div>
+          </div>
+        </div>
+        <!-- Form Actions -->
+        <div class="flex justify-end space-x-4">
+          <a href="{% url 'teams:event_detail' event.id %}"
+             class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">Cancel</a>
+          <button type="submit"
+                  class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  id="submit-btn">Sign Up for Event</button>
+        </div>
+      </div>
     </form>
-</div>
-
-<!-- Real-time availability validation -->
-<div x-data="availabilityValidator()" x-init="init()">
-    <div x-show="showWarning" 
+  </div>
+  <!-- Real-time availability validation -->
+  <div x-data="availabilityValidator()" x-init="init()">
+    <div x-show="showWarning"
          class="fixed bottom-4 right-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-r-lg shadow-lg max-w-md">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                </svg>
-            </div>
-            <div class="ml-3">
-                <p class="text-sm font-medium" x-text="warningMessage"></p>
-            </div>
-            <div class="ml-auto pl-3">
-                <button @click="showWarning = false" class="text-yellow-400 hover:text-yellow-600">
-                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                    </svg>
-                </button>
-            </div>
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-yellow-400"
+               viewBox="0 0 20 20"
+               fill="currentColor">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
         </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium" x-text="warningMessage"></p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button @click="showWarning = false"
+                  class="text-yellow-400 hover:text-yellow-600">
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
-</div>
-
-<script>
-function availabilityValidator() {
-    return {
+  </div>
+  <script>
+    function availabilityValidator() {
+      return {
         showWarning: false,
         warningMessage: '',
-        
-        init() {
-            // Listen for availability updates
-            document.addEventListener('availabilityUpdated', (e) => {
-                this.validateAvailability(e.detail.windows);
-            });
-            
-            // Validate on form submission
-            document.getElementById('submit-btn').addEventListener('click', (e) => {
-                const availabilityData = document.getElementById('availability-data').value;
-                if (!availabilityData || availabilityData === '[]') {
-                    e.preventDefault();
-                    this.showWarning = true;
-                    this.warningMessage = 'Please add at least one availability window before submitting.';
-                }
-            });
-        },
-        
-        validateAvailability(windows) {
-            if (windows.length === 0) {
-                this.showWarning = true;
-                this.warningMessage = 'No availability windows defined. Add your available times to help with team formation.';
-                return;
-            }
-            
-            // Calculate total availability hours
-            const totalHours = windows.reduce((sum, window) => {
-                const start = new Date(window.start_time);
-                const end = new Date(window.end_time);
-                return sum + (end - start) / (1000 * 60 * 60);
-            }, 0);
-            
-            if (totalHours < 2) {
-                this.showWarning = true;
-                this.warningMessage = `Only ${totalHours.toFixed(1)} hours of availability. Consider adding more time windows for better team formation.`;
-            } else {
-                this.showWarning = false;
-            }
-        }
-    }
-}
 
-// Update timezone when changed
-document.getElementById('user-timezone').addEventListener('change', function(e) {
-    const availabilityCalendar = window.availabilityCalendar;
-    if (availabilityCalendar) {
+        init() {
+          // Listen for availability updates
+          document.addEventListener('availabilityUpdated', (e) => {
+            this.validateAvailability(e.detail.windows);
+          });
+
+          // Validate on form submission
+          document.getElementById('submit-btn').addEventListener('click', (e) => {
+            const availabilityData = document.getElementById('availability-data').value;
+            if (!availabilityData || availabilityData === '[]') {
+              e.preventDefault();
+              this.showWarning = true;
+              this.warningMessage = 'Please add at least one availability window before submitting.';
+            }
+          });
+        },
+
+        validateAvailability(windows) {
+          if (windows.length === 0) {
+            this.showWarning = true;
+            this.warningMessage = 'No availability windows defined. Add your available times to help with team formation.';
+            return;
+          }
+
+          // Calculate total availability hours
+          const totalHours = windows.reduce((sum, window) => {
+            const start = new Date(window.start_time);
+            const end = new Date(window.end_time);
+            return sum + (end - start) / (1000 * 60 * 60);
+          }, 0);
+
+          if (totalHours < 2) {
+            this.showWarning = true;
+            this.warningMessage = `Only ${totalHours.toFixed(1)} hours of availability. Consider adding more time windows for better team formation.`;
+          } else {
+            this.showWarning = false;
+          }
+        }
+      }
+    }
+
+    // Update timezone when changed
+    document.getElementById('user-timezone').addEventListener('change', function(e) {
+      const availabilityCalendar = window.availabilityCalendar;
+      if (availabilityCalendar) {
         availabilityCalendar.options.userTimezone = e.target.value;
         // Reinitialize if needed
         console.log('Timezone changed to:', e.target.value);
-    }
-});
-</script>
+      }
+    });
+  </script>
 {% endblock %}
-
 {% block javascript %}
-    {{ block.super }}
-    {% render_bundle 'event-signup' 'js' %}
-{% endblock javascript %} 
+  {{ block.super }}
+  {% render_bundle 'event-signup' 'js' %}
+{% endblock javascript %}

@@ -14,11 +14,11 @@ export class AvailabilityCalendar {
             existingWindows: [],
             ...options
         };
-        
+
         this.availabilityWindows = [...this.options.existingWindows];
         this.calendar = null;
         this.isFullCalendarLoaded = false;
-        
+
         this.init();
     }
 
@@ -75,11 +75,11 @@ export class AvailabilityCalendar {
             slotMaxTime: '24:00:00',
             allDaySlot: false,
             height: 600,
-            
+
             select: this.handleTimeSelection.bind(this),
             eventClick: this.handleEventClick.bind(this),
             eventChange: this.handleEventChange.bind(this),
-            
+
             eventClassNames: 'availability-window',
             selectConstraint: this.getSelectConstraint(),
             events: this.formatWindowsForCalendar()
@@ -99,20 +99,20 @@ export class AvailabilityCalendar {
                     Add your availability windows for this event. Click "Add Window" to create time periods when you're available.
                 </p>
             </div>
-            
+
             <div id="availability-list" class="space-y-3 mb-4">
                 <!-- Existing windows will be listed here -->
             </div>
-            
-            <button type="button" id="add-window-btn" 
+
+            <button type="button" id="add-window-btn"
                     class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
                 Add Availability Window
             </button>
         `;
-        
+
         this.container.appendChild(basicInterface);
         this.renderBasicWindowList();
-        
+
         // Event listeners
         basicInterface.querySelector('#add-window-btn').addEventListener('click', () => {
             this.showBasicAvailabilityModal();
@@ -124,7 +124,7 @@ export class AvailabilityCalendar {
         if (!listContainer) return;
 
         listContainer.innerHTML = '';
-        
+
         this.availabilityWindows.forEach((window, index) => {
             const windowEl = document.createElement('div');
             windowEl.className = 'border rounded-lg p-3 bg-gray-50';
@@ -167,7 +167,7 @@ export class AvailabilityCalendar {
     showBasicAvailabilityModal(existingIndex = null) {
         const isEdit = existingIndex !== null;
         const windowData = isEdit ? this.availabilityWindows[existingIndex] : {};
-        
+
         const modal = this.createAvailabilityModal({
             start: windowData.start_time ? new Date(windowData.start_time) : new Date(),
             end: windowData.end_time ? new Date(windowData.end_time) : new Date(Date.now() + 60 * 60 * 1000),
@@ -181,7 +181,7 @@ export class AvailabilityCalendar {
             isNew: !isEdit,
             existingIndex
         });
-        
+
         document.body.appendChild(modal);
     }
 
@@ -193,7 +193,7 @@ export class AvailabilityCalendar {
                 <h3 class="text-lg font-semibold mb-4">
                     ${data.isNew ? 'Add' : 'Edit'} Availability Window
                 </h3>
-                
+
                 <form id="availability-form">
                     <div class="space-y-4">
                         <!-- Date & Time -->
@@ -215,7 +215,7 @@ export class AvailabilityCalendar {
                                        class="w-full rounded-md border-gray-300">
                             </div>
                         </div>
-                        
+
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -234,7 +234,7 @@ export class AvailabilityCalendar {
                                        class="w-full rounded-md border-gray-300">
                             </div>
                         </div>
-                        
+
                         <!-- Roles -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -242,26 +242,26 @@ export class AvailabilityCalendar {
                             </label>
                             <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="checkbox" name="can_drive" 
-                                           ${data.canDrive ? 'checked' : ''} 
+                                    <input type="checkbox" name="can_drive"
+                                           ${data.canDrive ? 'checked' : ''}
                                            class="rounded border-gray-300">
                                     <span class="ml-2">Driver</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="checkbox" name="can_spot" 
-                                           ${data.canSpot ? 'checked' : ''} 
+                                    <input type="checkbox" name="can_spot"
+                                           ${data.canSpot ? 'checked' : ''}
                                            class="rounded border-gray-300">
                                     <span class="ml-2">Spotter</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="checkbox" name="can_strategize" 
-                                           ${data.canStrategize ? 'checked' : ''} 
+                                    <input type="checkbox" name="can_strategize"
+                                           ${data.canStrategize ? 'checked' : ''}
                                            class="rounded border-gray-300">
                                     <span class="ml-2">Strategist</span>
                                 </label>
                             </div>
                         </div>
-                        
+
                         <!-- Preference Level -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -275,17 +275,17 @@ export class AvailabilityCalendar {
                                 <option value="5" ${data.preferenceLevel === 5 ? 'selected' : ''}>Emergency Only</option>
                             </select>
                         </div>
-                        
+
                         <!-- Max Consecutive Stints -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Max Consecutive Stints
                             </label>
-                            <input type="number" name="max_consecutive_stints" min="1" max="10" 
+                            <input type="number" name="max_consecutive_stints" min="1" max="10"
                                    value="${data.maxConsecutiveStints}"
                                    class="w-full rounded-md border-gray-300">
                         </div>
-                        
+
                         <!-- Preferred Stint Length -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
@@ -295,20 +295,20 @@ export class AvailabilityCalendar {
                                    value="${data.preferredStintLength}"
                                    class="w-full rounded-md border-gray-300">
                         </div>
-                        
+
                         <!-- Notes -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
                                 Notes
                             </label>
-                            <textarea name="notes" rows="2" 
+                            <textarea name="notes" rows="2"
                                       class="w-full rounded-md border-gray-300"
                                       placeholder="Any additional notes...">${data.notes}</textarea>
                         </div>
                     </div>
-                    
+
                     <div class="flex justify-end space-x-3 mt-6">
-                        <button type="button" class="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md" 
+                        <button type="button" class="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-md"
                                 onclick="this.closest('.fixed').remove()">
                             Cancel
                         </button>
@@ -319,34 +319,34 @@ export class AvailabilityCalendar {
                 </form>
             </div>
         `;
-        
+
         // Handle form submission
         modal.querySelector('#availability-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.saveAvailabilityWindow(modal, data);
         });
-        
+
         return modal;
     }
 
     saveAvailabilityWindow(modal, originalData) {
         const form = modal.querySelector('#availability-form');
         const formData = new FormData(form);
-        
+
         // Combine date and time fields
         const startDate = formData.get('start_date');
         const startTime = formData.get('start_time');
         const endDate = formData.get('end_date');
         const endTime = formData.get('end_time');
-        
+
         const startDateTime = new Date(`${startDate}T${startTime}`);
         const endDateTime = new Date(`${endDate}T${endTime}`);
-        
+
         if (startDateTime >= endDateTime) {
             alert('End time must be after start time');
             return;
         }
-        
+
         const windowData = {
             start_time: startDateTime.toISOString(),
             end_time: endDateTime.toISOString(),
@@ -358,7 +358,7 @@ export class AvailabilityCalendar {
             preferred_stint_length: parseInt(formData.get('preferred_stint_length')),
             notes: formData.get('notes')
         };
-        
+
         if (originalData.isNew) {
             // Add new window
             this.availabilityWindows.push(windowData);
@@ -366,7 +366,7 @@ export class AvailabilityCalendar {
             // Update existing window
             this.availabilityWindows[originalData.existingIndex] = windowData;
         }
-        
+
         this.updateHiddenField();
         this.renderBasicWindowList();
         modal.remove();
@@ -386,17 +386,17 @@ export class AvailabilityCalendar {
 
     // Utility methods
     formatTimeRange(start, end) {
-        const options = { 
-            weekday: 'short', 
-            month: 'short', 
-            day: 'numeric', 
-            hour: '2-digit', 
+        const options = {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
             minute: '2-digit'
         };
-        
+
         const startStr = start.toLocaleDateString(undefined, options);
         const endStr = end.toLocaleDateString(undefined, options);
-        
+
         return `${startStr} - ${endStr}`;
     }
 
@@ -405,7 +405,7 @@ export class AvailabilityCalendar {
         if (window.can_drive) roles.push('Drive');
         if (window.can_spot) roles.push('Spot');
         if (window.can_strategize) roles.push('Strategy');
-        
+
         const preference = ['', 'Preferred', 'Good', 'OK', 'Last Resort', 'Emergency'][window.preference_level] || 'OK';
         return `${roles.join('/')} (${preference})`;
     }
@@ -447,7 +447,7 @@ export class AvailabilityCalendar {
         if (hiddenField) {
             hiddenField.value = JSON.stringify(this.availabilityWindows);
         }
-        
+
         // Trigger custom event
         document.dispatchEvent(new CustomEvent('availabilityUpdated', {
             detail: { windows: this.availabilityWindows }
@@ -467,16 +467,16 @@ export class AvailabilityCalendar {
                 </button>
             </div>
         `;
-        
+
         this.container.appendChild(controlPanel);
-        
+
         // Event listeners
         controlPanel.querySelector('#clear-all').addEventListener('click', () => {
             if (confirm('Are you sure you want to clear all availability windows?')) {
                 this.clearAllWindows();
             }
         });
-        
+
         // Update counter when windows change
         document.addEventListener('availabilityUpdated', (e) => {
             controlPanel.querySelector('#window-count').textContent = e.detail.windows.length;
@@ -516,4 +516,4 @@ export class AvailabilityCalendar {
     showAvailabilityModal(selectionInfo) {
         // Handle FullCalendar selection
     }
-} 
+}

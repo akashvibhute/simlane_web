@@ -9,11 +9,11 @@
 # - ClubEvent model for event organization (preserved)
 
 # Example future schemas (not implemented):
-# 
+#
 # from pydantic import BaseModel
 # from datetime import datetime
 # from uuid import UUID
-# 
+#
 # class EventParticipationCreate(BaseModel):
 #     event_id: UUID
 #     participation_type: str
@@ -21,7 +21,7 @@
 #     experience_level: str | None = None
 #     max_stint_duration: int | None = None
 #     notes: str = ""
-# 
+#
 # class AvailabilityWindowCreate(BaseModel):
 #     participation_id: UUID
 #     start_time: datetime

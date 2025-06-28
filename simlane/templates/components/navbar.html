@@ -20,14 +20,10 @@
                class="h-10 md:hidden dark:invert dark:hue-rotate-180" />
         </a>
       </div>
-      
       <!-- Center Search (Desktop) -->
       <div class="hidden md:flex flex-1 justify-center px-6">
-        <div class="w-full max-w-md">
-          {% include 'components/search_component.html' %}
-        </div>
+        <div class="w-full max-w-md">{% include 'components/search_component.html' %}</div>
       </div>
-      
       <!-- Desktop Navigation -->
       <div class="hidden md:flex items-center space-x-8">
         <!-- Public Navigation Links -->
@@ -51,12 +47,10 @@
            hx-get="{% url 'events:events_list' %}"
            hx-target="#main-content"
            hx-push-url="true">Events</a>
-        
         {% if request.user.is_authenticated %}
           <!-- Dashboard Link -->
           <a class="text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
              href="{% url 'core:dashboard' %}">Dashboard</a>
-          
           <!-- User Dropdown -->
           <div class="relative">
             <button onclick="toggleUserDropdown()"
@@ -180,17 +174,19 @@
       <div class="px-3 pb-3 border-b border-gray-200 dark:border-gray-700 mb-2">
         <div class="relative">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            <svg class="h-5 w-5 text-gray-400"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">
+              </path>
             </svg>
           </div>
-          <input
-            type="text"
-            name="mobile-search"
-            placeholder="Search..."
-            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            onkeydown="if(event.key==='Enter') { const query = encodeURIComponent(this.value.trim()); if(query) window.location.href='{% url 'core:search' %}?q=' + query; }"
-          >
+          <input type="text"
+                 name="mobile-search"
+                 placeholder="Search..."
+                 class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                 onkeydown="if(event.key==='Enter') { const query = encodeURIComponent(this.value.trim()); if(query) window.location.href='{% url 'core:search' %}?q=' + query; }" />
         </div>
       </div>
       <div class="space-y-2">
@@ -202,12 +198,11 @@
            href="{% url 'tracks_list' %}"
            onclick="toggleMobileMenu()">Tracks</a>
         <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
-                                                                               href="{% url 'drivers:profiles_list' %}"
-             onclick="toggleMobileMenu()">Drivers</a>
+           href="{% url 'drivers:profiles_list' %}"
+           onclick="toggleMobileMenu()">Drivers</a>
         <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
            href="{% url 'events:events_list' %}"
            onclick="toggleMobileMenu()">Events</a>
-        
         {% if request.user.is_authenticated %}
           <!-- Authenticated Mobile Menu -->
           <div class="px-3 py-2 border-b border-gray-200 dark:border-gray-700 mb-2">
