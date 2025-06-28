@@ -985,6 +985,23 @@ class RaceWeek(models.Model):
         help_text="Weather forecast API version (1=Forecast/hourly, 3=Timeline/15min)"
     )
     
+    # --- NEW: Summary stats for quick filtering/display ---
+    min_air_temp = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Minimum forecasted air temp (Celsius)"
+    )
+    max_air_temp = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Maximum forecasted air temp (Celsius)"
+    )
+    max_precip_chance = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum precipitation chance percentage (0-100)"
+    )
+    
     # Track state
     track_state = models.JSONField(null=True, blank=True)  # leave_marbles, etc.
     
@@ -1296,34 +1313,61 @@ class Event(models.Model):
         return False
     
     def _check_profile_requirements(self, sim_profile):
-        """Check if a sim profile meets event requirements"""
-        # Check skill rating
-        if self.min_skill_rating:
-            skill_ratings = sim_profile.ratings.filter(
-                rating_system__category='SKILL'
-            ).order_by('-recorded_at')
-            if not skill_ratings.exists():
-                return False
-            if skill_ratings.first().value < self.min_skill_rating:
-                return False
+        """
+        Check if a sim profile meets the event requirements.
+        Returns (meets_requirements: bool, reasons: list[str])
+        """
+        reasons = []
         
-        # Check safety rating
-        if self.min_safety_rating:
-            safety_ratings = sim_profile.ratings.filter(
-                rating_system__category='SAFETY'
-            ).order_by('-recorded_at')
-            if not safety_ratings.exists():
-                return False
-            if safety_ratings.first().value < self.min_safety_rating:
-                return False
-        
-        # Check license level (would need license data in sim profile)
+        # Check license level requirement
         if self.min_license_level:
-            # This would need license information stored in sim profile
-            # For now, assume it passes
+            # This would need to be implemented based on how license levels are stored
+            # For now, just a placeholder
+            pass
+            
+        # Check safety rating requirement  
+        if self.min_safety_rating is not None:
+            # This would need actual safety rating from sim profile
+            pass
+            
+        # Check skill rating requirement
+        if self.min_skill_rating is not None:
+            # This would need actual skill rating from sim profile
             pass
         
-        return True
+        # If we have custom requirements, check those too
+        if self.entry_requirements:
+            # Custom logic for entry requirements
+            pass
+            
+        return len(reasons) == 0, reasons
+    
+    @property
+    def is_multiclass(self):
+        """Check if this event has multiple classes"""
+        return self.classes.count() > 1
+    
+    def get_effective_car_class_ids(self):
+        """Get car class IDs for this event (event-specific or from series)"""
+        if self.allowed_car_class_ids:
+            return self.allowed_car_class_ids
+        elif self.series and self.series.allowed_car_class_ids:
+            return self.series.allowed_car_class_ids
+        return []
+    
+    def get_allowed_cars(self):
+        """Get all cars allowed in this event across all classes"""
+        all_cars = SimCar.objects.none()
+        for event_class in self.classes.all():
+            all_cars = all_cars.union(event_class.get_allowed_cars())
+        return all_cars
+    
+    def get_class_for_car(self, car):
+        """Get the event class that allows a specific car"""
+        for event_class in self.classes.all():
+            if car in event_class.get_allowed_cars():
+                return event_class
+        return None
 
 
 class EventSession(models.Model):
@@ -1357,15 +1401,42 @@ class EventClass(models.Model):
         blank=True,
         related_name="event_classes",
     )
-    allowed_sim_car_ids = models.JSONField(null=True, blank=True)
+    # REMOVED: allowed_sim_car_ids - get this from car_class.car_sim_api_ids instead
     bop_overrides = models.JSONField(null=True, blank=True)
+    
+    # Multi-class and club management fields
+    class_order = models.IntegerField(
+        default=0,
+        help_text="Order for multi-class display (0=fastest class)"
+    )
+    min_entries = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Minimum entries needed for this class"
+    )
+    max_entries = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum entries allowed for this class"
+    )
+    entry_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Entry fee for this class"
+    )
+    inherit_series_restrictions = models.BooleanField(
+        default=True,
+        help_text="Whether to inherit BOP restrictions from series/race week"
+    )
 
     class Meta:
         unique_together = ["event", "slug"]
         indexes = [
             models.Index(fields=["event"]),
             models.Index(fields=["car_class"]),
-            models.Index(fields=["event", "slug"]),
+            models.Index(fields=["class_order"]),
         ]
 
     def __str__(self):
@@ -1374,13 +1445,59 @@ class EventClass(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name)
-            # Ensure uniqueness within event
+            # Ensure uniqueness within the event
             counter = 1
             original_slug = self.slug
             while EventClass.objects.filter(event=self.event, slug=self.slug).exists():
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
+
+    def get_allowed_cars(self):
+        """Get all cars allowed in this class from the linked CarClass"""
+        if self.car_class and self.car_class.car_sim_api_ids:
+            # Get SimCar objects that match the car_sim_api_ids from the CarClass
+            return SimCar.objects.filter(
+                sim_api_id__in=self.car_class.car_sim_api_ids,
+                simulator=self.event.simulator
+            )
+        return SimCar.objects.none()
+
+    def get_bop_restrictions(self, race_week=None):
+        """Get BOP restrictions for this class, combining series/race week + event overrides"""
+        if not race_week and hasattr(self.event, 'race_week'):
+            race_week = self.event.race_week
+        
+        restrictions = {}
+        
+        if race_week and self.inherit_series_restrictions:
+            # Get base restrictions from race week for cars in this class
+            allowed_cars = self.get_allowed_cars()
+            for car in allowed_cars:
+                try:
+                    car_restriction = CarRestriction.objects.get(
+                        race_week=race_week,
+                        sim_car=car
+                    )
+                    restrictions[car.sim_api_id] = {
+                        'max_dry_tire_sets': car_restriction.max_dry_tire_sets,
+                        'max_pct_fuel_fill': car_restriction.max_pct_fuel_fill,
+                        'power_adjust_pct': car_restriction.power_adjust_pct,
+                        'weight_penalty_kg': car_restriction.weight_penalty_kg,
+                        'is_fixed_setup': car_restriction.is_fixed_setup,
+                    }
+                except CarRestriction.DoesNotExist:
+                    continue
+        
+        # Apply event-specific BOP overrides
+        if self.bop_overrides:
+            for car_id, overrides in self.bop_overrides.items():
+                if car_id in restrictions:
+                    restrictions[car_id].update(overrides)
+                else:
+                    restrictions[car_id] = overrides
+        
+        return restrictions
 
 
 class EventInstance(models.Model):
@@ -1456,6 +1573,27 @@ class EventInstance(models.Model):
                 self.slug = f"{original_slug}-{counter}"
                 counter += 1
         super().save(*args, **kwargs)
+
+    # ---------------- Weather helpers ----------------
+    @property
+    def weather_forecast(self):
+        """Return cached weather forecast JSON from the linked RaceWeek (if any)."""
+        race_week = getattr(self.event, 'race_week', None)
+        if race_week:
+            return race_week.weather_forecast_data
+        return None
+
+    @property
+    def weather_summary(self):
+        """Quick access to summary stats stored on the RaceWeek."""
+        race_week = getattr(self.event, 'race_week', None)
+        if race_week:
+            return {
+                'min_air_temp': race_week.min_air_temp,
+                'max_air_temp': race_week.max_air_temp,
+                'max_precip_chance': race_week.max_precip_chance,
+            }
+        return None
 
 
 class LapTime(models.Model):

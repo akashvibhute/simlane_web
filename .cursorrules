@@ -206,4 +206,4 @@ We are still in development phase and not live on production so do not worry abo
 We will be building a mobile app for ios/android for this website and all of its features, so always keep that in mind when suggesting things and discussing designs etc. 
 
 
-Use the context7-local and context7-remote MCP for context whenever needed and use the sequentialThinking MCP during planning and implementation while tracking progress. 
+Use the context7-local and context7-remote MCP for documentation of language, libraries etc. whenever needed and use the sequentialThinking MCP during planning and implementation while tracking progress. 

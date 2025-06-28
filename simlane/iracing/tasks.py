@@ -16,12 +16,13 @@ from django.db import transaction
 from channels.layers import get_channel_layer
 import json
 from asgiref.sync import async_to_sync
+import requests
 
 from simlane.iracing.services import IRacingServiceError, iracing_service
 from simlane.sim.models import (
     CarModel, Event, EventInstance, EventStatus, Series, EventSource, SimCar, SimLayout, 
     SimProfile, SimProfileCarOwnership, SimProfileTrackOwnership, SimTrack, Simulator, TrackModel,
-    EventResult, TeamResult, ParticipantResult, Season, RaceWeek, CarRestriction
+    EventResult, TeamResult, ParticipantResult, Season, RaceWeek, CarRestriction, CarClass, EventClass
 )
 from simlane.teams.models import Team
 from simlane.sim.utils import create_event_result_from_api, create_team_and_participant_results
@@ -597,6 +598,163 @@ def fetch_and_sync_events(
         }
 
 
+def _get_or_create_iracing_series(series_id: int, series_info: dict, iracing_simulator) -> tuple:
+    """
+    Robust iRacing-specific Series get_or_create with proper lookup and update logic.
+    
+    Args:
+        series_id: iRacing series ID
+        series_info: Series data from iRacing API
+        iracing_simulator: iRacing Simulator instance
+    
+    Returns:
+        Tuple of (Series instance, created boolean)
+    """
+    from simlane.sim.models import Series
+    
+    # Extract data with fallbacks
+    series_name = series_info.get("series_name", "")
+    
+    # Clean up series name (remove common patterns)
+    if series_name:
+        import re
+        # Remove season/year patterns
+        series_name = re.sub(r'\s*-\s*\d{4}\s*Season.*$', '', series_name)
+        series_name = re.sub(r'\s*-\s*(Fixed|Open)(\s*-.*)?$', '', series_name)
+        series_name = series_name.strip()
+    
+    if not series_name:
+        raise ValueError(f"No valid series name found for series_id {series_id}")
+    
+    # Prepare defaults
+    defaults = {
+        "name": series_name,
+        "description": f"iRacing {series_name} series",
+        "simulator": iracing_simulator,
+        "multiclass": series_info.get("multiclass", False),
+        "fixed_setup": series_info.get("fixed_setup", False),
+        "category": series_info.get("category", ""),
+        "license_group": series_info.get("license_group"),
+        "is_official": series_info.get("official", True),
+        "car_switching": series_info.get("car_switching", False),
+        "incident_limit": series_info.get("incident_limit"),
+        "max_team_drivers": series_info.get("max_team_drivers", 1),
+        "region_competition": series_info.get("region_competition", True),
+        "allowed_car_class_ids": [str(class_id) for class_id in series_info.get("car_class_ids", [])],
+    }
+    
+    # Get or create with robust lookup
+    series, created = Series.objects.get_or_create(
+        external_series_id=series_id,
+        defaults=defaults
+    )
+    
+    # Update existing series if not created
+    if not created:
+        updated = False
+        for field, value in defaults.items():
+            if field != "simulator" and getattr(series, field) != value:
+                setattr(series, field, value)
+                updated = True
+        
+        if updated:
+            series.save()
+    
+    return series, created
+
+
+def _resolve_track_layout_for_race_guide(track_name: str, iracing_simulator):
+    """
+    Try to resolve a track name from race guide to a SimLayout.
+    Race guide events often have limited track info, so we do best-effort matching.
+    
+    Args:
+        track_name: Track name from race guide
+        iracing_simulator: iRacing Simulator instance
+    
+    Returns:
+        SimLayout instance or None if not resolvable
+    """
+    from simlane.sim.models import SimLayout
+    
+    if not track_name:
+        return None
+    
+    try:
+        # Try exact track name match first
+        layouts = SimLayout.objects.filter(
+            sim_track__track_model__name__iexact=track_name,
+            sim_track__simulator=iracing_simulator
+        ).select_related('sim_track')
+        
+        if layouts.exists():
+            # Prefer "Grand Prix" or "Road Course" layouts for race guide
+            preferred_layout = layouts.filter(
+                name__icontains="Grand Prix"
+            ).first() or layouts.filter(
+                name__icontains="Road Course"
+            ).first() or layouts.first()
+            
+            return preferred_layout
+        
+        # Try partial match
+        layouts = SimLayout.objects.filter(
+            sim_track__track_model__name__icontains=track_name,
+            sim_track__simulator=iracing_simulator
+        ).select_related('sim_track')
+        
+        if layouts.exists():
+            return layouts.first()
+        
+        return None
+        
+    except Exception as e:
+        logger.warning(f"Error resolving track layout for '{track_name}': {str(e)}")
+        return None
+
+
+def _get_or_create_iracing_event(lookup_criteria: dict, event_defaults: dict, unique_identifier: str = None) -> tuple:
+    """
+    Robust iRacing-specific Event get_or_create with proper lookup and update logic.
+    
+    Args:
+        lookup_criteria: Dictionary of fields to use for lookup
+        event_defaults: Default values for event creation
+        unique_identifier: Optional unique identifier for logging
+    
+    Returns:
+        Tuple of (Event instance, created boolean)
+    """
+    from simlane.sim.models import Event
+    
+    try:
+        # Try to find existing event using business logic
+        event = Event.objects.filter(**lookup_criteria).first()
+        
+        if event:
+            # Update existing event with latest data
+            updated = False
+            for field, value in event_defaults.items():
+                if field not in lookup_criteria and getattr(event, field) != value:
+                    setattr(event, field, value)
+                    updated = True
+            
+            if updated:
+                event.save()
+            
+            return event, False
+        else:
+            # Create new event
+            event_data = {**lookup_criteria, **event_defaults}
+            event = Event.objects.create(**event_data)
+            return event, True
+            
+    except Exception as e:
+        error_msg = f"Error in _get_or_create_iracing_event for {unique_identifier}: {str(e)}"
+        logger.error(error_msg)
+        raise
+
+
 def _process_race_guide_events(race_guide_data: dict) -> tuple[int, int, list[str]]:
     """
     Process race guide data and create/update Event records.
@@ -628,6 +786,7 @@ def _process_race_guide_events(race_guide_data: dict) -> tuple[int, int, list[st
             session_name = session.get("session_name", "")
             start_time = session.get("start_time")
             series_name = session.get("series_name", "")
+            series_id = session.get("series_id")  # May be None
             track_name = session.get("track", {}).get("track_name", "")
             
             if not session_id or not start_time:
@@ -641,35 +800,65 @@ def _process_race_guide_events(race_guide_data: dict) -> tuple[int, int, list[st
                 logger.warning("Could not parse start_time: %s", start_time)
                 continue
             
+            # Try to resolve track layout for race guide events
+            sim_layout = _resolve_track_layout_for_race_guide(track_name, iracing_simulator)
+            
+            if not sim_layout:
+                # Skip race guide events without resolvable track info
+                # These are often generic/summary events anyway
+                logger.debug(f"Skipping race guide session {session_id} - no resolvable track layout for '{track_name}'")
+                continue
+            
             # Create a unique name for the event
             event_name = f"{series_name} - {track_name}" if series_name and track_name else session_name
             if not event_name:
                 event_name = f"iRacing Event {session_id}"
             
-            # Try to find existing event by external ID or create new one
-            event, created = Event.objects.get_or_create(
-                # We'll store the session_id in a JSON field for now since there's no direct external_id field
-                defaults={
-                    "name": event_name,
-                    "simulator": iracing_simulator,
-                    "event_source": EventSource.SERIES,
-                    "event_date": event_date,
-                    "status": EventStatus.SCHEDULED,
-                    "description": f"iRacing {series_name} session" if series_name else "iRacing session",
-                    # We need to handle sim_layout requirement - for now we'll skip this
-                }
+            # Prepare event defaults
+            event_defaults = {
+                "simulator": iracing_simulator,
+                "sim_layout": sim_layout,  # Now we have a resolved layout
+                "event_source": EventSource.SERIES,
+                "event_date": event_date,
+                "status": EventStatus.SCHEDULED,
+                "description": f"iRacing {series_name} session" if series_name else "iRacing session",
+                "entry_requirements": {
+                    "session_id": session_id,
+                    "series_id": series_id,
+                    "series_name": series_name,
+                    "track_name": track_name,
+                },
+            }
+            
+            # Create lookup criteria - handle case where series might be None
+            lookup_criteria = {
+                "simulator": iracing_simulator,
+                "name": event_name,
+                "event_date": event_date,
+            }
+            
+            # Add series to lookup if we have a series_id
+            if series_id:
+                try:
+                    series = Series.objects.get(external_series_id=series_id)
+                    lookup_criteria["series"] = series
+                    event_defaults["series"] = series
+                except Series.DoesNotExist:
+                    logger.warning(f"Series {series_id} not found for session {session_id}")
+            
+            # Use robust get_or_create
+            event, created = _get_or_create_iracing_event(
+                lookup_criteria, 
+                event_defaults, 
+                f"race_guide_session_{session_id}"
             )
             
             if created:
                 events_created += 1
-                logger.debug("Created event: %s", event_name)
+                logger.debug("Created race guide event: %s", event_name)
             else:
-                # Update existing event
-                event.event_date = event_date
-                event.name = event_name
-                event.save()
                 events_updated += 1
-                logger.debug("Updated event: %s", event_name)
+                logger.debug("Updated race guide event: %s", event_name)
                 
         except Exception as e:
             error_msg = f"Error processing session {session.get('session_id', 'unknown')}: {str(e)}"
@@ -759,41 +948,12 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
             # Convert car_class_ids to strings for consistency
             allowed_car_class_ids = [str(class_id) for class_id in car_class_ids] if car_class_ids else []
             
-            # Get or create Series with enhanced data
-            series, series_created = Series.objects.get_or_create(
-                external_series_id=series_id,
-                defaults={
-                    "name": series_name,
-                    "description": f"iRacing {series_name} series",
-                    "simulator": iracing_simulator,
-                    "multiclass": multiclass,
-                    "fixed_setup": fixed_setup,
-                    "allowed_car_class_ids": allowed_car_class_ids,
-                    "is_official": season_data.get("official", True),
-                    "license_group": season_data.get("license_group"),
-                    "incident_limit": season_data.get("incident_limit"),
-                    "max_team_drivers": season_data.get("max_team_drivers", 1),
-                    "car_switching": season_data.get("car_switching", False),
-                    "cross_license": season_data.get("cross_license", False),
-                    "region_competition": season_data.get("region_competition", True),
-                    "category": season_data.get("category", ""),
-                }
+            # Use robust Series get_or_create
+            series, series_created = _get_or_create_iracing_series(
+                series_id, 
+                {**series_info, **season_data},  # Merge series info with season data
+                iracing_simulator
             )
-            
-            # Update existing series with latest data if not just created
-            if not series_created:
-                series.multiclass = multiclass
-                series.fixed_setup = fixed_setup
-                series.allowed_car_class_ids = allowed_car_class_ids
-                series.is_official = season_data.get("official", True)
-                series.license_group = season_data.get("license_group")
-                series.incident_limit = season_data.get("incident_limit")
-                series.max_team_drivers = season_data.get("max_team_drivers", 1)
-                series.car_switching = season_data.get("car_switching", False)
-                series.cross_license = season_data.get("cross_license", False)
-                series.region_competition = season_data.get("region_competition", True)
-                series.category = season_data.get("category", "")
-                series.save()
             
             # Process race schedules to create specific events
             schedules = season_data.get("schedules", [])
@@ -904,94 +1064,156 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                         "unique_key": unique_key,
                     }
                     
-                    # Create or update the event
-                    event, created = Event.objects.get_or_create(
-                        # Use unique_key stored in entry_requirements to prevent duplicates
-                        entry_requirements__unique_key=unique_key,
-                        defaults={
-                            "name": event_name,
-                            "series": series,
-                            "simulator": iracing_simulator,
-                            "sim_layout": sim_layout,  # Now we have the proper layout!
-                            "event_source": EventSource.SERIES,
-                            "event_date": event_date,
-                            "status": EventStatus.SCHEDULED,
-                            "description": f"iRacing {series_name} - Week {race_week_num} at {track_name} ({config_name})",
-                            "entry_requirements": schedule_metadata,
-                            # Additional fields from schedule data
-                            "max_entries": schedule.get("max_entries"),
-                            "weather": schedule.get("weather") if schedule.get("weather") else None,
-                        }
+                    # Prepare event defaults
+                    event_defaults = {
+                        "name": event_name,
+                        "series": series,
+                        "simulator": iracing_simulator,
+                        "sim_layout": sim_layout,
+                        "event_source": EventSource.SERIES,
+                        "event_date": event_date,
+                        "status": EventStatus.SCHEDULED,
+                        "description": f"iRacing {series_name} - Week {race_week_num} at {track_name} ({config_name})",
+                        "entry_requirements": schedule_metadata,
+                        "max_entries": schedule.get("max_entries"),
+                        "weather": schedule.get("weather") if schedule.get("weather") else None,
+                        "track_state": schedule.get('track_state', {}),
+                    }
+                    
+                    # Create lookup criteria using business logic fields
+                    lookup_criteria = {
+                        "series": series,
+                        "simulator": iracing_simulator,
+                        "name": event_name,
+                        "event_date": event_date,
+                    }
+                    
+                    # Use robust get_or_create
+                    event, created = _get_or_create_iracing_event(
+                        lookup_criteria,
+                        event_defaults,
+                        f"series_season_{series_id}_week_{race_week_num}"
                     )
                     
                     if created:
                         events_created += 1
                         logger.debug("Created race week event: %s", event_name)
                     else:
-                        # Update existing event with latest data
-                        event.name = event_name
-                        event.event_date = event_date
-                        event.sim_layout = sim_layout
-                        event.description = f"iRacing {series_name} - Week {race_week_num} at {track_name} ({config_name})"
-                        event.entry_requirements = schedule_metadata
-                        event.save()
                         events_updated += 1
                         logger.debug("Updated race week event: %s", event_name)
                     
-                    # Process car restrictions if present in the schedule
-                    car_restrictions = schedule.get("car_restrictions", [])
-                    if car_restrictions:
-                        # We need to create/update RaceWeek and Season first
-                        season, _ = Season.objects.get_or_create(
-                            external_season_id=season_data.get("season_id"),
-                            series=series,
-                            defaults={
-                                "name": season_name,
-                                "active": season_data.get("active", True),
-                                "complete": season_data.get("complete", False),
-                            }
-                        )
+                    # NEW: Create EventClass instances based on car class IDs
+                    try:
+                        # Get car class IDs (from event or fall back to series)
+                        car_class_ids = event.allowed_car_class_ids or series.allowed_car_class_ids
                         
-                        # Create/update RaceWeek
-                        race_week, rw_created = RaceWeek.objects.get_or_create(
-                            season=season,
-                            week_number=race_week_num,
-                            defaults={
-                                "sim_layout": sim_layout,
-                                "start_date": event_date.date() if event_date else timezone.now().date(),
-                                "end_date": datetime.fromisoformat(schedule.get("week_end_time", "").replace('Z', '+00:00')) if schedule.get("week_end_time") else (event_date.date() + timedelta(days=7) if event_date else timezone.now().date() + timedelta(days=7)),
-                                "category": track_info.get("category", ""),
-                                "enable_pitlane_collisions": schedule.get("enable_pitlane_collisions", False),
-                                "full_course_cautions": schedule.get("full_course_cautions", False),
-                            }
-                        )
-                        
-                        # Process each car restriction
-                        for restriction_data in car_restrictions:
-                            car_api_id = restriction_data.get("car_id")
-                            if car_api_id:
+                        if car_class_ids:
+                            # Clear existing event classes if updating
+                            if not created:
+                                event.classes.all().delete()
+                            
+                            # Create EventClass for each car class
+                            for i, class_id in enumerate(car_class_ids):
                                 try:
-                                    sim_car = SimCar.objects.get(
+                                    car_class = CarClass.objects.get(
                                         simulator=iracing_simulator,
-                                        sim_api_id=str(car_api_id)
+                                        sim_api_id=str(class_id)
                                     )
                                     
-                                    # Create or update car restriction
-                                    CarRestriction.objects.update_or_create(
-                                        race_week=race_week,
-                                        sim_car=sim_car,
+                                    # Determine class name
+                                    if len(car_class_ids) == 1:
+                                        # Single class - use car class name or "Main Class"
+                                        class_name = car_class.name if car_class.name else "Main Class"
+                                    else:
+                                        # Multi-class - use car class name with fallback
+                                        class_name = car_class.name if car_class.name else f"Class {i+1}"
+                                    
+                                    event_class, ec_created = EventClass.objects.get_or_create(
+                                        event=event,
+                                        car_class=car_class,
                                         defaults={
-                                            "max_dry_tire_sets": restriction_data.get("max_dry_tire_sets", 0),
-                                            "max_pct_fuel_fill": restriction_data.get("max_pct_fuel_fill", 100),
-                                            "power_adjust_pct": float(restriction_data.get("power_adjust_pct", 0)),
-                                            "weight_penalty_kg": restriction_data.get("weight_penalty_kg", 0),
+                                            'name': class_name,
+                                            'class_order': i,  # 0=fastest, 1=second fastest, etc.
+                                            'inherit_series_restrictions': True,
                                         }
                                     )
-                                    logger.debug(f"Created/updated car restriction for {sim_car.display_name} in week {race_week_num}")
                                     
-                                except SimCar.DoesNotExist:
-                                    logger.warning(f"SimCar not found for car_id {car_api_id}, skipping restriction")
-                        
+                                    if ec_created:
+                                        logger.debug(f"Created EventClass: {class_name} for {event_name}")
+                                    else:
+                                        # Update existing EventClass
+                                        event_class.name = class_name
+                                        event_class.class_order = i
+                                        event_class.save()
+                                        logger.debug(f"Updated EventClass: {class_name} for {event_name}")
+                                        
+                                except CarClass.DoesNotExist:
+                                    logger.warning(f"CarClass with sim_api_id {class_id} not found for event {event_name}")
+                                    continue
+                        else:
+                            logger.debug(f"No car class IDs found for event {event_name}")
+                            
+                    except Exception as e:
+                        logger.error(f"Error creating EventClass instances for {event_name}: {str(e)}")
+                    
+                    # --- Ensure Season & RaceWeek exist for every schedule ---
+                    season, _ = Season.objects.get_or_create(
+                        external_season_id=season_data.get("season_id"),
+                        series=series,
+                        defaults={
+                            "name": season_name,
+                            "active": season_data.get("active", True),
+                            "complete": season_data.get("complete", False),
+                        },
+                    )
+
+                    # Build defaults for RaceWeek
+                    rw_defaults = {
+                        "sim_layout": sim_layout,
+                        "start_date": event_date.date() if event_date else timezone.now().date(),
+                        "end_date": datetime.fromisoformat(schedule.get("week_end_time", "").replace('Z', '+00:00')) if schedule.get("week_end_time") else (event_date.date() + timedelta(days=7) if event_date else timezone.now().date() + timedelta(days=7)),
+                        "category": track_info.get("category", ""),
+                        "enable_pitlane_collisions": schedule.get("enable_pitlane_collisions", False),
+                        "full_course_cautions": schedule.get("full_course_cautions", False),
+                        "weather_config": schedule.get('weather'),
+                        "weather_forecast_url": (schedule.get('weather') or {}).get('weather_url', ''),
+                        "weather_forecast_version": (schedule.get('weather') or {}).get('version'),
+                        "track_state": schedule.get('track_state', {}),
+                    }
+
+                    race_week, _ = RaceWeek.objects.update_or_create(
+                        season=season,
+                        week_number=race_week_num,
+                        defaults=rw_defaults,
+                    )
+
+                    # Queue background forecast fetch if needed
+                    if race_week.weather_forecast_url and (not race_week.weather_forecast_data):
+                        update_weather_forecast_task.delay(str(race_week.id))
+
+                    # --- Car Restrictions ---
+                    car_restrictions = schedule.get("car_restrictions", [])
+                    for restriction_data in car_restrictions:
+                        car_api_id = restriction_data.get("car_id")
+                        if not car_api_id:
+                            continue
+                        try:
+                            sim_car = SimCar.objects.get(simulator=iracing_simulator, sim_api_id=str(car_api_id))
+                        except SimCar.DoesNotExist:
+                            logger.warning("SimCar not found for car_id %s, skipping restriction", car_api_id)
+                            continue
+                        CarRestriction.objects.update_or_create(
+                            race_week=race_week,
+                            sim_car=sim_car,
+                            defaults={
+                                "max_dry_tire_sets": restriction_data.get("max_dry_tire_sets", 0),
+                                "max_pct_fuel_fill": restriction_data.get("max_pct_fuel_fill", 100),
+                                "power_adjust_pct": float(restriction_data.get("power_adjust_pct", 0)),
+                                "weight_penalty_kg": restriction_data.get("weight_penalty_kg", 0),
+                            },
+                        )
+                        logger.debug("Created/updated car restriction for %s in week %s", sim_car.display_name, race_week_num)
+                    
                 except Exception as e:
                     error_msg = f"Error processing schedule for series {series_name}: {str(e)}"
                     logger.exception(error_msg)
@@ -1408,3 +1630,86 @@ check_completed_events_schedule = {
     'enabled': True,
     'description': 'Periodically check for completed events and queue them for result fetching',
 }
+
+# --- Weather forecast helper ---
+
+def _update_weather_forecast(race_week, http_session: Optional[requests.Session] = None):
+    """Download and cache weather forecast JSON for a RaceWeek.
+
+    Saves full JSON in race_week.weather_forecast_data and summary stats
+    (min/max air temp in °C, max precip chance).
+    """
+    if not race_week.weather_forecast_url:
+        return  # nothing to do
+
+    # Skip if we already cached and have summary stats
+    if race_week.weather_forecast_data and race_week.min_air_temp is not None:
+        return
+
+    sess = http_session or requests.Session()
+    try:
+        resp = sess.get(race_week.weather_forecast_url, timeout=15)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception as exc:
+        logger.warning("Failed to fetch weather forecast for RaceWeek %s: %s", race_week.id, exc)
+        return
+
+    if not isinstance(data, list):
+        logger.warning("Unexpected weather forecast format for RaceWeek %s", race_week.id)
+        return
+
+    # Compute summary stats – iRacing temps are hundredths of °C, convert.
+    temps = [(pt.get('air_temp') or 0) / 100.0 for pt in data if 'air_temp' in pt]
+    precip_chances = [pt.get('precip_chance', 0) for pt in data]
+
+    if temps:
+        race_week.min_air_temp = min(temps)
+        race_week.max_air_temp = max(temps)
+    if precip_chances:
+        race_week.max_precip_chance = max(precip_chances)
+
+    race_week.weather_forecast_data = data
+    # version may be included in first point
+    race_week.weather_forecast_version = data[0].get('version') if isinstance(data[0], dict) else race_week.weather_forecast_version
+    race_week.save(update_fields=[
+        'weather_forecast_data',
+        'min_air_temp',
+        'max_air_temp',
+        'max_precip_chance',
+        'weather_forecast_version',
+        'updated_at',
+    ])
+
+# -- Celery wrapper so forecast fetch runs in background --
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=120)
+def update_weather_forecast_task(self, race_week_id: str) -> dict[str, Any]:
+    """Background task to fetch and cache weather forecast for a RaceWeek."""
+    from simlane.sim.models import RaceWeek  # Local import to avoid circularities
+
+    try:
+        race_week = RaceWeek.objects.get(id=race_week_id)
+    except RaceWeek.DoesNotExist:
+        return {
+            'success': False,
+            'error': 'RaceWeek not found',
+            'race_week_id': race_week_id,
+        }
+
+    try:
+        _update_weather_forecast(race_week)
+        return {
+            'success': True,
+            'updated': True,
+            'race_week_id': race_week_id,
+        }
+    except Exception as exc:
+        # Retry on network errors
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=exc)
+        return {
+            'success': False,
+            'error': str(exc),
+            'race_week_id': race_week_id,
+        }

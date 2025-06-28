@@ -141,10 +141,11 @@ class EventSessionAdmin(ModelAdmin):
 
 @admin.register(EventClass)
 class EventClassAdmin(ModelAdmin):
-    list_display = ["name", "event"]
-    list_filter = ["event"]
-    search_fields = ["name", "event__name"]
-    raw_id_fields = ["event"]
+    list_display = ["name", "event", "car_class", "class_order", "min_entries", "max_entries", "inherit_series_restrictions"]
+    list_filter = ["event", "car_class", "inherit_series_restrictions"]
+    search_fields = ["name", "event__name", "car_class__name"]
+    raw_id_fields = ["event", "car_class"]
+    ordering = ["event", "class_order"]
 
 
 @admin.register(EventInstance)
