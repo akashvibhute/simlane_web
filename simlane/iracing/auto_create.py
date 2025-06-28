@@ -390,11 +390,18 @@ def auto_create_event_chain_from_results(results_data: dict[str, Any], iracing_s
                 'external_track_id': track_data.get('track_id'),
                 'config_name': track_data.get('config_name', ''),
                 'unique_key': f"{series_id}_{season_id}_{race_week_num}_{track_data.get('track_id')}",
-            }
+            },
+            'is_team_event': results_data.get('driver_changes', False),
+            'fixed_setup': results_data.get('fixed_setup', False),
         }
     )
     if created:
         logger.info("Created Event: %s", event_name)
+    
+    # Ensure linkage to RaceWeek
+    if race_week and event.race_week_id != race_week.id:
+        event.race_week = race_week
+        event.save(update_fields=["race_week"])
     
     # 6. Create EventInstance
     event_instance, created = EventInstance.objects.get_or_create(
@@ -600,7 +607,8 @@ def create_or_update_race_week_from_schedule(
         return None, False, errors
     
     # Extract timing
-    race_week_num = schedule_data.get('race_week_num', 0)
+    # API returns 0-based week numbers; SimLane stores 1-based
+    race_week_num = schedule_data.get('race_week_num', 0) + 1
     start_date_str = schedule_data.get('start_date')
     week_end_time_str = schedule_data.get('week_end_time')
     

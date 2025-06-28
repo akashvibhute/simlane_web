@@ -190,6 +190,48 @@
                         {% endif %}
                     </div>
                 {% endif %}
+
+                {# Allowed / Event Classes #}
+                {% if event.classes.all %}
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Eligible Cars by Class</h3>
+
+                        {% for block in class_car_data %}
+                            <h4 class="text-md font-semibold text-gray-800 mt-4 mb-2">{{ block.event_class.name }}</h4>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full text-sm text-left border border-gray-200 mb-6">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-2 border-b">Car</th>
+                                            <th class="px-4 py-2 border-b">Fuel %</th>
+                                            <th class="px-4 py-2 border-b">Power %</th>
+                                            <th class="px-4 py-2 border-b">Weight kg</th>
+                                            <th class="px-4 py-2 border-b">Tire sets</th>
+                                            <th class="px-4 py-2 border-b">Fixed Setup</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for entry in block.entries %}
+                                            {% with car=entry.car res=entry.restrictions %}
+                                            <tr class="border-t">
+                                                <td class="px-4 py-2 flex items-center space-x-2">
+                                                    {% if car.logo %}<img src="{{ car.logo.url }}" class="w-6 h-6 rounded"/>{% endif %}
+                                                    <span>{{ car.display_name|default:car.car_model.full_name }}</span>
+                                                </td>
+                                                <td class="px-4 py-2 text-center">{{ res.max_pct_fuel_fill|default:'—' }}</td>
+                                                <td class="px-4 py-2 text-center">{{ res.power_adjust_pct|default:'—' }}</td>
+                                                <td class="px-4 py-2 text-center">{{ res.weight_penalty_kg|default:'—' }}</td>
+                                                <td class="px-4 py-2 text-center">{{ res.max_dry_tire_sets|default:'—' }}</td>
+                                                <td class="px-4 py-2 text-center">{% if res.is_fixed_setup %}✔️{% endif %}</td>
+                                            </tr>
+                                            {% endwith %}
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Upcoming Instances -->

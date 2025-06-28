@@ -38,7 +38,7 @@ def get_active_simulators():
 
 @cache_query(timeout=600, cache_alias='query_cache')
 def get_all_cars_queryset():
-    return CarModel.objects.select_related('car_class').prefetch_related(
+    return CarModel.objects.prefetch_related(
         Prefetch(
             'sim_cars',
             queryset=SimCar.objects.select_related('simulator').only(
@@ -46,7 +46,7 @@ def get_all_cars_queryset():
             ),
         )
     ).only(
-        'id', 'name', 'manufacturer', 'slug', 'car_class', 'default_image_url', 'release_year'
+        'id', 'name', 'manufacturer', 'slug', 'category', 'default_image_url', 'release_year'
     ).annotate(
         simulator_count=Count('sim_cars__simulator', distinct=True)
     ).order_by('manufacturer', 'name')
@@ -946,7 +946,8 @@ def event_detail(request, event_slug):
             'instances__weather_forecasts',
             'instances__result',
             'sessions',
-            'classes'
+            'classes',
+            'classes__car_class'
         ),
         slug=event_slug,
         visibility__in=['PUBLIC', 'UNLISTED']
@@ -986,13 +987,35 @@ def event_detail(request, event_slug):
     
     if event.series:
         series_context = event.series
-        # Try to find associated season and race week through sim_layout
-        race_weeks = event.sim_layout.race_weeks.select_related('season').order_by('-season__active', '-week_number')
-        if race_weeks.exists():
-            race_week = race_weeks.first()
-            race_week_context = race_week
-            season_context = race_week.season
-    
+        # Prefer explicit FK
+        if event.race_week:
+            race_week_context = event.race_week
+            season_context = event.race_week.season
+        else:
+            # Derive via sim_layout
+            race_weeks = (
+                event.sim_layout.race_weeks
+                .filter(season__series=event.series)
+                .select_related('season')
+                .order_by('-season__active', '-week_number')
+            )
+            if race_weeks.exists():
+                race_week_context = race_weeks.first()
+                season_context = race_week_context.season
+
+    # Build per-class car + restriction data
+    class_car_data = []
+    for ec in event.classes.all():
+        allowed_cars = list(ec.get_allowed_cars())
+        restrictions_map = ec.get_bop_restrictions(race_week_context)
+        entries = []
+        for car in allowed_cars:
+            entries.append({
+                'car': car,
+                'restrictions': restrictions_map.get(car.sim_api_id, {})
+            })
+        class_car_data.append({'event_class': ec, 'entries': entries})
+
     context = {
         'event': event,
         'upcoming_instances': upcoming_instances,
@@ -1004,6 +1027,7 @@ def event_detail(request, event_slug):
         'series_context': series_context,
         'season_context': season_context,
         'race_week_context': race_week_context,
+        'class_car_data': class_car_data,
     }
     
     response = render(request, 'sim/events/detail.html', context)

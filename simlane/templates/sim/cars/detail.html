@@ -35,17 +35,13 @@
                 </h1>
                 
                 <div class="flex items-center gap-4 mb-6">
-                    <span class="px-3 py-1 bg-primary-100 dark:bg-primary-900 text-primary-800 dark:text-primary-200 rounded-full text-sm font-medium">
-                        {{ car.car_class.name }}
-                    </span>
+                    <c-car-category-badge category="{{ car.category }}" size="md" />
                     {% if car.release_year %}
                         <span class="text-gray-500 dark:text-gray-400">{{ car.release_year }}</span>
                     {% endif %}
                 </div>
                 
-                {% if car.car_class.description %}
-                    <p class="text-gray-600 dark:text-gray-300 mb-6">{{ car.car_class.description }}</p>
-                {% endif %}
+                {# No per-category description #}
                 
                 {% if car.base_specs %}
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
@@ -116,7 +112,7 @@
                         <h4 class="font-medium text-gray-900 dark:text-white text-sm mb-1">
                             {{ related_car.manufacturer }} {{ related_car.name }}
                         </h4>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ related_car.car_class.name }}</p>
+                        <c-car-category-badge category="{{ related_car.category }}" size="sm" />
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {{ related_car.simulator_count }} simulator{{ related_car.simulator_count|pluralize }}
                         </p>

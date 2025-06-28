@@ -1,0 +1,43 @@
+{% comment %}
+CarClassBadge – reusable cotton component
+
+Props / attributes:
+- car_class (required) : CarClass model instance
+- size (optional)      : 'sm' (default) | 'md' | 'lg'
+- show_icon (boolean)  : if present / True, render icon before label
+
+Usage examples:
+<c-car-class-badge :car_class="car.car_class" size="md" />
+<c-car-class-badge :car_class="cc" lg show_icon />
+
+Tailwind classes map:
+size:
+  sm -> px-2 py-0.5 text-xs
+  md -> px-3 py-0.5 text-xs
+  lg -> px-3 py-1 text-sm
+category colours:
+  road -> emerald
+  oval -> indigo
+  dirt -> orange
+  default -> gray
+{% endcomment %}
+
+<c-vars size="sm" />
+
+{# Wrapper span with dynamic classes #}
+<span class="inline-flex items-center rounded-full font-medium 
+    {# Padding / font size based on size prop #}
+    {% if size == 'lg' %}px-3 py-1 text-sm{% elif size == 'md' %}px-3 py-0.5 text-xs{% else %}px-2 py-0.5 text-xs{% endif %} 
+    {# Colour based on category #}
+    {% if car_class.category == 'road' %}bg-emerald-100 text-emerald-800
+    {% elif car_class.category == 'oval' %}bg-indigo-100 text-indigo-800
+    {% elif car_class.category == 'dirt' %}bg-orange-100 text-orange-800
+    {% else %}bg-gray-100 text-gray-800{% endif %}">
+
+  {# Optional icon #}
+  {% if show_icon and car_class.icon_url %}
+    <img src="{{ car_class.icon_url }}" alt="{{ car_class.short_name|default:car_class.name }}" class="w-4 h-4 rounded-full mr-1">
+  {% endif %}
+
+  <span>{{ car_class.short_name|default:car_class.name }}</span>
+</span> 

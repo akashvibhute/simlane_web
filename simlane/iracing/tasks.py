@@ -860,6 +860,11 @@ def _process_race_guide_events(race_guide_data: dict) -> tuple[int, int, list[st
                 events_updated += 1
                 logger.debug("Updated race guide event: %s", event_name)
                 
+            # Ensure FK linkage to RaceWeek
+            if race_week and event.race_week_id != race_week.id:
+                event.race_week = race_week
+                event.save(update_fields=["race_week"])
+                
         except Exception as e:
             error_msg = f"Error processing session {session.get('session_id', 'unknown')}: {str(e)}"
             logger.exception(error_msg)
@@ -969,6 +974,7 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
             
             # Process each race week schedule
             for schedule in schedules:
+                race_week = None  # ensure variable exists even if we skip early
                 try:
                     track_info = schedule.get("track", {})
                     track_id = track_info.get("track_id")
@@ -1077,7 +1083,6 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                         "entry_requirements": schedule_metadata,
                         "max_entries": schedule.get("max_entries"),
                         "weather": schedule.get("weather") if schedule.get("weather") else None,
-                        "track_state": schedule.get('track_state', {}),
                     }
                     
                     # Create lookup criteria using business logic fields
@@ -1101,6 +1106,11 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                     else:
                         events_updated += 1
                         logger.debug("Updated race week event: %s", event_name)
+                    
+                    # Ensure FK linkage to RaceWeek
+                    if race_week and event.race_week_id != race_week.id:
+                        event.race_week = race_week
+                        event.save(update_fields=["race_week"])
                     
                     # NEW: Create EventClass instances based on car class IDs
                     try:
@@ -1178,7 +1188,6 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                         "weather_config": schedule.get('weather'),
                         "weather_forecast_url": (schedule.get('weather') or {}).get('weather_url', ''),
                         "weather_forecast_version": (schedule.get('weather') or {}).get('version'),
-                        "track_state": schedule.get('track_state', {}),
                     }
 
                     race_week, _ = RaceWeek.objects.update_or_create(

@@ -1161,6 +1161,14 @@ class Event(models.Model):
     weather = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # Optional link back to the season RaceWeek that created this event (if imported)
+    race_week = models.ForeignKey(
+        "sim.RaceWeek",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="events",
+    )
 
     class Meta:
         indexes = [
