@@ -4,8 +4,7 @@ This command fetches the complete list of iRacing series using
 `IRacingAPIService.get_series()` and creates/updates the corresponding
 `sim.Series` rows.
 
-It is intentionally *minimal* – it does *not* pull seasons/schedules yet.
-That will be added in follow-up iterations once this foundation is stable.
+It can optionally synchronise seasons and schedules for each series.
 """
 
 from __future__ import annotations
@@ -17,6 +16,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils.text import slugify
 
 from simlane.iracing.services import iracing_service
+from simlane.iracing.tasks import sync_series_seasons_task, sync_past_seasons_task
 from simlane.sim.models import Series, Simulator
 
 logger = logging.getLogger(__name__)
@@ -42,9 +42,30 @@ class Command(BaseCommand):
             help="Only process the first N series (for quick testing).",
         )
         parser.add_argument(
-            "--skip-past-seasons",
+            "--sync-seasons",
             action="store_true",
-            help="Skip past seasons (default: False).",
+            help="Also sync current and future seasons for each series.",
+        )
+        parser.add_argument(
+            "--sync-past-seasons",
+            action="store_true",
+            help="Also sync past seasons for each series (requires --sync-seasons).",
+        )
+        parser.add_argument(
+            "--season-year",
+            type=int,
+            help="Specific season year to sync (optional).",
+        )
+        parser.add_argument(
+            "--season-quarter",
+            type=int,
+            choices=[1, 2, 3, 4],
+            help="Specific season quarter to sync (optional).",
+        )
+        parser.add_argument(
+            "--refresh",
+            action="store_true",
+            help="Bypass cache and force fresh API calls.",
         )
 
     # ---------------------------------------------------------------------
@@ -64,15 +85,22 @@ class Command(BaseCommand):
 
         dry_run: bool = bool(options["dry_run"])
         limit: int | None = options.get("limit")
-        skip_past_seasons: bool = bool(options["skip_past_seasons"])
+        sync_seasons: bool = bool(options["sync_seasons"])
+        sync_past_seasons: bool = bool(options["sync_past_seasons"])
+        season_year: int | None = options.get("season_year")
+        season_quarter: int | None = options.get("season_quarter")
+        refresh: bool = bool(options["refresh"])
+
+        # Validate arguments
+        if sync_past_seasons and not sync_seasons:
+            raise CommandError("--sync-past-seasons requires --sync-seasons")
 
         self.stdout.write(self.style.SUCCESS("Fetching series list from iRacing …"))
 
         # Optional: fetch series assets (logos + copy). Fail-friendly.
-        # series_assets_map: dict[int, dict] = {}
+        series_assets_map: dict[str, dict] = {}
         try:
             series_assets_map = iracing_service.get_series_assets()
-
         except Exception as exc:  # noqa: PERF203 – optional call
             logger.warning("Could not fetch series_assets: %s", exc)
 
@@ -103,6 +131,8 @@ class Command(BaseCommand):
 
         created = 0
         updated = 0
+        season_tasks_queued = 0
+        past_season_tasks_queued = 0
 
         for obj in series_list:
             try:
@@ -121,7 +151,7 @@ class Command(BaseCommand):
                 }
 
                 # --- Assets enrichment (logo + series copy) ---
-                asset = series_assets_map.get(str(series_id))
+                asset: dict | None = series_assets_map.get(str(series_id))
                 logo_rel = None
                 logo_url_full = None
                 if asset:
@@ -162,7 +192,7 @@ class Command(BaseCommand):
                         ser_obj: SeriesModel = Series.objects.get(external_series_id=series_id)
 
                         if not ser_obj.logo:  # Avoid re-downloading if already saved
-                            logo_file = download_image_from_url(logo_url_full)
+                            logo_file = download_image_from_url(logo_url_full or "")
                             if logo_file:
                                 ser_obj.logo.save(logo_file.name, logo_file, save=True)
                     except Exception as _img_exc:
@@ -177,11 +207,46 @@ class Command(BaseCommand):
                 logger.exception("Failed processing series object: %s", obj)
                 self.stderr.write(self.style.ERROR(f"Error processing series {obj.get('series_id')}: {exc!s}"))
 
+        # --- Queue season sync tasks after processing all series ---
+        if sync_seasons and not dry_run:
+            try:
+                # Queue current/future seasons sync for all series (single API call)
+                sync_series_seasons_task.delay(
+                    series_id=None,  # None means sync all series
+                    season_year=season_year,
+                    season_quarter=season_quarter,
+                    refresh=refresh,
+                )
+                season_tasks_queued = 1
+
+                # Queue past seasons sync if requested (needs per-series calls)
+                if sync_past_seasons:
+                    # Queue past seasons sync for each series
+                    for obj in series_list:
+                        series_id = obj.get("series_id")
+                        if series_id:
+                            sync_past_seasons_task.delay(
+                                series_id=series_id,
+                                refresh=refresh,
+                            )
+                            past_season_tasks_queued += 1
+
+            except Exception as e:
+                logger.error("Failed to queue season sync tasks: %s", e)
+
+        # Summary output
         if dry_run:
             self.stdout.write(self.style.SUCCESS("✓ DRY-RUN complete – no database writes performed."))
         else:
             self.stdout.write(
                 self.style.SUCCESS(
                     f"✓ Series sync complete. Created: {created}, Updated: {updated}."
+                )
+            )
+
+        if sync_seasons and not dry_run:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"✓ Season sync tasks queued: {season_tasks_queued} current/future (all series), {past_season_tasks_queued} past seasons."
                 )
             ) 

@@ -66,6 +66,7 @@ class IRacingAPIService:
         if not self.is_available():
             msg = "iRacing API client not available"
             raise IRacingServiceError(msg)
+        
 
         try:
             return self.client.stats_member_summary(cust_id=cust_id)
@@ -562,6 +563,27 @@ class IRacingAPIService:
                 str(e),
             )
             return None
+
+    def get_series_season_schedule(self, season_id: int) -> dict[str, Any]:
+        """
+        Get detailed schedule for a specific season.
+
+        Args:
+            season_id: iRacing season ID
+
+        Returns:
+            Dict containing season schedule data
+        """
+        if not self.is_available():
+            msg = "iRacing API client not available"
+            raise IRacingServiceError(msg)
+
+        try:
+            return self.client.series_season_schedule(season_id=season_id)
+        except Exception as e:
+            logger.exception("Error fetching season schedule for season %s", season_id)
+            msg = f"Failed to fetch season schedule for season {season_id}"
+            raise IRacingServiceError(msg) from e
 
     def get_series_assets(self) -> dict[str, Any]:
         """

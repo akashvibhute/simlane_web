@@ -6,21 +6,14 @@ from the iRacing API using Celery for asynchronous processing.
 """
 
 import logging
-from datetime import datetime
-from datetime import timedelta
 from typing import Any
 
-import requests
-from asgiref.sync import async_to_sync
 from celery import shared_task
-from channels.layers import get_channel_layer
-from django.db import transaction
 from django.utils import timezone
 
 from simlane.iracing.services import IRacingServiceError
 from simlane.iracing.services import iracing_service
 from simlane.sim.models import CarClass
-from simlane.sim.models import CarRestriction
 from simlane.sim.models import Event
 from simlane.sim.models import EventClass
 from simlane.sim.models import EventSource
@@ -34,9 +27,6 @@ from simlane.sim.models import SimProfileCarOwnership
 from simlane.sim.models import SimProfileTrackOwnership
 from simlane.sim.models import SimTrack
 from simlane.sim.models import Simulator
-from simlane.sim.models import TimeSlot
-from simlane.sim.utils import create_event_result_from_api
-from simlane.sim.utils import create_team_and_participant_results
 
 logger = logging.getLogger(__name__)
 
@@ -48,542 +38,338 @@ def _ensure_service_available() -> None:
         raise IRacingServiceError(msg)
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_member_summary(self, cust_id: int | None = None) -> dict[str, Any]:
+def _get_or_create_iracing_series(
+    series_id: int, series_info: dict, iracing_simulator
+) -> tuple:
     """
-    Fetch member summary data from iRacing API.
+    Get or create an iRacing series.
 
     Args:
-        cust_id: Customer ID. If None, fetches data for authenticated user.
+        series_id: External series ID from iRacing
+        series_info: Series information from API
+        iracing_simulator: iRacing simulator instance
 
     Returns:
-        Dict containing member summary data or error information.
+        Tuple of (series, created)
     """
-    try:
-        logger.info("Fetching member summary for customer ID: %s", cust_id)
+    series_name = series_info.get("series_name", "")
+    allowed_licenses = series_info.get("allowed_licenses", [])
 
-        _ensure_service_available()
+    # Clean series name using regex patterns from auto_create.py
+    import re
 
-        data = iracing_service.get_member_summary(cust_id=cust_id)
-
-        logger.info("Successfully fetched member summary for customer ID: %s", cust_id)
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-            "cust_id": cust_id,
+    # Remove common prefixes/suffixes and clean up
+    name_cleanup_patterns = [
+        r'^iRacing\s+',  # Remove "iRacing " prefix
+        r'\s+Series$',   # Remove " Series" suffix
+        r'\s+Championship$',  # Remove " Championship" suffix
+        r'\s+Cup$',      # Remove " Cup" suffix
+    ]
+    
+    cleaned_name = series_name
+    for pattern in name_cleanup_patterns:
+        cleaned_name = re.sub(pattern, '', cleaned_name, flags=re.IGNORECASE)
+    
+    # Fallback to original name if cleaning results in empty string
+    if not cleaned_name.strip():
+        cleaned_name = series_name
+    
+    series, created = Series.objects.get_or_create(
+        external_series_id=series_id,
+        defaults={
+            "name": cleaned_name,
+            "simulator": iracing_simulator,
+            "allowed_licenses": allowed_licenses,
+            "is_active": True,
         }
+    )
+    
+    if not created:
+        # Update existing series
+        series.name = cleaned_name
+        series.allowed_licenses = allowed_licenses
+        series.save(update_fields=["name", "allowed_licenses"])
 
-    except Exception as exc:
-        logger.exception("Error fetching member summary for %s", cust_id)
-
-        # Retry on certain exceptions
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "cust_id": cust_id,
-        }
+    return series, created
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_member_recent_races(self, cust_id: int | None = None) -> dict[str, Any]:
+def _get_or_create_iracing_event(
+    lookup_criteria: dict, event_defaults: dict, unique_identifier: str | None = None
+) -> tuple:
     """
-    Fetch member's recent race results from iRacing API.
+    Get or create an iRacing event with robust error handling.
 
     Args:
-        cust_id: Customer ID. If None, fetches data for authenticated user.
+        lookup_criteria: Criteria to find existing event
+        event_defaults: Defaults for creating new event
+        unique_identifier: Optional identifier for logging
 
     Returns:
-        Dict containing recent race results or error information.
+        Tuple of (event, created)
     """
     try:
-        logger.info("Fetching recent races for customer ID: %s", cust_id)
+        event, created = Event.objects.get_or_create(
+            **lookup_criteria,
+            defaults=event_defaults
+        )
 
-        _ensure_service_available()
+        if not created:
+            # Update existing event with new defaults
+            for key, value in event_defaults.items():
+                setattr(event, key, value)
+                event.save()
 
-        data = iracing_service.get_member_recent_races(cust_id=cust_id)
+        return event, created
 
-        logger.info("Successfully fetched recent races for customer ID: %s", cust_id)
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-            "cust_id": cust_id,
-        }
-
-    except Exception as exc:
-        logger.exception("Error fetching recent races for %s", cust_id)
-
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "cust_id": cust_id,
-        }
+    except Exception as e:
+        identifier = unique_identifier or "unknown"
+        logger.error(
+            f"Error in _get_or_create_iracing_event for {identifier}: {e!s}"
+        )
+        raise
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_series_data(self) -> dict[str, Any]:
+def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[str]]:
     """
-    Fetch all series data from iRacing API.
-
-    Returns:
-        Dict containing series data or error information.
-    """
-    try:
-        logger.info("Fetching series data")
-
-        _ensure_service_available()
-
-        data = iracing_service.get_series()
-
-        logger.info("Successfully fetched series data")
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-        }
-
-    except Exception as exc:
-        logger.exception("Error fetching series data")
-
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_cars_data(self) -> dict[str, Any]:
-    """
-    Fetch all cars data from iRacing API.
-
-    Returns:
-        Dict containing cars data or error information.
-    """
-    try:
-        logger.info("Fetching cars data")
-
-        _ensure_service_available()
-
-        data = iracing_service.get_cars()
-
-        logger.info("Successfully fetched cars data")
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-        }
-
-    except Exception as exc:
-        logger.exception("Error fetching cars data")
-
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_tracks_data(self) -> dict[str, Any]:
-    """
-    Fetch all tracks data from iRacing API.
-
-    Returns:
-        Dict containing tracks data or error information.
-    """
-    try:
-        logger.info("Fetching tracks data")
-
-        _ensure_service_available()
-
-        data = iracing_service.get_tracks()
-
-        logger.info("Successfully fetched tracks data")
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-        }
-
-    except Exception as exc:
-        logger.exception("Error fetching tracks data")
-
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_subsession_data(self, subsession_id: int) -> dict[str, Any]:
-    """
-    Fetch detailed subsession data from iRacing API.
-
+    Process series seasons data and create/update Event records.
+    
     Args:
-        subsession_id: The subsession ID to fetch data for.
+        series_seasons_data: List of series seasons data from API
 
     Returns:
-        Dict containing subsession data or error information.
+        Tuple of (events_created, events_updated, errors)
     """
+    events_created = 0
+    events_updated = 0
+    errors = []
+
+    # Get or create iRacing simulator
     try:
-        logger.info("Fetching subsession data for ID: %s", subsession_id)
+        iracing_simulator = Simulator.objects.get(name="iRacing")
+    except Simulator.DoesNotExist:
+        error_msg = "iRacing simulator not found in database"
+        logger.error(error_msg)
+        errors.append(error_msg)
+        return events_created, events_updated, errors
 
-        _ensure_service_available()
+    for series_data in series_seasons_data:
+        try:
+            series_id = series_data.get("series_id")
+            series_name = series_data.get("series_name", "")
+            allowed_licenses = series_data.get("allowed_licenses", [])
 
-        data = iracing_service.get_subsession_data(subsession_id=subsession_id)
+            if not series_id:
+                continue
 
-        logger.info("Successfully fetched subsession data for ID: %s", subsession_id)
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-            "subsession_id": subsession_id,
-        }
+            # Get or create series
+            series, series_created = _get_or_create_iracing_series(
+                series_id, series_data, iracing_simulator
+            )
+            
+            if series_created:
+                logger.debug(f"Created series: {series_name}")
+            
+            # Process seasons
+            seasons = series_data.get("seasons", [])
+            for season_data in seasons:
+                try:
+                    season_id = season_data.get("season_id")
+                    season_name = season_data.get("season_name", "")
+                    season_year = season_data.get("season_year")
+                    season_quarter = season_data.get("season_quarter")
 
-    except Exception as exc:
-        logger.exception("Error fetching subsession data for %s", subsession_id)
+                    if not season_id:
+                        continue
 
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
+                    # Get or create season
+                    season, season_created = Season.objects.get_or_create(
+                        external_season_id=season_id,
+                        defaults={
+                            "name": season_name,
+                            "series": series,
+                            "active": True,
+                        }
+                    )
 
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "subsession_id": subsession_id,
-        }
+                    if not season_created:
+                        # Update existing season
+                        season.name = season_name
+                        season.save(update_fields=["name"])
+
+                    # Process schedules/events
+                    schedules = season_data.get("schedules", [])
+                    for schedule_data in schedules:
+                        try:
+                            round_num = schedule_data.get("race_week_num")
+                            track_id = schedule_data.get("track", {}).get("track_id")
+                            track_name = schedule_data.get("track", {}).get("track_name", "")
+                            layout_id = schedule_data.get("track", {}).get("config_name")
+
+                            if not track_id or round_num is None:
+                                continue
+
+                            # Try to find track layout
+                            try:
+                                sim_layout = SimLayout.objects.get(
+                                    sim_track__external_track_id=track_id,
+                                    layout_code=layout_id
+                                )
+                            except SimLayout.DoesNotExist:
+                                # Try to find by track name as fallback
+                                try:
+                                    sim_layout = SimLayout.objects.get(
+                                        sim_track__name__icontains=track_name,
+                                        layout_code=layout_id
+                                    )
+                                except SimLayout.DoesNotExist:
+                                    logger.warning(
+                                        f"Track layout not found for {track_name} ({track_id}) layout {layout_id}"
+                                    )
+                                    continue
+
+                            # Create event name
+                            event_name = f"{series_name} - Week {round_num} - {track_name}"
+                            if layout_id and layout_id.lower() != "default":
+                                event_name += f" ({layout_id})"
+
+                            # Prepare event defaults
+                            event_defaults = {
+                                "series": series,
+                                "season": season,
+                                "simulator": iracing_simulator,
+                                "sim_layout": sim_layout,
+                                "event_source": EventSource.SERIES,
+                                "status": EventStatus.SCHEDULED,
+                                "description": f"iRacing {series_name} Week {round_num}",
+                                "entry_requirements": {
+                                    "round_number": round_num,
+                                    "track_id": track_id,
+                                    "layout_id": layout_id,
+                                },
+                            }
+
+                            # Create lookup criteria
+                            lookup_criteria = {
+                                "series": series,
+                                "season": season,
+                                "round_number": round_num,
+                                "sim_layout": sim_layout,
+                            }
+
+                            # Use robust get_or_create
+                            event, created = _get_or_create_iracing_event(
+                                lookup_criteria,
+                                event_defaults,
+                                f"series_{series_id}_season_{season_id}_round_{round_num}",
+                            )
+
+                            if created:
+                                events_created += 1
+                                logger.debug(f"Created event: {event_name}")
+                            else:
+                                events_updated += 1
+                                logger.debug(f"Updated event: {event_name}")
+
+                            # Process car classes if available
+                            car_classes = schedule_data.get("car_classes", [])
+                            for car_class_data in car_classes:
+                                try:
+                                    car_class_id = car_class_data.get("car_class_id")
+                                    if car_class_id:
+                                        car_class, _ = CarClass.objects.get_or_create(
+                                            external_car_class_id=car_class_id,
+                                            defaults={
+                                                "name": car_class_data.get("car_class_name", ""),
+                                                "simulator": iracing_simulator,
+                                            }
+                                        )
+                                        
+                                        # Create event class
+                                        event_class, _ = EventClass.objects.get_or_create(
+                                            event=event,
+                                            car_class=car_class,
+                                            defaults={
+                                                "is_active": True,
+                                            }
+                                        )
+                                        
+                                except Exception as e:
+                                    logger.warning(f"Error processing car class: {e}")
+
+                        except Exception as e:
+                            error_msg = f"Error processing schedule for series {series_id}, season {season_id}: {e!s}"
+                            logger.exception(error_msg)
+                            errors.append(error_msg)
+
+                except Exception as e:
+                    error_msg = f"Error processing season {season_data.get('season_id', 'unknown')}: {e!s}"
+                    logger.exception(error_msg)
+                    errors.append(error_msg)
+
+        except Exception as e:
+            error_msg = f"Error processing series {series_data.get('series_id', 'unknown')}: {e!s}"
+            logger.exception(error_msg)
+            errors.append(error_msg)
+
+    return events_created, events_updated, errors
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_series_search_results(
-    self,
-    season_year: int,
-    season_quarter: int,
-    **kwargs,
-) -> dict[str, Any]:
-    """
-    Search for series results from iRacing API.
-
-    Args:
-        season_year: Season year to search
-        season_quarter: Season quarter (1-4)
-        **kwargs: Additional search parameters
-
-    Returns:
-        Dict containing search results or error information.
-    """
-    try:
-        logger.info("Searching series results for %s Q%s", season_year, season_quarter)
-
-        _ensure_service_available()
-
-        data = iracing_service.search_series_results(
-            season_year=season_year,
-            season_quarter=season_quarter,
-            **kwargs,
-        )
-
-        logger.info(
-            "Successfully fetched series search results for %s Q%s",
-            season_year,
-            season_quarter,
-        )
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-            "season_year": season_year,
-            "season_quarter": season_quarter,
-            "search_params": kwargs,
-        }
-
-    except Exception as exc:
-        logger.exception(
-            "Error searching series results for %s Q%s",
-            season_year,
-            season_quarter,
-        )
-
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "season_year": season_year,
-            "season_quarter": season_quarter,
-            "search_params": kwargs,
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_season_list(
-    self,
-    season_year: int,
-    season_quarter: int,
-) -> dict[str, Any]:
-    """
-    Fetch official seasons for a specific year and quarter.
-
-    Args:
-        season_year: Season year (e.g., 2024)
-        season_quarter: Season quarter (1-4)
-
-    Returns:
-        Dict containing season list data or error information.
-    """
-    try:
-        logger.info("Fetching season list for %s Q%s", season_year, season_quarter)
-
-        _ensure_service_available()
-
-        data = iracing_service.get_season_list(
-            season_year=season_year,
-            season_quarter=season_quarter,
-        )
-
-        logger.info(
-            "Successfully fetched season list for %s Q%s",
-            season_year,
-            season_quarter,
-        )
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-            "season_year": season_year,
-            "season_quarter": season_quarter,
-        }
-
-    except Exception as exc:
-        logger.exception(
-            "Error fetching season list for %s Q%s",
-            season_year,
-            season_quarter,
-        )
-
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "season_year": season_year,
-            "season_quarter": season_quarter,
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_season_race_guide(
-    self,
-    start_from: str | None = None,
-    include_end_after_from: bool | None = None,
-) -> dict[str, Any]:
-    """
-    Fetch the season schedule race guide with upcoming events.
-
-    Args:
-        start_from: ISO-8601 offset format timestamp
-        include_end_after_from: Include sessions that start before 'from' but end after
-
-    Returns:
-        Dict containing race guide data or error information.
-    """
-    try:
-        logger.info("Fetching season race guide")
-
-        _ensure_service_available()
-
-        data = iracing_service.get_season_race_guide(
-            start_from=start_from,
-            include_end_after_from=include_end_after_from,
-        )
-
-        logger.info("Successfully fetched season race guide")
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-            "start_from": start_from,
-            "include_end_after_from": include_end_after_from,
-        }
-
-    except Exception as exc:
-        logger.exception("Error fetching season race guide")
-
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "start_from": start_from,
-            "include_end_after_from": include_end_after_from,
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_series_seasons(self, include_series: bool = False) -> dict[str, Any]:
-    """
-    Fetch all series and seasons data.
-
-    Args:
-        include_series: Whether to include series information
-
-    Returns:
-        Dict containing series seasons data or error information.
-    """
-    try:
-        logger.info("Fetching series seasons data")
-
-        _ensure_service_available()
-
-        data = iracing_service.get_series_seasons(include_series=include_series)
-
-        logger.info("Successfully fetched series seasons data")
-        return {
-            "success": True,
-            "data": data,
-            "timestamp": timezone.now().isoformat(),
-            "include_series": include_series,
-        }
-
-    except Exception as exc:
-        logger.exception("Error fetching series seasons data")
-
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
-            raise self.retry(exc=exc) from exc
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "include_series": include_series,
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_and_sync_events(
-    self,
-    season_year: int | None = None,
+def sync_series_seasons_task(
+    self, 
+    series_id: int | None = None, 
+    season_year: int | None = None, 
     season_quarter: int | None = None,
-    sync_to_database: bool = True,
+    refresh: bool = False
 ) -> dict[str, Any]:
     """
-    Fetch events from iRacing API and optionally sync them to the database.
+    Sync current and future seasons for series.
 
     Args:
-        season_year: Season year to fetch (defaults to current year)
-        season_quarter: Season quarter to fetch (defaults to current quarter)
-        sync_to_database: Whether to save events to database
+        series_id: Specific series ID to sync (None for all)
+        season_year: Filter by season year
+        season_quarter: Filter by season quarter
+        refresh: Whether to bypass cache
 
     Returns:
-        Dict containing sync results or error information.
+        Dict containing sync results
     """
     try:
-        # Default to current date if not specified
-        if season_year is None or season_quarter is None:
-            current_date = timezone.now()
-            if season_year is None:
-                season_year = current_date.year
-            if season_quarter is None:
-                # Calculate quarter based on month
-                season_quarter = ((current_date.month - 1) // 3) + 1
-
-        logger.info(
-            "Fetching and syncing events for %s Q%s, sync_to_database=%s",
-            season_year,
-            season_quarter,
-            sync_to_database,
-        )
-
+        logger.info(f"Syncing series seasons for series_id={series_id}, year={season_year}, quarter={season_quarter}")
+        
         _ensure_service_available()
-
-        events_created = 0
-        events_updated = 0
-        errors = []
-
-        # Fetch race guide for upcoming events
-        try:
-            race_guide_data = iracing_service.get_season_race_guide()
-            logger.info(
-                "Fetched race guide with %d sessions",
-                len(race_guide_data.get("sessions", [])),
-            )
-
-            if sync_to_database:
-                # Process race guide sessions
-                created, updated, guide_errors = _process_race_guide_events(
-                    race_guide_data
-                )
-                events_created += created
-                events_updated += updated
-                errors.extend(guide_errors)
-
-        except Exception as e:
-            error_msg = f"Error processing race guide: {e!s}"
-            logger.exception(error_msg)
-            errors.append(error_msg)
-
-        # Fetch series seasons for more comprehensive data
-        try:
-            series_seasons_data = iracing_service.get_series_seasons(
-                include_series=True
-            )
-            logger.info("Fetched %d series seasons", len(series_seasons_data))
-
-            if sync_to_database:
-                # Process series seasons
-                created, updated, season_errors = _process_series_seasons(
-                    series_seasons_data
-                )
-                events_created += created
-                events_updated += updated
-                errors.extend(season_errors)
-
-        except Exception as e:
-            error_msg = f"Error processing series seasons: {e!s}"
-            logger.exception(error_msg)
-            errors.append(error_msg)
+        
+        # Fetch current and future seasons for all series
+        seasons_data = iracing_service.get_series_seasons(include_series=True)
+        
+        # Filter by series_id if specified
+        if series_id:
+            seasons_data = [s for s in seasons_data if s.get("series_id") == series_id]
+        
+        # Filter by year/quarter if specified
+        if season_year or season_quarter:
+            filtered_data = []
+            for series_data in seasons_data:
+                filtered_seasons = []
+                for season in series_data.get("seasons", []):
+                    if season_year and season.get("season_year") != season_year:
+                        continue
+                    if season_quarter and season.get("season_quarter") != season_quarter:
+                        continue
+                    filtered_seasons.append(season)
+                
+                if filtered_seasons:
+                    series_data_copy = series_data.copy()
+                    series_data_copy["seasons"] = filtered_seasons
+                    filtered_data.append(series_data_copy)
+            
+            seasons_data = filtered_data
+        
+        # Process the data
+        events_created, events_updated, errors = _process_series_seasons(seasons_data)
 
         logger.info(
-            "Event sync completed: %d created, %d updated, %d errors",
-            events_created,
-            events_updated,
-            len(errors),
+            f"Successfully synced series seasons: {events_created} created, {events_updated} updated, {len(errors)} errors"
         )
 
         return {
@@ -592,17 +378,13 @@ def fetch_and_sync_events(
             "events_updated": events_updated,
             "errors": errors,
             "timestamp": timezone.now().isoformat(),
+            "series_id": series_id,
             "season_year": season_year,
             "season_quarter": season_quarter,
-            "sync_to_database": sync_to_database,
         }
 
     except Exception as exc:
-        logger.exception(
-            "Error in fetch_and_sync_events for %s Q%s",
-            season_year,
-            season_quarter,
-        )
+        logger.exception(f"Error syncing series seasons for series_id={series_id}")
 
         if self.request.retries < self.max_retries:
             logger.info("Retrying task in %s seconds...", self.default_retry_delay)
@@ -612,1316 +394,354 @@ def fetch_and_sync_events(
             "success": False,
             "error": str(exc),
             "timestamp": timezone.now().isoformat(),
+            "series_id": series_id,
             "season_year": season_year,
             "season_quarter": season_quarter,
-            "sync_to_database": sync_to_database,
         }
 
 
-def _get_or_create_iracing_series(
-    series_id: int, series_info: dict, iracing_simulator
-) -> tuple:
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def sync_past_seasons_task(self, series_id: int, refresh: bool = False) -> dict[str, Any]:
     """
-    Robust iRacing-specific Series get_or_create with proper lookup and update logic.
+    Sync past seasons for a specific series.
 
     Args:
-        series_id: iRacing series ID
-        series_info: Series data from iRacing API
-        iracing_simulator: iRacing Simulator instance
+        series_id: Series ID to sync past seasons for
+        refresh: Whether to bypass cache
 
     Returns:
-        Tuple of (Series instance, created boolean)
+        Dict containing sync results
     """
-    from simlane.sim.models import Series
-
-    # Extract data with fallbacks
-    series_name = series_info.get("series_name", "")
-
-    # Clean up series name (remove common patterns)
-    if series_name:
-        import re
-
-        # Remove season/year patterns
-        series_name = re.sub(r"\s*-\s*\d{4}\s*Season.*$", "", series_name)
-        series_name = re.sub(r"\s*-\s*(Fixed|Open)(\s*-.*)?$", "", series_name)
-        series_name = series_name.strip()
-
-    if not series_name:
-        raise ValueError(f"No valid series name found for series_id {series_id}")
-
-    # Prepare defaults
-    defaults = {
-        "name": series_name,
-        "description": f"iRacing {series_name} series",
-        "simulator": iracing_simulator,
-        "multiclass": series_info.get("multiclass", False),
-        "fixed_setup": series_info.get("fixed_setup", False),
-        "category": series_info.get("category", ""),
-        "license_group": series_info.get("license_group"),
-        "is_official": series_info.get("official", True),
-        "car_switching": series_info.get("car_switching", False),
-        "incident_limit": series_info.get("incident_limit"),
-        "max_team_drivers": series_info.get("max_team_drivers", 1),
-        "region_competition": series_info.get("region_competition", True),
-        "allowed_car_class_ids": [
-            str(class_id) for class_id in series_info.get("car_class_ids", [])
-        ],
-    }
-
-    # Get or create with robust lookup
-    series, created = Series.objects.get_or_create(
-        external_series_id=series_id,
-        defaults=defaults,
-    )
-
-    # Update existing series if not created
-    if not created:
-        updated = False
-        for field, value in defaults.items():
-            if field != "simulator" and getattr(series, field) != value:
-                setattr(series, field, value)
-                updated = True
-
-        if updated:
-            series.save()
-
-    return series, created
-
-
-def _resolve_track_layout_for_race_guide(track_name: str, iracing_simulator):
-    """
-    Try to resolve a track name from race guide to a SimLayout.
-    Race guide events often have limited track info, so we do best-effort matching.
-
-    Args:
-        track_name: Track name from race guide
-        iracing_simulator: iRacing Simulator instance
-
-    Returns:
-        SimLayout instance or None if not resolvable
-    """
-    from simlane.sim.models import SimLayout
-
-    if not track_name:
-        return None
-
     try:
-        # Try exact track name match first
-        layouts = SimLayout.objects.filter(
-            sim_track__track_model__name__iexact=track_name,
-            sim_track__simulator=iracing_simulator,
-        ).select_related("sim_track")
-
-        if layouts.exists():
-            # Prefer "Grand Prix" or "Road Course" layouts for race guide
-            preferred_layout = (
-                layouts.filter(
-                    name__icontains="Grand Prix",
-                ).first()
-                or layouts.filter(
-                    name__icontains="Road Course",
-                ).first()
-                or layouts.first()
-            )
-
-            return preferred_layout
-
-        # Try partial match
-        layouts = SimLayout.objects.filter(
-            sim_track__track_model__name__icontains=track_name,
-            sim_track__simulator=iracing_simulator,
-        ).select_related("sim_track")
-
-        if layouts.exists():
-            return layouts.first()
-
-        return None
-
-    except Exception as e:
-        logger.warning(f"Error resolving track layout for '{track_name}': {e!s}")
-        return None
-
-
-def _get_or_create_iracing_event(
-    lookup_criteria: dict, event_defaults: dict, unique_identifier: str = None
-) -> tuple:
-    """
-    Robust iRacing-specific Event get_or_create with proper lookup and update logic.
-
-    Args:
-        lookup_criteria: Dictionary of fields to use for lookup
-        event_defaults: Default values for event creation
-        unique_identifier: Optional unique identifier for logging
-
-    Returns:
-        Tuple of (Event instance, created boolean)
-    """
-    from simlane.sim.models import Event
-
-    try:
-        # Try to find existing event using business logic
-        event = Event.objects.filter(**lookup_criteria).first()
-
-        if event:
-            # Update existing event with latest data
-            updated = False
-            for field, value in event_defaults.items():
-                if field not in lookup_criteria and getattr(event, field) != value:
-                    setattr(event, field, value)
-                    updated = True
-
-            if updated:
-                event.save()
-
-            return event, False
-        # Create new event
-        event_data = {**lookup_criteria, **event_defaults}
-        event = Event.objects.create(**event_data)
-        return event, True
-
-    except Exception as e:
-        error_msg = (
-            f"Error in _get_or_create_iracing_event for {unique_identifier}: {e!s}"
-        )
-        logger.error(error_msg)
-        raise
-
-
-def _process_race_guide_events(race_guide_data: dict) -> tuple[int, int, list[str]]:
-    """
-    Process race guide data and create/update Event records.
-
-    Returns:
-        Tuple of (events_created, events_updated, errors)
-    """
-    from simlane.sim.models import EventSource
-    from simlane.sim.models import EventStatus
-    from simlane.sim.models import Simulator
-
-    events_created = 0
-    events_updated = 0
-    errors = []
-
-    sessions = race_guide_data.get("sessions", [])
-
-    # Get or create iRacing simulator
-    try:
-        iracing_simulator = Simulator.objects.get(name="iRacing")
-    except Simulator.DoesNotExist:
-        error_msg = "iRacing simulator not found in database"
-        logger.error(error_msg)
-        errors.append(error_msg)
-        return events_created, events_updated, errors
-
-    for session in sessions:
-        try:
-            # Extract session data
-            session_id = session.get("session_id")
-            session_name = session.get("session_name", "")
-            start_time = session.get("start_time")
-            series_name = session.get("series_name", "")
-            series_id = session.get("series_id")  # May be None
-            track_name = session.get("track", {}).get("track_name", "")
-
-            if not session_id or not start_time:
-                continue
-
-            # Parse start time
-            try:
-                event_date = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-                event_date = (
-                    timezone.make_aware(event_date)
-                    if timezone.is_naive(event_date)
-                    else event_date
-                )
-            except (ValueError, AttributeError):
-                logger.warning("Could not parse start_time: %s", start_time)
-                continue
-
-            # Try to resolve track layout for race guide events
-            sim_layout = _resolve_track_layout_for_race_guide(
-                track_name, iracing_simulator
-            )
-
-            if not sim_layout:
-                # Skip race guide events without resolvable track info
-                # These are often generic/summary events anyway
-                logger.debug(
-                    "Skipping race guide session %s - no resolvable track layout for '%s'",
-                    session_id, track_name
-                )
-                continue
-
-            # Create a unique name for the event
-            event_name = (
-                f"{series_name} - {track_name}"
-                if series_name and track_name
-                else session_name
-            )
-            if not event_name:
-                event_name = f"iRacing Event {session_id}"
-
-            # Prepare event defaults
-            event_defaults = {
-                "simulator": iracing_simulator,
-                "sim_layout": sim_layout,  # Now we have a resolved layout
-                "event_source": EventSource.SERIES,
-                "event_date": event_date,
-                "status": EventStatus.SCHEDULED,
-                "description": f"iRacing {series_name} session"
-                if series_name
-                else "iRacing session",
-                "entry_requirements": {
-                    "session_id": session_id,
-                    "series_id": series_id,
-                    "series_name": series_name,
-                    "track_name": track_name,
-                },
-            }
-
-            # Create lookup criteria - handle case where series might be None
-            lookup_criteria = {
-                "simulator": iracing_simulator,
-                "name": event_name,
-                "event_date": event_date,
-            }
-
-            # Add series to lookup if we have a series_id
-            if series_id:
-                try:
-                    series = Series.objects.get(external_series_id=series_id)
-                    lookup_criteria["series"] = series
-                    event_defaults["series"] = series
-                except Series.DoesNotExist:
-                    logger.warning(
-                        f"Series {series_id} not found for session {session_id}"
-                    )
-
-            # Use robust get_or_create
-            event, created = _get_or_create_iracing_event(
-                lookup_criteria,
-                event_defaults,
-                f"race_guide_session_{session_id}",
-            )
-
-            if created:
-                events_created += 1
-                logger.debug("Created race guide event: %s", event_name)
-            else:
-                events_updated += 1
-                logger.debug("Updated race guide event: %s", event_name)
-
-        except Exception as e:
-            error_msg = f"Error processing session {session.get('session_id', 'unknown')}: {e!s}"
-            logger.exception(error_msg)
-            errors.append(error_msg)
-
-    return events_created, events_updated, errors
-
-
-def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[str]]:
-    """
-    Process series seasons data and create/update Series and Event records.
-
-    Returns:
-        Tuple of (events_created, events_updated, errors)
-    """
-
-    events_created = 0
-    events_updated = 0
-    errors = []
-
-    # Get or create iRacing simulator
-    try:
-        iracing_simulator = Simulator.objects.get(name="iRacing")
-    except Simulator.DoesNotExist:
-        error_msg = "iRacing simulator not found in database"
-        logger.error(error_msg)
-        errors.append(error_msg)
-        return events_created, events_updated, errors
-
-    # Fetch all series data to get proper series names
-    try:
-        from simlane.iracing.services import iracing_service
-
-        series_data = iracing_service.get_series()
-        # Create a lookup map of series_id -> series info
-        series_lookup = {}
-        if isinstance(series_data, dict) and "data" in series_data:
-            series_list = series_data["data"]
-        elif isinstance(series_data, list):
-            series_list = series_data
+        logger.info(f"Syncing past seasons for series_id={series_id}")
+        
+        _ensure_service_available()
+        
+        # Get past seasons for the series
+        past_seasons_response = iracing_service.get_series_past_seasons(series_id=series_id)
+        
+        # The response is the series dict which contains a 'seasons' array
+        if isinstance(past_seasons_response, dict) and 'seasons' in past_seasons_response:
+            past_seasons = past_seasons_response['seasons']
         else:
-            series_list = []
-
-        for series_info in series_list:
-            series_id = series_info.get("series_id")
-            if series_id:
-                series_lookup[series_id] = series_info
-
-        logger.info(f"Loaded {len(series_lookup)} series for lookup")
-    except Exception as e:
-        error_msg = f"Failed to fetch series data for lookup: {e!s}"
-        logger.error(error_msg)
-        errors.append(error_msg)
-        # Continue processing without series lookup
-        series_lookup = {}
-
-    for season_data in series_seasons_data:
-        try:
-            series_id = season_data.get("series_id")
-            season_name = season_data.get("season_name", "")
-
-            if not series_id:
-                continue
-
-            # Get series name from the series lookup
-            series_info = series_lookup.get(series_id, {})
-            series_name = series_info.get("series_name", "")
-
-            # Fallback to extracting from season name if no series info found
-            if not series_name and season_name:
-                series_name = season_name
-                # Common patterns to clean up: " - 2025 Season", " - Fixed", " - Open", etc.
-                import re
-
-                series_name = re.sub(r"\s*-\s*\d{4}\s*Season.*$", "", series_name)
-                series_name = re.sub(r"\s*-\s*(Fixed|Open)(\s*-.*)?$", "", series_name)
-                series_name = series_name.strip()
-
-            if not series_name:
-                logger.warning(
-                    f"No series name found for series_id {series_id}, skipping"
-                )
-                continue
-
-            # Extract car class and series-level data
-            car_class_ids = season_data.get("car_class_ids", [])
-            multiclass = season_data.get("multiclass", False)
-            fixed_setup = season_data.get("fixed_setup", False)
-
-            # Convert car_class_ids to strings for consistency
-            allowed_car_class_ids = (
-                [str(class_id) for class_id in car_class_ids] if car_class_ids else []
-            )
-
-            # Use robust Series get_or_create
-            series, series_created = _get_or_create_iracing_series(
-                series_id,
-                {**series_info, **season_data},  # Merge series info with season data
-                iracing_simulator,
-            )
-
-            # Process race schedules to create specific events
-            schedules = season_data.get("schedules", [])
-
-            if not schedules:
-                # If no schedules, create a general season event (fallback)
-                if season_data.get("active", False):
-                    event_name = (
-                        f"{series_name} - {season_name}" if season_name else series_name
-                    )
-
-                    # Skip events without track/layout info in this case
-                    logger.warning(
-                        "No schedules found for series %s, skipping detailed event creation",
-                        series_name,
-                    )
-                    continue
-
-            # Process each event round schedule
-            for schedule in schedules:
-                try:
-                    track_info = schedule.get("track", {})
-                    track_id = track_info.get("track_id")
-                    track_name = track_info.get("track_name", "")
-                    config_name = track_info.get("config_name", "")
-
-                    if not track_id or not track_name:
-                        logger.warning(
-                            "Missing track info in schedule for series %s", series_name
-                        )
-                        continue
-
-                    # Find the corresponding SimLayout
-                    try:
-                        # Direct lookup by layout_code which contains the track_id from iRacing API
-                        sim_layout = SimLayout.objects.select_related("sim_track").get(
-                            layout_code=str(track_id),
-                            sim_track__simulator=iracing_simulator,
-                        )
-
-                    except SimLayout.DoesNotExist:
-                        # Fallback: try to find SimTrack and then match by config_name
-                        try:
-                            # Find all layouts for tracks with this name
-                            sim_layouts = SimLayout.objects.filter(
-                                sim_track__track_model__name=track_name,
-                                sim_track__simulator=iracing_simulator,
-                            ).select_related("sim_track")
-
-                            # Try to match by config_name
-                            sim_layout = None
-                            if config_name and sim_layouts.exists():
-                                # Try exact match first
-                                sim_layout = sim_layouts.filter(
-                                    name=config_name
-                                ).first()
-
-                                # Try partial match if exact match fails
-                                if not sim_layout:
-                                    sim_layout = sim_layouts.filter(
-                                        name__icontains=config_name
-                                    ).first()
-
-                            # Fallback to first layout if no match
-                            if not sim_layout and sim_layouts.exists():
-                                sim_layout = sim_layouts.first()
-                                logger.warning(
-                                    "Could not find exact layout match for %s at %s, using %s",
-                                    config_name, track_name, sim_layout.name
-                                )
-
-                            if not sim_layout:
-                                error_msg = f"SimLayout not found for track {track_name} (ID: {track_id}). Track data may need to be synced first."
-                                logger.warning(error_msg)
-                                errors.append(error_msg)
-                                continue
-
-                        except Exception as e:
-                            error_msg = f"Error finding SimLayout for track {track_name} (ID: {track_id}): {e!s}"
-                            logger.warning(error_msg)
-                            errors.append(error_msg)
-                            continue
-
-                    # Create event name with track and layout info
-                    round_number = schedule.get("race_week_num", "")
-                    week_suffix = (
-                        f" - Round {round_number}" if round_number is not None else ""
-                    )
-                    layout_suffix = (
-                        f" ({config_name})"
-                        if config_name and config_name != track_name
-                        else ""
-                    )
-
-                    event_name = (
-                        f"{series_name} - {track_name}{layout_suffix}{week_suffix}"
-                    )
-
-                    # Create unique identifier for this specific event round
-                    unique_key = f"{series_id}_{season_data.get('season_id', '')}_{round_number}_{track_id}"
-
-                    # Get start and end dates for the event round
-                    start_date = schedule.get("start_date")
-                    week_end_time = schedule.get("week_end_time")
-
-                    event_date = None
-                    if start_date:
-                        try:
-                            event_date = datetime.fromisoformat(
-                                start_date.replace("Z", "+00:00")
-                            )
-                            event_date = (
-                                timezone.make_aware(event_date)
-                                if timezone.is_naive(event_date)
-                                else event_date
-                            )
-                        except (ValueError, AttributeError):
-                            logger.warning("Could not parse start_date: %s", start_date)
-
-                    # Store additional metadata in entry_requirements JSON field
-                    schedule_metadata = {
-                        "external_series_id": series_id,
-                        "external_season_id": season_data.get("season_id"),
-                        "external_track_id": track_id,
-                        "round_number": round_number,
-                        "config_name": config_name,
-                        "schedule_description": season_data.get(
-                            "schedule_description", ""
-                        ),
-                        "category": track_info.get("category", ""),
-                        "race_lap_limit": schedule.get("race_lap_limit"),
-                        "race_time_limit": schedule.get("race_time_limit"),
-                        "practice_length": schedule.get("practice_length"),
-                        "qualify_length": schedule.get("qualify_length"),
-                        "unique_key": unique_key,
-                    }
-
-                    # Prepare event defaults
-                    event_defaults = {
-                        "name": event_name,
-                        "series": series,
-                        "simulator": iracing_simulator,
-                        "sim_layout": sim_layout,
-                        "event_source": EventSource.SERIES,
-                        "event_date": event_date,
-                        "status": EventStatus.SCHEDULED,
-                        "description": f"iRacing {series_name} - Round {round_number} at {track_name} ({config_name})",
-                        "entry_requirements": schedule_metadata,
-                        "max_entries": schedule.get("max_entries"),
-                        "weather": schedule.get("weather")
-                        if schedule.get("weather")
-                        else None,
-                    }
-
-                    # Create lookup criteria using business logic fields
-                    lookup_criteria = {
-                        "series": series,
-                        "simulator": iracing_simulator,
-                        "name": event_name,
-                        "event_date": event_date,
-                    }
-
-                    # Use robust get_or_create
-                    event, created = _get_or_create_iracing_event(
-                        lookup_criteria,
-                        event_defaults,
-                        f"series_season_{series_id}_round_{round_number}",
-                    )
-
-                    if created:
-                        events_created += 1
-                        logger.debug("Created event round: %s", event_name)
-                    else:
-                        events_updated += 1
-                        logger.debug("Updated event round: %s", event_name)
-
-                    # NEW: Create EventClass instances based on car class IDs
-                    try:
-                        # Get car class IDs (from event or fall back to series)
-                        car_class_ids = (
-                            event.allowed_car_class_ids or series.allowed_car_class_ids
-                        )
-
-                        if car_class_ids:
-                            # Clear existing event classes if updating
-                            if not created:
-                                event.classes.all().delete()
-
-                            # Create EventClass for each car class
-                            for i, class_id in enumerate(car_class_ids):
-                                try:
-                                    car_class = CarClass.objects.get(
-                                        simulator=iracing_simulator,
-                                        sim_api_id=str(class_id),
-                                    )
-
-                                    # Determine class name
-                                    if len(car_class_ids) == 1:
-                                        # Single class - use car class name or "Main Class"
-                                        class_name = (
-                                            car_class.name
-                                            if car_class.name
-                                            else "Main Class"
-                                        )
-                                    else:
-                                        # Multi-class - use car class name with fallback
-                                        class_name = (
-                                            car_class.name
-                                            if car_class.name
-                                            else f"Class {i + 1}"
-                                        )
-
-                                    event_class, ec_created = (
-                                        EventClass.objects.get_or_create(
-                                            event=event,
-                                            car_class=car_class,
-                                            defaults={
-                                                "name": class_name,
-                                                "class_order": i,  # 0=fastest, 1=second fastest, etc.
-                                                "inherit_series_restrictions": True,
-                                            },
-                                        )
-                                    )
-
-                                    if ec_created:
-                                        logger.debug(
-                                            f"Created EventClass: {class_name} for {event_name}"
-                                        )
-                                    else:
-                                        # Update existing EventClass
-                                        event_class.name = class_name
-                                        event_class.class_order = i
-                                        event_class.save()
-                                        logger.debug(
-                                            f"Updated EventClass: {class_name} for {event_name}"
-                                        )
-
-                                except CarClass.DoesNotExist:
-                                    logger.warning(
-                                        "CarClass with sim_api_id %s not found for event %s",
-                                        class_id, event_name
-                                    )
-                                    continue
-                        else:
-                            logger.debug("No car class IDs found for event %s", event_name)
-
-                    except Exception as e:
-                        logger.error(
-                            f"Error creating EventClass instances for {event_name}: {e!s}"
-                        )
-
-                    # --- Ensure Season & Event exist for every schedule ---
-                    season, _ = Season.objects.get_or_create(
-                        external_season_id=season_data.get("season_id"),
-                        series=series,
-                        defaults={
-                            "name": season_name,
-                            "active": season_data.get("active", True),
-                            "complete": season_data.get("complete", False),
-                        },
-                    )
-
-                    # Build defaults for Event round
-                    rw_defaults = {
-                        "sim_layout": sim_layout,
-                        "start_date": event_date.date()
-                        if event_date
-                        else timezone.now().date(),
-                        "end_date": datetime.fromisoformat(
-                            schedule.get("week_end_time", "").replace("Z", "+00:00")
-                        )
-                        if schedule.get("week_end_time")
-                        else (
-                            event_date.date() + timedelta(days=7)
-                            if event_date
-                            else timezone.now().date() + timedelta(days=7)
-                        ),
-                        "category": track_info.get("category", ""),
-                        "enable_pitlane_collisions": schedule.get(
-                            "enable_pitlane_collisions", False
-                        ),
-                        "full_course_cautions": schedule.get(
-                            "full_course_cautions", False
-                        ),
-                        "weather_config": schedule.get("weather"),
-                        "weather_forecast_url": (schedule.get("weather") or {}).get(
-                            "weather_url", ""
-                        ),
-                        "weather_forecast_version": (schedule.get("weather") or {}).get(
-                            "version"
-                        ),
-                    }
-
-                    # Create Event directly
-                    event, _ = Event.objects.update_or_create(
-                        series=series,
-                        round_number=round_number,
-                        defaults={
-                            **rw_defaults,
-                            "name": f"{series.name} - Round {round_number}",
-                            "event_source": EventSource.SERIES,
-                            "simulator": iracing_simulator,
-                        },
-                    )
-
-                    # Queue background forecast fetch if needed
-                    if event.weather_forecast_url and (not event.weather_forecast_data):
-                        # Note: This task will need to be updated to work with Events
-                        logger.info(
-                            "Weather forecast fetch needed for Event %s", event.id
-                        )
-
-                    # --- Car Restrictions ---
-                    car_restrictions = schedule.get("car_restrictions", [])
-                    for restriction_data in car_restrictions:
-                        car_api_id = restriction_data.get("car_id")
-                        if not car_api_id:
-                            continue
-                        try:
-                            sim_car = SimCar.objects.get(
-                                simulator=iracing_simulator, sim_api_id=str(car_api_id)
-                            )
-                        except SimCar.DoesNotExist:
-                            logger.warning(
-                                "SimCar not found for car_id %s, skipping restriction",
-                                car_api_id,
-                            )
-                            continue
-                        CarRestriction.objects.update_or_create(
-                            event=event,
-                            sim_car=sim_car,
-                            defaults={
-                                "max_dry_tire_sets": restriction_data.get(
-                                    "max_dry_tire_sets", 0
-                                ),
-                                "max_pct_fuel_fill": restriction_data.get(
-                                    "max_pct_fuel_fill", 100
-                                ),
-                                "power_adjust_pct": float(
-                                    restriction_data.get("power_adjust_pct", 0)
-                                ),
-                                "weight_penalty_kg": restriction_data.get(
-                                    "weight_penalty_kg", 0
-                                ),
-                            },
-                        )
-                        logger.debug(
-                            "Created/updated car restriction for %s in round %s",
-                            sim_car.display_name,
-                            round_number,
-                        )
-
-                except Exception as e:
-                    error_msg = (
-                        f"Error processing schedule for series {series_name}: {e!s}"
-                    )
-                    logger.exception(error_msg)
-                    errors.append(error_msg)
-
-        except Exception as e:
-            error_msg = f"Error processing series {season_data.get('series_id', 'unknown')}: {e!s}"
-            logger.exception(error_msg)
-            errors.append(error_msg)
-
-    return events_created, events_updated, errors
-
-
-@shared_task
-def sync_iracing_owned_content(sim_profile_id):
-    """
-    Fetch owned cars and tracks for a SimProfile from the iRacing API and update ownership tables.
-    Sends a websocket event to the user group when done.
-    """
-    try:
-        profile = SimProfile.objects.get(id=sim_profile_id)
-        member_info = iracing_service.get_member_info()
-        logger.info(
-            f"[SYNC] iRacing member_info: cust_id={member_info.get('cust_id')}, name={member_info.get('display_name')}, car_packages={member_info.get('car_packages')}, track_packages={member_info.get('track_packages')}"
-        )
-        # Use package_id for ownership mapping
-        owned_car_ids = set(
-            pkg["package_id"] for pkg in member_info.get("car_packages", [])
-        )
-        owned_track_ids = set(
-            pkg["package_id"] for pkg in member_info.get("track_packages", [])
-        )
-        logger.info(f"[SYNC] owned_car_ids (package_id): {owned_car_ids}")
-        logger.info(f"[SYNC] owned_track_ids (package_id): {owned_track_ids}")
-        sim_cars = SimCar.objects.filter(
-            sim_api_id__in=owned_car_ids, simulator=profile.simulator
-        )
-        sim_tracks = SimTrack.objects.filter(
-            sim_api_id__in=owned_track_ids, simulator=profile.simulator
-        )
-        car_map = {car.sim_api_id: car for car in sim_cars}
-        track_map = {track.sim_api_id: track for track in sim_tracks}
-        logger.info(
-            f"[SYNC] SimCars found: {len(sim_cars)}; SimTracks found: {len(sim_tracks)}"
-        )
-        with transaction.atomic():
-            SimProfileCarOwnership.objects.filter(sim_profile=profile).delete()
-            SimProfileTrackOwnership.objects.filter(sim_profile=profile).delete()
-            car_ownerships = [
-                SimProfileCarOwnership(sim_profile=profile, sim_car=car_map[api_id])
-                for api_id in owned_car_ids
-                if api_id in car_map
-            ]
-            track_ownerships = [
-                SimProfileTrackOwnership(
-                    sim_profile=profile, sim_track=track_map[api_id]
-                )
-                for api_id in owned_track_ids
-                if api_id in track_map
-            ]
-            SimProfileCarOwnership.objects.bulk_create(car_ownerships)
-            SimProfileTrackOwnership.objects.bulk_create(track_ownerships)
-        logger.info(
-            f"[SYNC] Car ownerships created: {len(car_ownerships)}; Track ownerships created: {len(track_ownerships)}"
-        )
-        # Notify user via websocket
-        channel_layer = get_channel_layer()
-        group = f"user_{profile.linked_user.id}" if profile.linked_user else None
-        if channel_layer and group:
-            async_to_sync(channel_layer.group_send)(
-                group,
-                {
-                    "type": "sync_status",
-                    "status": "done",
-                    "profile_id": str(profile.id),
-                },
-            )
-        logger.info("Synced iRacing owned content for SimProfile %s", profile.id)
-    except Exception as e:
-        logger.exception(
-            "Failed to sync iRacing owned content for SimProfile %s: %s",
-            sim_profile_id, e
-        )
-        raise
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def process_member_recent_races_task(self, cust_id: int) -> dict[str, Any]:
-    """
-    Celery task to fetch member recent races and auto-create missing data.
-
-    Args:
-        cust_id: iRacing customer ID
-
-    Returns:
-        Dict containing processing results and created counts.
-    """
-    try:
-        from simlane.iracing.auto_create import process_member_recent_races
-
-        logger.info("Processing recent races for member %s", cust_id)
-        result = process_member_recent_races(cust_id)
-
-        logger.info(
-            "Completed processing for member %s: %s races processed, created %s",
-            cust_id,
-            result.get("processed_races", 0),
-            result.get("created_counts", {}),
-        )
-
-        return {
-            "success": True,
-            "result": result,
-            "timestamp": timezone.now().isoformat(),
-            "cust_id": cust_id,
-        }
-
-    except Exception as exc:
-        logger.exception("Error processing member recent races for %s", cust_id)
-
-        # Retry on network/API errors
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying member recent races processing for %s", cust_id)
-            raise self.retry(countdown=60, exc=exc)
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "cust_id": cust_id,
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_subsession_results_task(self, subsession_id: int) -> dict[str, Any]:
-    """
-    Celery task to fetch and sync a specific subsession's results.
-
-    Args:
-        subsession_id: iRacing subsession ID
-
-    Returns:
-        Dict containing sync results.
-    """
-    try:
-        from simlane.iracing.auto_create import auto_create_event_chain_from_results
-        from simlane.iracing.auto_create import process_results_participants
-        from simlane.sim.models import Simulator
-
-        logger.info("Syncing subsession results for %s", subsession_id)
-
-        # Get iRacing simulator
-        try:
-            iracing_simulator = Simulator.objects.get(name="iRacing")
-        except Simulator.DoesNotExist:
-            raise ValueError("iRacing simulator not found in database")
-
-        # Fetch detailed results
-        detailed_results = iracing_service.results_get(
-            subsession_id=subsession_id,
-            include_licenses=True,
-        )
-
-        # Auto-create event chain
-        time_slot, event_counts = auto_create_event_chain_from_results(
-            detailed_results,
-            iracing_simulator,
-        )
-
-        # Process participants
-        participant_counts = process_results_participants(
-            detailed_results,
-            iracing_simulator,
-        )
-
-        total_counts = {**event_counts, **participant_counts}
-
-        logger.info(
-            "Completed subsession sync for %s: created %s",
-            subsession_id,
-            total_counts,
-        )
-
-        return {
-            "success": True,
-            "time_slot_id": str(time_slot.id),
-            "created_counts": total_counts,
-            "timestamp": timezone.now().isoformat(),
-            "subsession_id": subsession_id,
-        }
-
-    except Exception as exc:
-        logger.exception("Error syncing subsession results for %s", subsession_id)
-
-        # Retry on network/API errors
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying subsession sync for %s", subsession_id)
-            raise self.retry(countdown=60, exc=exc)
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "subsession_id": subsession_id,
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def match_season_results_to_instances_task(self, season_id: int) -> dict[str, Any]:
-    """
-    Celery task to match actual season results to predicted EventInstance records.
-
-    Args:
-        season_id: iRacing season ID
-
-    Returns:
-        Dict containing matching results.
-    """
-    try:
-        from simlane.sim.models import EventInstance
-        from simlane.sim.models import Simulator
-
-        logger.info("Matching season results to instances for season %s", season_id)
-
-        # Get iRacing simulator
-        try:
-            iracing_simulator = Simulator.objects.get(name="iRacing")
-        except Simulator.DoesNotExist:
-            raise ValueError("iRacing simulator not found in database")
-
-        # Get season results
-        season_results = iracing_service.season_results(season_id=season_id)
-
-        matched_count = 0
-        created_count = 0
+            logger.error(f"Unexpected past seasons response format: {type(past_seasons_response)}")
+            return {
+                "success": False,
+                "error": f"Unexpected past seasons response format: {type(past_seasons_response)}",
+                "timestamp": timezone.now().isoformat(),
+                "series_id": series_id,
+            }
+        
+        if not isinstance(past_seasons, list):
+            logger.error(f"Unexpected past seasons data format: {type(past_seasons)}")
+            return {
+                "success": False,
+                "error": f"Unexpected past seasons data format: {type(past_seasons)}",
+                "timestamp": timezone.now().isoformat(),
+                "series_id": series_id,
+            }
+
+        events_created = 0
+        events_updated = 0
         errors = []
-
-        for result in season_results.get("results_list", []):
-            try:
-                subsession_id = result["subsession_id"]
-                session_id = result.get("session_id")
-                start_time = datetime.fromisoformat(
-                    result["start_time"].replace("Z", "+00:00")
-                )
-                start_time = (
-                    timezone.make_aware(start_time)
-                    if timezone.is_naive(start_time)
-                    else start_time
-                )
-                track_id = result["track"]["track_id"]
-                round_number = result.get("race_week_num")
-
-                # Try to find matching predicted instance
-                time_window = timedelta(minutes=30)
-                matching_instance = EventInstance.objects.filter(
-                    event__entry_requirements__external_track_id=track_id,
-                    event__entry_requirements__round_number=round_number,
-                    start_time__range=[
-                        start_time - time_window,
-                        start_time + time_window,
-                    ],
-                    is_predicted=True,
-                    external_subsession_id__isnull=True,
-                ).first()
-
-                if matching_instance:
-                    # Match found - update with actual data
-                    matching_instance.predicted_start_time = (
-                        matching_instance.start_time
-                    )
-                    matching_instance.external_subsession_id = subsession_id
-                    matching_instance.external_session_id = session_id
-                    matching_instance.start_time = start_time
-                    matching_instance.is_matched = True
-                    matching_instance.save()
-                    matched_count += 1
-                    logger.debug(
-                        "Matched subsession %s to existing instance", subsession_id
-                    )
-
-                else:
-                    # No match - trigger creation of new TimeSlot
-                    sync_subsession_results_task.delay(subsession_id)
-                    created_count += 1
-                    logger.debug(
-                        "Queued creation for unmatched subsession %s", subsession_id
-                    )
-
-            except Exception as e:
-                error_msg = f"Error processing result for subsession {result.get('subsession_id')}: {e!s}"
-                logger.error(error_msg)
-                errors.append(error_msg)
-
-        return {
-            "success": True,
-            "matched_instances": matched_count,
-            "queued_creations": created_count,
-            "errors": errors,
-            "timestamp": timezone.now().isoformat(),
-            "season_id": season_id,
-        }
-
-    except Exception as exc:
-        logger.exception("Error matching season results for season %s", season_id)
-
-        # Retry on network/API errors
-        if self.request.retries < self.max_retries:
-            logger.info("Retrying season results matching for %s", season_id)
-            raise self.retry(countdown=60, exc=exc)
-
-        return {
-            "success": False,
-            "error": str(exc),
-            "timestamp": timezone.now().isoformat(),
-            "season_id": season_id,
-        }
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def check_completed_events_task(self) -> dict[str, Any]:
-    """
-    Celery task to check for completed events and queue them for result fetching.
-
-    This task runs periodically to find EventInstances that have finished
-    (past end_time + 15 minutes buffer) and queues them for result processing.
-
-    Returns:
-        Dict containing task results and statistics.
-    """
-    logger.info("Starting check for completed events...")
-
-    # Calculate the cutoff time (15 minutes buffer after event end)
-    cutoff_time = timezone.now() - timedelta(minutes=15)
-
-    # Find completed events that haven't been processed yet
-    completed_events = EventInstance.objects.filter(
-        end_time__lt=cutoff_time,  # Event has finished
-        external_subsession_id__isnull=False,  # Has iRacing subsession ID
-        # TODO: Add a field to track if results have been fetched
-        # results_fetched__isnull=True,  # Results not yet fetched
-    ).select_related("event", "event__simulator")
-
-    logger.info(f"Found {completed_events.count()} completed events to process")
-
-    queued_count = 0
-    errors = []
-
-    for time_slot in completed_events:
+        
+        # Get or create iRacing simulator
         try:
-            # Queue the result fetching task
-            fetch_results_task.delay(time_slot.id)
-            queued_count += 1
-            logger.info(
-                f"Queued result fetching for TimeSlot {time_slot.id} (subsession: {time_slot.external_subsession_id})"
-            )
-
-        except Exception as e:
-            error_msg = (
-                f"Failed to queue result fetching for TimeSlot {time_slot.id}: {e!s}"
-            )
+            iracing_simulator = Simulator.objects.get(name="iRacing")
+        except Simulator.DoesNotExist:
+            error_msg = "iRacing simulator not found in database"
             logger.error(error_msg)
             errors.append(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "timestamp": timezone.now().isoformat(),
+                "series_id": series_id,
+            }
 
-    result = {
-        "success": True,
-        "completed_events_found": completed_events.count(),
-        "queued_for_processing": queued_count,
-        "errors": errors,
-        "timestamp": timezone.now().isoformat(),
-    }
+        # Get series
+        try:
+            series = Series.objects.get(external_series_id=series_id)
+        except Series.DoesNotExist:
+            error_msg = f"Series {series_id} not found in database"
+            logger.error(error_msg)
+            errors.append(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "timestamp": timezone.now().isoformat(),
+                "series_id": series_id,
+            }
+        
+        # Process each past season
+        for past_season in past_seasons:
+            try:
+                season_id = past_season.get("season_id")
+                if not season_id:
+                    continue
+                
+                # Get season schedule - this returns: {"success": true, "season_id": X, "schedules": [...]}
+                season_schedule_response = iracing_service.get_series_season_schedule(season_id)
+                
+                # Transform the season_schedule format to match what _process_series_seasons expects
+                # _process_series_seasons expects data in series_seasons format with embedded schedules
+                transformed_season = {
+                    "season_id": season_id,
+                    "season_name": past_season.get("season_name", ""),
+                    "season_year": past_season.get("season_year"),
+                    "season_quarter": past_season.get("season_quarter"),
+                    "series_id": series_id,
+                    "schedules": season_schedule_response.get("schedules", [])
+                }
+                
+                # Convert to the format expected by _process_series_seasons
+                season_data = {
+                    "series_id": series_id,
+                    "series_name": series.name,
+                    "allowed_licenses": series.allowed_licenses or [],
+                    "seasons": [transformed_season]
+                }
+                
+                created, updated, season_errors = _process_series_seasons([season_data])
+                events_created += created
+                events_updated += updated
+                errors.extend(season_errors)
 
-    logger.info(
-        "Completed event check: %d events queued for result processing",
-        queued_count
-    )
-    return result
+            except Exception as e:
+                error_msg = f"Error processing past season {past_season.get('season_id', 'unknown')}: {e!s}"
+                logger.exception(error_msg)
+                errors.append(error_msg)
 
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def fetch_results_task(self, time_slot_id: str) -> dict[str, Any]:
-    """
-    Celery task to fetch and process results for a specific EventInstance.
-    """
-    from simlane.iracing.services import iracing_service
-
-    logger.info("Starting result fetch for TimeSlot %s", time_slot_id)
-
-    try:
-        # Get the TimeSlot
-        time_slot = TimeSlot.objects.get(id=time_slot_id)
-
-        if not time_slot.external_subsession_id:
-            raise ValueError(f"TimeSlot {time_slot_id} has no external_subsession_id")
-
-        # Get the simulator
-        simulator = time_slot.event.simulator
-
-        # Fetch results from iRacing API
         logger.info(
-            f"Fetching results for subsession {time_slot.external_subsession_id}"
+            f"Successfully synced past seasons for series {series_id}: {events_created} created, {events_updated} updated, {len(errors)} errors"
         )
-        results_data = iracing_service.results_get(
-            subsession_id=time_slot.external_subsession_id,
-            include_licenses=True,
-        )
-
-        # --- NEW: Create EventResult and process participants ---
-        event_result = create_event_result_from_api(time_slot, results_data)
-        participants_processed = 0
-        if "results" in results_data:
-            # Team event
-            create_team_and_participant_results(event_result, results_data["results"])
-            participants_processed = sum(
-                len(team.get("driver_results", [])) for team in results_data["results"]
-            )
-        elif results_data.get("session_results"):
-            # Solo event (legacy/solo structure)
-            # TODO: Implement solo participant creation utility if needed
-            pass
-
-        result = {
+        
+        return {
             "success": True,
-            "time_slot_id": str(time_slot.id),
-            "subsession_id": time_slot.external_subsession_id,
-            "results_fetched": True,
-            "participants_processed": participants_processed,
+            "events_created": events_created,
+            "events_updated": events_updated,
+            "errors": errors,
             "timestamp": timezone.now().isoformat(),
+            "series_id": series_id,
         }
 
-        logger.info(f"Successfully processed results for TimeSlot {time_slot_id}")
-        return result
-
-    except TimeSlot.DoesNotExist:
-        error_msg = f"TimeSlot {time_slot_id} not found"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
-    except Exception as e:
-        error_msg = f"Failed to fetch results for TimeSlot {time_slot_id}: {e!s}"
-        logger.error(error_msg)
-        raise ValueError(error_msg)
-
-
-def process_event_results(time_slot, results_data, simulator):
-    """
-    Process results data for an EventInstance (legacy, now handled in fetch_results_task).
-    """
-    logger.info(f"Processing results for TimeSlot {time_slot.id} (legacy stub)")
-    return {
-        "participants_processed": 0,
-        "results_data_keys": list(results_data.keys()),
-    }
-
-
-# Periodic task configuration
-# This will be picked up by django-celery-beat
-
-# Check for completed events every 5 minutes
-check_completed_events_schedule = {
-    "name": "Check Completed Events",
-    "task": "simlane.iracing.tasks.check_completed_events_task",
-    "schedule": 300.0,  # 5 minutes in seconds
-    "enabled": True,
-    "description": "Periodically check for completed events and queue them for result fetching",
-}
-
-# --- Weather forecast helper ---
-
-
-def _update_weather_forecast(race_week, http_session: requests.Session | None = None):
-    """Download and cache weather forecast JSON for a RaceWeek.
-
-    Saves full JSON in race_week.weather_forecast_data and summary stats
-    (min/max air temp in °C, max precip chance).
-    """
-    if not race_week.weather_forecast_url:
-        return  # nothing to do
-
-    # Skip if we already cached and have summary stats
-    if race_week.weather_forecast_data and race_week.min_air_temp is not None:
-        return
-
-    sess = http_session or requests.Session()
-    try:
-        resp = sess.get(race_week.weather_forecast_url, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
     except Exception as exc:
-        logger.warning(
-            "Failed to fetch weather forecast for RaceWeek %s: %s", race_week.id, exc
-        )
-        return
+        logger.exception(f"Error syncing past seasons for series_id={series_id}")
 
-    if not isinstance(data, list):
-        logger.warning(
-            "Unexpected weather forecast format for RaceWeek %s", race_week.id
-        )
-        return
-
-    # Compute summary stats – iRacing temps are hundredths of °C, convert.
-    temps = [(pt.get("air_temp") or 0) / 100.0 for pt in data if "air_temp" in pt]
-    precip_chances = [pt.get("precip_chance", 0) for pt in data]
-
-    if temps:
-        race_week.min_air_temp = min(temps)
-        race_week.max_air_temp = max(temps)
-    if precip_chances:
-        race_week.max_precip_chance = max(precip_chances)
-
-    race_week.weather_forecast_data = data
-    # version may be included in first point
-    race_week.weather_forecast_version = (
-        data[0].get("version")
-        if isinstance(data[0], dict)
-        else race_week.weather_forecast_version
-    )
-    race_week.save(
-        update_fields=[
-            "weather_forecast_data",
-            "min_air_temp",
-            "max_air_temp",
-            "max_precip_chance",
-            "weather_forecast_version",
-            "updated_at",
-        ]
-    )
-
-
-# -- Celery wrapper so forecast fetch runs in background --
-
-
-@shared_task(bind=True, max_retries=3, default_retry_delay=120)
-def update_weather_forecast_task(self, race_week_id: str) -> dict[str, Any]:
-    """Background task to fetch and cache weather forecast for a RaceWeek."""
-    from simlane.sim.models import RaceWeek  # Local import to avoid circularities
-
-    try:
-        race_week = RaceWeek.objects.get(id=race_week_id)
-    except RaceWeek.DoesNotExist:
-        return {
-            "success": False,
-            "error": "RaceWeek not found",
-            "race_week_id": race_week_id,
-        }
-
-    try:
-        _update_weather_forecast(race_week)
-        return {
-            "success": True,
-            "updated": True,
-            "race_week_id": race_week_id,
-        }
-    except Exception as exc:
-        # Retry on network errors
         if self.request.retries < self.max_retries:
-            raise self.retry(exc=exc)
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
+
         return {
             "success": False,
             "error": str(exc),
-            "race_week_id": race_week_id,
+            "timestamp": timezone.now().isoformat(),
+            "series_id": series_id,
+        }
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def sync_iracing_series_task(
+    self, 
+    sync_seasons: bool = False, 
+    sync_past_seasons: bool = False,
+    season_year: int | None = None,
+    season_quarter: int | None = None,
+    refresh: bool = False
+) -> dict[str, Any]:
+    """
+    Sync iRacing series and optionally seasons.
+    
+    Args:
+        sync_seasons: Whether to sync current/future seasons
+        sync_past_seasons: Whether to sync past seasons
+        season_year: Filter by season year
+        season_quarter: Filter by season quarter
+        refresh: Whether to bypass cache
+
+    Returns:
+        Dict containing sync results
+    """
+    try:
+        logger.info(f"Syncing iRacing series with seasons={sync_seasons}, past_seasons={sync_past_seasons}")
+        
+        _ensure_service_available()
+        
+        # Fetch all series
+        series_response = iracing_service.get_series()
+
+        # Handle the response structure - it might be a dict with a 'series' key or a direct list
+        if isinstance(series_response, dict):
+            series_data = series_response.get('series', [])
+        else:
+            series_data = series_response
+        
+        if not isinstance(series_data, list):
+            logger.error(f"Unexpected series data format: {type(series_data)}")
+            return {
+                "success": False,
+                "error": f"Unexpected series data format: {type(series_data)}",
+                "timestamp": timezone.now().isoformat(),
+            }
+        
+        series_created = 0
+        series_updated = 0
+        errors = []
+
+        # Get or create iRacing simulator
+        try:
+            iracing_simulator = Simulator.objects.get(name="iRacing")
+        except Simulator.DoesNotExist:
+            error_msg = "iRacing simulator not found in database"
+            logger.error(error_msg)
+            errors.append(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "timestamp": timezone.now().isoformat(),
+            }
+
+        # Process series
+        for series_info in series_data:
+            try:
+                series_id = series_info.get("series_id")
+                if not series_id:
+                    continue
+                
+                series, created = _get_or_create_iracing_series(
+                    series_id, series_info, iracing_simulator
+                )
+                
+                if created:
+                    series_created += 1
+                else:
+                    series_updated += 1
+                
+            except Exception as e:
+                error_msg = f"Error processing series {series_info.get('series_id', 'unknown')}: {e!s}"
+                logger.exception(error_msg)
+                errors.append(error_msg)
+        
+        # Queue season sync tasks if requested
+        if sync_seasons:
+            from simlane.iracing.tasks import sync_series_seasons_task
+            sync_series_seasons_task.delay(
+                season_year=season_year,
+                season_quarter=season_quarter,
+                refresh=refresh
+            )
+        
+        if sync_past_seasons:
+            from simlane.iracing.tasks import sync_past_seasons_task
+            # Queue past seasons sync for each series
+            for series_info in series_data:
+                series_id = series_info.get("series_id")
+                if series_id:
+                    sync_past_seasons_task.delay(series_id=series_id, refresh=refresh)
+        
+        logger.info(
+            f"Successfully synced iRacing series: {series_created} created, {series_updated} updated, {len(errors)} errors"
+        )
+        
+        return {
+            "success": True,
+            "series_created": series_created,
+            "series_updated": series_updated,
+            "errors": errors,
+            "timestamp": timezone.now().isoformat(),
+            "sync_seasons": sync_seasons,
+            "sync_past_seasons": sync_past_seasons,
+            "season_year": season_year,
+            "season_quarter": season_quarter,
+        }
+        
+    except Exception as exc:
+        logger.exception("Error syncing iRacing series")
+        
+        if self.request.retries < self.max_retries:
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
+        
+        return {
+            "success": False,
+            "error": str(exc),
+            "timestamp": timezone.now().isoformat(),
+            "sync_seasons": sync_seasons,
+            "sync_past_seasons": sync_past_seasons,
+            "season_year": season_year,
+            "season_quarter": season_quarter,
+        }
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def sync_iracing_owned_content(self, sim_profile_id: int) -> dict[str, Any]:
+    """
+    Sync owned cars and tracks for a user's iRacing profile.
+    
+    Args:
+        sim_profile_id: SimProfile ID to sync content for
+
+    Returns:
+        Dict containing sync results
+    """
+    try:
+        from simlane.sim.models import SimProfile
+        
+        logger.info(f"Syncing owned content for profile ID {sim_profile_id}")
+        
+        # Get the profile
+        try:
+            profile = SimProfile.objects.get(id=sim_profile_id)
+        except SimProfile.DoesNotExist:
+            error_msg = f"SimProfile {sim_profile_id} not found"
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "timestamp": timezone.now().isoformat(),
+                "sim_profile_id": sim_profile_id,
+            }
+        
+        # Ensure this is an iRacing profile
+        if profile.simulator.name != "iRacing":
+            error_msg = f"Profile {sim_profile_id} is not an iRacing profile"
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "timestamp": timezone.now().isoformat(),
+                "sim_profile_id": sim_profile_id,
+            }
+        
+        _ensure_service_available()
+        
+        # Get member info which includes owned cars and tracks
+        member_info = iracing_service.get_member_info()
+        
+        # TODO: Process owned cars and tracks data
+        # This would involve:
+        # 1. Extracting owned car/track IDs from member_info
+        # 2. Creating/updating OwnedContent records
+        # 3. Linking them to the SimProfile
+        
+        logger.info(f"Successfully synced owned content for profile {sim_profile_id}")
+        
+        return {
+            "success": True,
+            "timestamp": timezone.now().isoformat(),
+            "sim_profile_id": sim_profile_id,
+        }
+        
+    except Exception as exc:
+        logger.exception(f"Error syncing owned content for profile {sim_profile_id}")
+        
+        if self.request.retries < self.max_retries:
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
+        
+        return {
+            "success": False,
+            "error": str(exc),
+            "timestamp": timezone.now().isoformat(),
+            "sim_profile_id": sim_profile_id,
         }

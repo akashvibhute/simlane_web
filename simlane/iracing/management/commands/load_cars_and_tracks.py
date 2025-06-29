@@ -50,6 +50,11 @@ class Command(BaseCommand):
             default="iracing",
             help="Simulator slug to load data for (default: iracing)",
         )
+        parser.add_argument(
+            "--verbose",
+            action="store_true",
+            help="Verbose output",
+        )
 
     def handle(self, *args, **options):
         self.stdout.write("Loading iRacing data from API...")
@@ -68,6 +73,7 @@ class Command(BaseCommand):
         cars_only = options["cars_only"]
         tracks_only = options["tracks_only"]
         force_update = options["force_update"]
+        verbose = options["verbose"]
 
         # If neither flag is set, load both
         if not cars_only and not tracks_only:
@@ -76,16 +82,16 @@ class Command(BaseCommand):
 
         # Don't use atomic transaction to avoid cascading failures
         if cars_only:
-            self.load_cars_data(simulator, force_update)
+            self.load_cars_data(simulator, force_update, verbose)
 
         if tracks_only:
-            self.load_tracks_data(simulator, force_update)
+            self.load_tracks_data(simulator, force_update, verbose)
 
         self.stdout.write(
             self.style.SUCCESS("Successfully loaded iRacing data!"),
         )
 
-    def load_cars_data(self, simulator: Simulator, force_update: bool = False):
+    def load_cars_data(self, simulator: Simulator, force_update: bool = False, verbose: bool = False):
         """Load and update cars data from iRacing API"""
         self.stdout.write("Fetching cars data from iRacing API...")
 
@@ -98,14 +104,14 @@ class Command(BaseCommand):
                 )
                 return
 
-            self.process_cars(simulator, cars_data, force_update)
+            self.process_cars(simulator, cars_data, force_update, verbose)
 
         except IRacingServiceError as e:
             self.stdout.write(
                 self.style.ERROR(f"iRacing API error: {e}"),
             )
 
-    def load_tracks_data(self, simulator: Simulator, force_update: bool = False):
+    def load_tracks_data(self, simulator: Simulator, force_update: bool = False, verbose: bool = False):
         """Load and update tracks data from iRacing API"""
         self.stdout.write("Fetching tracks data from iRacing API...")
 
@@ -118,14 +124,14 @@ class Command(BaseCommand):
                 )
                 return
 
-            self.process_tracks(simulator, tracks_data, force_update)
+            self.process_tracks(simulator, tracks_data, force_update, verbose)
 
         except IRacingServiceError as e:
             self.stdout.write(
                 self.style.ERROR(f"iRacing API error: {e}"),
             )
 
-    def process_cars(self, simulator: Simulator, cars_data: Any, force_update: bool):
+    def process_cars(self, simulator: Simulator, cars_data: Any, force_update: bool, verbose: bool = False):
         """Process cars data from iRacing API"""
         self.stdout.write("Processing iRacing cars...")
 
@@ -314,7 +320,7 @@ class Command(BaseCommand):
                             current_value = getattr(sim_car, field)
                             if url and self._should_update_image(current_value, url):
                                 image_file = self._download_and_save_image(
-                                    url, field, sim_car.display_name, car_folder
+                                    url, field, sim_car.display_name, car_folder, verbose
                                 )
                                 if image_file:
                                     setattr(sim_car, field, image_file)
@@ -334,7 +340,7 @@ class Command(BaseCommand):
                     for field, url in image_urls.items():
                         if url:
                             image_file = self._download_and_save_image(
-                                url, field, sim_car.display_name, car_folder
+                                url, field, sim_car.display_name, car_folder, verbose
                             )
                             if image_file:
                                 setattr(sim_car, field, image_file)
@@ -365,7 +371,7 @@ class Command(BaseCommand):
         )
 
     def process_tracks(
-        self, simulator: Simulator, tracks_data: Any, force_update: bool
+        self, simulator: Simulator, tracks_data: Any, force_update: bool, verbose: bool = False
     ):
         """Process tracks data from iRacing API"""
         self.stdout.write("Processing iRacing tracks...")
@@ -484,7 +490,7 @@ class Command(BaseCommand):
                         current_value = getattr(sim_track, field)
                         if url and self._should_update_image(current_value, url):
                             image_file = self._download_and_save_image(
-                                url, field, sim_track.display_name, track_folder
+                                url, field, sim_track.display_name, track_folder, verbose
                             )
                             if image_file:
                                 setattr(sim_track, field, image_file)
@@ -497,7 +503,7 @@ class Command(BaseCommand):
                     for field, url in image_urls.items():
                         if url:
                             image_file = self._download_and_save_image(
-                                url, field, sim_track.display_name, track_folder
+                                url, field, sim_track.display_name, track_folder, verbose
                             )
                             if image_file:
                                 setattr(sim_track, field, image_file)
@@ -687,23 +693,15 @@ class Command(BaseCommand):
         if not new_url:
             return False
 
-        # If no current image, always update
-        if not current_image:
-            return True
-
-        # If current image exists as a file, don't re-download
-        try:
-            if current_image and hasattr(current_image, "path") and current_image.path:
-                if os.path.exists(current_image.path):
-                    return False  # File exists, no need to re-download
-        except (ValueError, OSError):
-            # File doesn't exist or path is invalid, should update
-            pass
-
-        return True  # Default to updating if we can't verify file existence
+        return True
 
     def _download_and_save_image(
-        self, image_url: str, field_name: str, car_name: str, folder: str | None = None
+        self,
+        image_url: str,
+        field_name: str,
+        car_name: str,
+        folder: str | None = None,
+        verbose: bool = False,
     ) -> ContentFile | None:
         """
         Download an image from iRacing and return a ContentFile for saving to ImageField.
@@ -750,8 +748,8 @@ class Command(BaseCommand):
 
             # Create ContentFile
             content_file = ContentFile(response.content, name=filename)
-
-            self.stdout.write(f"    Downloaded {field_name}: {filename}")
+            if verbose:
+                self.stdout.write(f"    Downloaded {field_name}: {filename}")
             return content_file
 
         except requests.RequestException as e:

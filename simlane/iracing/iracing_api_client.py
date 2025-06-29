@@ -81,3 +81,16 @@ class IRacingAPIClient(irDataClient):
             self.CACHE_KEY, pickle.dumps(self.session.cookies), self.CACHE_TIMEOUT
         )
         logger.info("Saved iRacing session cookies to cache")
+
+    def series_season_schedule(self, season_id: int) -> dict:
+        """
+        Get the detailed schedule for a specific season.
+        
+        Args:
+            season_id (int): The iRacing season ID
+            
+        Returns:
+            dict: A dict containing the season schedule with race weeks, tracks, and weather
+        """
+        payload = {"season_id": season_id}
+        return self._get_resource("/data/series/season_schedule", payload=payload)

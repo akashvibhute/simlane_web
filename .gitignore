@@ -277,3 +277,6 @@ simlane/static/webpack_bundles/
 webpack-stats.json
 .env
 .envs/*
+
+
+/docs/iracing/reference_responses/*

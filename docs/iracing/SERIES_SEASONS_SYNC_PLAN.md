@@ -74,22 +74,21 @@ just manage sync_iracing_series --year 2025 --quarter 2 --refresh
 1. **Bootstrap** – instantiate `IRacingAPIService` (credential check).
 2. **Fetch series list** (cached) → `Series` upsert (create/update via `get_or_create`).
    * Store `allowed_licenses` raw JSON.
-3. **Per-series Celery dispatch** (`queue_series_seasons_fetch.delay(series_id)`):
-   * Fetch **current & future** seasons via `series_seasons` (cached).
-   * Upsert `Season` & `Event` (+ `EventClass`, `CarRestriction`).
-   * Fetch **past seasons list** via `series_past_seasons` (cached).
-     * For each `past_season_id` **not** yet processed record in `Season`, dispatch `queue_season_schedule_fetch.delay(season_id, series_id)`.
+3. **Queue season sync tasks**:
+   * **Current/Future seasons**: Single task `queue_series_seasons_fetch.delay()` processes all series in one API call
+   * **Past seasons**: Per-series tasks `queue_season_schedule_fetch.delay(series_id)` for historical data
 4. **Logging** – Summarise created/updated counts, skipped duplicates, cache hits.
 5. **API-Call Ledger** – optional model `APICallLog` (time, endpoint, params, http_status, cached:boolean) to aid debugging and throttle.
 
 ---
 
 ## 6. Celery Tasks
-### `queue_series_seasons_fetch(series_id)`
+### `queue_series_seasons_fetch()`
+* **Optimized**: Single API call to `get_series_seasons()` returns data for all series
 * Wrapper around service methods with cache.
-* Calls internal helper `process_series_seasons_data(series_id, data)` (leverages `_process_series_seasons` already present in `simlane.iracing.tasks`).
+* Calls internal helper `process_series_seasons_data(data)` (leverages `_process_series_seasons` already present in `simlane.iracing.tasks`).
 
-### `queue_season_schedule_fetch(season_id, series_id)`
+### `queue_season_schedule_fetch(series_id)`
 * Fetch schedule for historic season.
 * Use existing event-creation utilities to avoid duplicate rounds/events.
 
