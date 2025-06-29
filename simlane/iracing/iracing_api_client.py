@@ -54,7 +54,7 @@ class IRacingAPIClient(irDataClient):
                     cache.delete(cls.CACHE_KEY)
             except Exception:
                 logger.exception(
-                    "Failed to restore iRacing session from cache; re-authenticating"
+                    "Failed to restore iRacing session from cache; re-authenticating",
                 )
                 cache.delete(cls.CACHE_KEY)
 
@@ -69,7 +69,9 @@ class IRacingAPIClient(irDataClient):
 
         # Always cache the latest cookies after login or restore
         cache.set(
-            cls.CACHE_KEY, pickle.dumps(client.session.cookies), cls.CACHE_TIMEOUT
+            cls.CACHE_KEY,
+            pickle.dumps(client.session.cookies),
+            cls.CACHE_TIMEOUT,
         )
         return client
 
@@ -78,17 +80,19 @@ class IRacingAPIClient(irDataClient):
         Saves the current session cookies to cache. For future extensibility.
         """
         cache.set(
-            self.CACHE_KEY, pickle.dumps(self.session.cookies), self.CACHE_TIMEOUT
+            self.CACHE_KEY,
+            pickle.dumps(self.session.cookies),
+            self.CACHE_TIMEOUT,
         )
         logger.info("Saved iRacing session cookies to cache")
 
     def series_season_schedule(self, season_id: int) -> dict:
         """
         Get the detailed schedule for a specific season.
-        
+
         Args:
             season_id (int): The iRacing season ID
-            
+
         Returns:
             dict: A dict containing the season schedule with race weeks, tracks, and weather
         """

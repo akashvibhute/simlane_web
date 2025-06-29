@@ -4,7 +4,6 @@ This replaces the car/track loading functionality from create_base_seed_data.
 """
 
 import logging
-import os
 from typing import Any
 
 import requests
@@ -65,7 +64,7 @@ class Command(BaseCommand):
         except Simulator.DoesNotExist:
             self.stdout.write(
                 self.style.ERROR(
-                    f"Simulator '{options['simulator']}' not found. Please create it first."
+                    f"Simulator '{options['simulator']}' not found. Please create it first.",
                 ),
             )
             return
@@ -91,7 +90,9 @@ class Command(BaseCommand):
             self.style.SUCCESS("Successfully loaded iRacing data!"),
         )
 
-    def load_cars_data(self, simulator: Simulator, force_update: bool = False, verbose: bool = False):
+    def load_cars_data(
+        self, simulator: Simulator, force_update: bool = False, verbose: bool = False
+    ):
         """Load and update cars data from iRacing API"""
         self.stdout.write("Fetching cars data from iRacing API...")
 
@@ -111,7 +112,9 @@ class Command(BaseCommand):
                 self.style.ERROR(f"iRacing API error: {e}"),
             )
 
-    def load_tracks_data(self, simulator: Simulator, force_update: bool = False, verbose: bool = False):
+    def load_tracks_data(
+        self, simulator: Simulator, force_update: bool = False, verbose: bool = False
+    ):
         """Load and update tracks data from iRacing API"""
         self.stdout.write("Fetching tracks data from iRacing API...")
 
@@ -131,7 +134,13 @@ class Command(BaseCommand):
                 self.style.ERROR(f"iRacing API error: {e}"),
             )
 
-    def process_cars(self, simulator: Simulator, cars_data: Any, force_update: bool, verbose: bool = False):
+    def process_cars(
+        self,
+        simulator: Simulator,
+        cars_data: Any,
+        force_update: bool,
+        verbose: bool = False,
+    ):
         """Process cars data from iRacing API"""
         self.stdout.write("Processing iRacing cars...")
 
@@ -242,10 +251,12 @@ class Command(BaseCommand):
                     "weight_lbs": car.get("car_weight", 0),
                     "has_headlights": car.get("has_headlights", False),
                     "has_multiple_dry_tire_types": car.get(
-                        "has_multiple_dry_tire_types", False
+                        "has_multiple_dry_tire_types",
+                        False,
                     ),
                     "has_rain_capable_tire_types": car.get(
-                        "has_rain_capable_tire_types", False
+                        "has_rain_capable_tire_types",
+                        False,
                     ),
                     "rain_enabled": car.get("rain_enabled", False),
                     "ai_enabled": car.get("ai_enabled", False),
@@ -320,7 +331,11 @@ class Command(BaseCommand):
                             current_value = getattr(sim_car, field)
                             if url and self._should_update_image(current_value, url):
                                 image_file = self._download_and_save_image(
-                                    url, field, sim_car.display_name, car_folder, verbose
+                                    url,
+                                    field,
+                                    sim_car.display_name,
+                                    car_folder,
+                                    verbose,
                                 )
                                 if image_file:
                                     setattr(sim_car, field, image_file)
@@ -340,7 +355,11 @@ class Command(BaseCommand):
                     for field, url in image_urls.items():
                         if url:
                             image_file = self._download_and_save_image(
-                                url, field, sim_car.display_name, car_folder, verbose
+                                url,
+                                field,
+                                sim_car.display_name,
+                                car_folder,
+                                verbose,
                             )
                             if image_file:
                                 setattr(sim_car, field, image_file)
@@ -358,7 +377,7 @@ class Command(BaseCommand):
 
             except Exception as e:
                 logger.error(
-                    f"Error processing car {car.get('car_name', 'Unknown')}: {e}"
+                    f"Error processing car {car.get('car_name', 'Unknown')}: {e}",
                 )
                 continue
 
@@ -371,7 +390,11 @@ class Command(BaseCommand):
         )
 
     def process_tracks(
-        self, simulator: Simulator, tracks_data: Any, force_update: bool, verbose: bool = False
+        self,
+        simulator: Simulator,
+        tracks_data: Any,
+        force_update: bool,
+        verbose: bool = False,
     ):
         """Process tracks data from iRacing API"""
         self.stdout.write("Processing iRacing tracks...")
@@ -409,7 +432,7 @@ class Command(BaseCommand):
                 track_model_defaults = {
                     "slug": slugify(track_name),
                     "country": self._parse_location_country(
-                        base_track.get("location", "")
+                        base_track.get("location", ""),
                     ),
                     "location": base_track.get("location", ""),
                     "latitude": base_track.get("latitude"),
@@ -437,7 +460,8 @@ class Command(BaseCommand):
 
                 # Prepare image URLs for downloading
                 track_folder = base_track.get(
-                    "folder", ""
+                    "folder",
+                    "",
                 )  # Get the folder path from API
                 image_urls = {
                     "logo": base_track.get("logo", ""),
@@ -465,7 +489,8 @@ class Command(BaseCommand):
                     "is_free": base_track.get("free_with_subscription", False),
                     "is_purchasable": base_track.get("is_ps_purchasable", True),
                     "search_filters": self._build_track_search_filters(
-                        track_name, track_configs
+                        track_name,
+                        track_configs,
                     ),
                     "is_active": True,
                 }
@@ -490,7 +515,11 @@ class Command(BaseCommand):
                         current_value = getattr(sim_track, field)
                         if url and self._should_update_image(current_value, url):
                             image_file = self._download_and_save_image(
-                                url, field, sim_track.display_name, track_folder, verbose
+                                url,
+                                field,
+                                sim_track.display_name,
+                                track_folder,
+                                verbose,
                             )
                             if image_file:
                                 setattr(sim_track, field, image_file)
@@ -503,7 +532,11 @@ class Command(BaseCommand):
                     for field, url in image_urls.items():
                         if url:
                             image_file = self._download_and_save_image(
-                                url, field, sim_track.display_name, track_folder, verbose
+                                url,
+                                field,
+                                sim_track.display_name,
+                                track_folder,
+                                verbose,
                             )
                             if image_file:
                                 setattr(sim_track, field, image_file)
@@ -514,7 +547,7 @@ class Command(BaseCommand):
                 # Create SimLayout for each track configuration
                 for config in track_configs:
                     track_type = self._determine_track_type(
-                        config.get("config_name", "")
+                        config.get("config_name", ""),
                     )
                     config_name = config.get("config_name", "Unknown Configuration")
 
@@ -543,7 +576,7 @@ class Command(BaseCommand):
                     layout, layout_created = SimLayout.objects.get_or_create(
                         sim_track=sim_track,
                         layout_code=str(
-                            config["track_id"]
+                            config["track_id"],
                         ),  # Use track_id as layout code
                         defaults=layout_defaults,
                     )
@@ -755,7 +788,7 @@ class Command(BaseCommand):
         except requests.RequestException as e:
             self.stdout.write(
                 self.style.WARNING(
-                    f"    Failed to download {field_name} from {image_url}: {e}"
+                    f"    Failed to download {field_name} from {image_url}: {e}",
                 ),
             )
             return None

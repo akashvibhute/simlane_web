@@ -11,7 +11,8 @@ import logging
 from typing import Any
 
 from django.core.management.base import BaseCommand
-from django_celery_beat.models import CrontabSchedule, PeriodicTask
+from django_celery_beat.models import CrontabSchedule
+from django_celery_beat.models import PeriodicTask
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class Command(BaseCommand):
             help="Force recreation of existing schedules.",
         )
 
-    def handle(self, *args: Any, **options: Any):  # noqa: D401 – Django signature
+    def handle(self, *args: Any, **options: Any):
         dry_run: bool = bool(options["dry_run"])
         force: bool = bool(options["force"])
 
@@ -92,14 +93,14 @@ class Command(BaseCommand):
 
                 # Check if periodic task already exists
                 existing_task = PeriodicTask.objects.filter(
-                    name=schedule_config["name"]
+                    name=schedule_config["name"],
                 ).first()
 
                 if existing_task and not force:
                     self.stdout.write(
                         self.style.WARNING(
-                            f"Periodic task '{schedule_config['name']}' already exists. Use --force to recreate."
-                        )
+                            f"Periodic task '{schedule_config['name']}' already exists. Use --force to recreate.",
+                        ),
                     )
                     continue
 
@@ -111,16 +112,16 @@ class Command(BaseCommand):
                     existing_task.description = schedule_config["description"]
                     existing_task.save()
                     updated_count += 1
-                    
+
                     if not dry_run:
                         self.stdout.write(
                             self.style.SUCCESS(
-                                f"Updated periodic task: {schedule_config['name']}"
-                            )
+                                f"Updated periodic task: {schedule_config['name']}",
+                            ),
                         )
                     else:
                         self.stdout.write(
-                            f"[DRY-RUN] Would update periodic task: {schedule_config['name']}"
+                            f"[DRY-RUN] Would update periodic task: {schedule_config['name']}",
                         )
 
                 elif not existing_task:
@@ -135,40 +136,40 @@ class Command(BaseCommand):
                             enabled=True,
                         )
                         created_count += 1
-                        
+
                         self.stdout.write(
                             self.style.SUCCESS(
-                                f"Created periodic task: {schedule_config['name']}"
-                            )
+                                f"Created periodic task: {schedule_config['name']}",
+                            ),
                         )
                     else:
                         self.stdout.write(
-                            f"[DRY-RUN] Would create periodic task: {schedule_config['name']}"
+                            f"[DRY-RUN] Would create periodic task: {schedule_config['name']}",
                         )
 
             except Exception as e:
                 self.stdout.write(
                     self.style.ERROR(
-                        f"Error creating schedule '{schedule_config['name']}': {e!s}"
-                    )
+                        f"Error creating schedule '{schedule_config['name']}': {e!s}",
+                    ),
                 )
 
         if dry_run:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"✓ DRY-RUN complete. Would create: {created_count}, Would update: {updated_count}"
-                )
+                    f"✓ DRY-RUN complete. Would create: {created_count}, Would update: {updated_count}",
+                ),
             )
         else:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"✓ Setup complete. Created: {created_count}, Updated: {updated_count}"
-                )
+                    f"✓ Setup complete. Created: {created_count}, Updated: {updated_count}",
+                ),
             )
 
         # Show current schedules
         self.stdout.write("\nCurrent iRacing sync schedules:")
         for task in PeriodicTask.objects.filter(name__icontains="iRacing"):
             self.stdout.write(
-                f"  - {task.name}: {task.task} (enabled: {task.enabled})"
-            ) 
+                f"  - {task.name}: {task.task} (enabled: {task.enabled})",
+            )

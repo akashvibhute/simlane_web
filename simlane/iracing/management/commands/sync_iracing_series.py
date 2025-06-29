@@ -12,12 +12,15 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
 from django.utils.text import slugify
 
 from simlane.iracing.services import iracing_service
-from simlane.iracing.tasks import sync_series_seasons_task, sync_past_seasons_task
-from simlane.sim.models import Series, Simulator
+from simlane.iracing.tasks import sync_past_seasons_task
+from simlane.iracing.tasks import sync_series_seasons_task
+from simlane.sim.models import Series
+from simlane.sim.models import Simulator
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +74,7 @@ class Command(BaseCommand):
     # ---------------------------------------------------------------------
     # Command entry-point
     # ---------------------------------------------------------------------
-    def handle(self, *args: Any, **options: Any):  # noqa: D401 – Django signature
+    def handle(self, *args: Any, **options: Any):
         # Verbose logging – useful during development
         if options["verbose"]:
             logging.getLogger("simlane.iracing").setLevel(logging.DEBUG)
@@ -80,7 +83,7 @@ class Command(BaseCommand):
         # Check service availability
         if not iracing_service.is_available():
             raise CommandError(
-                "iRacing API service is not available – check credentials in settings."
+                "iRacing API service is not available – check credentials in settings.",
             )
 
         dry_run: bool = bool(options["dry_run"])
@@ -101,7 +104,7 @@ class Command(BaseCommand):
         series_assets_map: dict[str, dict] = {}
         try:
             series_assets_map = iracing_service.get_series_assets()
-        except Exception as exc:  # noqa: PERF203 – optional call
+        except Exception as exc:
             logger.warning("Could not fetch series_assets: %s", exc)
 
         try:
@@ -157,9 +160,9 @@ class Command(BaseCommand):
                 if asset:
                     logo_rel = asset.get("logo") or asset.get("logo_small")
                     if logo_rel:
+                        from simlane.sim.utils.image_downloader import IRACING_BASE_URL
                         from simlane.sim.utils.image_downloader import (
                             download_image_from_url,
-                            IRACING_BASE_URL,
                         )
 
                         # build full URL if relative
@@ -175,7 +178,11 @@ class Command(BaseCommand):
                             defaults["description"] = asset["series_copy"].strip()
 
                 if dry_run:
-                    logger.info("[DRY-RUN] Would upsert Series %s – %s", series_id, defaults["name"])
+                    logger.info(
+                        "[DRY-RUN] Would upsert Series %s – %s",
+                        series_id,
+                        defaults["name"],
+                    )
                     continue
 
                 _, created_flag = Series.objects.update_or_create(
@@ -186,17 +193,25 @@ class Command(BaseCommand):
                 # Handle logo image download (outside update_or_create to ensure obj instance)
                 if not dry_run and asset and logo_rel:
                     try:
-                        from simlane.sim.utils.image_downloader import download_image_from_url
                         from simlane.sim.models import Series as SeriesModel
+                        from simlane.sim.utils.image_downloader import (
+                            download_image_from_url,
+                        )
 
-                        ser_obj: SeriesModel = Series.objects.get(external_series_id=series_id)
+                        ser_obj: SeriesModel = Series.objects.get(
+                            external_series_id=series_id
+                        )
 
                         if not ser_obj.logo:  # Avoid re-downloading if already saved
                             logo_file = download_image_from_url(logo_url_full or "")
                             if logo_file:
                                 ser_obj.logo.save(logo_file.name, logo_file, save=True)
                     except Exception as _img_exc:
-                        logger.warning("Failed to download/save logo for series %s: %s", series_id, _img_exc)
+                        logger.warning(
+                            "Failed to download/save logo for series %s: %s",
+                            series_id,
+                            _img_exc,
+                        )
 
                 if created_flag:
                     created += 1
@@ -205,7 +220,11 @@ class Command(BaseCommand):
 
             except Exception as exc:  # pragma: no cover – problematic row
                 logger.exception("Failed processing series object: %s", obj)
-                self.stderr.write(self.style.ERROR(f"Error processing series {obj.get('series_id')}: {exc!s}"))
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"Error processing series {obj.get('series_id')}: {exc!s}"
+                    )
+                )
 
         # --- Queue season sync tasks after processing all series ---
         if sync_seasons and not dry_run:
@@ -236,17 +255,19 @@ class Command(BaseCommand):
 
         # Summary output
         if dry_run:
-            self.stdout.write(self.style.SUCCESS("✓ DRY-RUN complete – no database writes performed."))
+            self.stdout.write(
+                self.style.SUCCESS("✓ DRY-RUN complete – no database writes performed.")
+            )
         else:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"✓ Series sync complete. Created: {created}, Updated: {updated}."
-                )
+                    f"✓ Series sync complete. Created: {created}, Updated: {updated}.",
+                ),
             )
 
         if sync_seasons and not dry_run:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"✓ Season sync tasks queued: {season_tasks_queued} current/future (all series), {past_season_tasks_queued} past seasons."
-                )
-            ) 
+                    f"✓ Season sync tasks queued: {season_tasks_queued} current/future (all series), {past_season_tasks_queued} past seasons.",
+                ),
+            )

@@ -41,7 +41,7 @@ class Command(BaseCommand):
         except Simulator.DoesNotExist:
             self.stdout.write(
                 self.style.ERROR(
-                    f"Simulator '{options['simulator']}' not found. Please create it first."
+                    f"Simulator '{options['simulator']}' not found. Please create it first.",
                 ),
             )
             return
@@ -133,13 +133,13 @@ class Command(BaseCommand):
                 else:
                     skipped_count += 1
                     self.stdout.write(
-                        f"  - Skipped: {name} (ID: {car_class_id}) - already exists"
+                        f"  - Skipped: {name} (ID: {car_class_id}) - already exists",
                     )
 
             except Exception as e:
                 self.stdout.write(
                     self.style.ERROR(
-                        f"Error processing car class {car_class_data.get('car_class_id', 'unknown')}: {e}"
+                        f"Error processing car class {car_class_data.get('car_class_id', 'unknown')}: {e}",
                     ),
                 )
                 continue

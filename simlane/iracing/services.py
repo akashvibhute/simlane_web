@@ -42,7 +42,7 @@ class IRacingAPIService:
 
             self.client = IRacingAPIClient.from_system_cache()
             logger.info(
-                "iRacing API client initialized successfully (via session manager)"
+                "iRacing API client initialized successfully (via session manager)",
             )
         except Exception:
             logger.exception("Failed to initialize iRacing API client")
@@ -66,7 +66,6 @@ class IRacingAPIService:
         if not self.is_available():
             msg = "iRacing API client not available"
             raise IRacingServiceError(msg)
-        
 
         try:
             return self.client.stats_member_summary(cust_id=cust_id)
@@ -454,7 +453,9 @@ class IRacingAPIService:
             raise IRacingServiceError(msg) from e
 
     def member_recent_races(
-        self, cust_id: int, category_id: int | None = None
+        self,
+        cust_id: int,
+        category_id: int | None = None,
     ) -> dict[str, Any]:
         """
         Get recent races for a member.
@@ -473,13 +474,16 @@ class IRacingAPIService:
             return self.client.stats_member_recent_races(cust_id=cust_id)
         except Exception as e:
             logger.exception(
-                "Error fetching member recent races for cust_id %s", cust_id
+                "Error fetching member recent races for cust_id %s",
+                cust_id,
             )
             msg = f"Failed to fetch member recent races: {e!s}"
             raise IRacingServiceError(msg) from e
 
     def results_get(
-        self, subsession_id: int, include_licenses: bool = False
+        self,
+        subsession_id: int,
+        include_licenses: bool = False,
     ) -> dict[str, Any]:
         """
         Get detailed results for a specific subsession.
@@ -496,7 +500,8 @@ class IRacingAPIService:
             raise IRacingServiceError(msg)
         try:
             return self.client.result(
-                subsession_id=subsession_id, include_licenses=include_licenses
+                subsession_id=subsession_id,
+                include_licenses=include_licenses,
             )
         except Exception as e:
             logger.exception("Error fetching results for subsession %s", subsession_id)
@@ -535,7 +540,10 @@ class IRacingAPIService:
             raise IRacingServiceError(msg) from e
 
     def get_season_by_series_year_quarter(
-        self, series_id: int, season_year: int, season_quarter: int
+        self,
+        series_id: int,
+        season_year: int,
+        season_quarter: int,
     ) -> dict[str, Any] | None:
         """
         Fetch a season for a given series_id, year, and quarter using the series_seasons API.
@@ -543,7 +551,8 @@ class IRacingAPIService:
         """
         try:
             seasons = self.get_series_seasons(
-                series_ids=[series_id], include_series=True
+                series_ids=[series_id],
+                include_series=True,
             )
             # The data is now a list of seasons directly
             for season in seasons:
@@ -604,7 +613,9 @@ class IRacingAPIService:
             # Fallback: call generic `get_series_assets` if name differs.
             if hasattr(self.client, "get_series_assets"):
                 return self.client.get_series_assets()
-            raise IRacingServiceError("series_assets endpoint not implemented in client")
+            raise IRacingServiceError(
+                "series_assets endpoint not implemented in client"
+            )
         except Exception as e:
             logger.exception("Error fetching series assets data")
             msg = "Failed to fetch series assets data"
