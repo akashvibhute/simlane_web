@@ -1,0 +1,101 @@
+{% extends "layouts/base.html" %}
+{% load static %}
+
+{% block title %}Billing Error - {{ error_title|default:"Payment Issue" }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <!-- Error Icon -->
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg class="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+            </div>
+
+            <!-- Error Title -->
+            <div class="text-center">
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">
+                    {{ error_title|default:"Payment Issue" }}
+                </h2>
+                
+                <!-- Error Message -->
+                <p class="text-gray-600 mb-6">
+                    {{ error_message|default:"We encountered an issue processing your billing request. Please try again or contact support if the problem persists." }}
+                </p>
+
+                <!-- Error Details -->
+                {% if error_details %}
+                    <div class="bg-red-50 border border-red-200 rounded-md p-4 mb-6 text-left">
+                        <h4 class="text-sm font-medium text-red-800 mb-2">Error Details:</h4>
+                        <p class="text-sm text-red-700">{{ error_details }}</p>
+                    </div>
+                {% endif %}
+
+                <!-- Support Information -->
+                {% if error_code %}
+                    <div class="bg-gray-50 border border-gray-200 rounded-md p-4 mb-6 text-left">
+                        <h4 class="text-sm font-medium text-gray-800 mb-2">Reference Information:</h4>
+                        <p class="text-sm text-gray-600">Error Code: {{ error_code }}</p>
+                        {% if request.user.is_authenticated %}
+                            <p class="text-sm text-gray-600">User: {{ request.user.username }}</p>
+                        {% endif %}
+                        <p class="text-sm text-gray-600">Time: {{ error_timestamp|default:now|date:"M j, Y g:i A" }}</p>
+                    </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="space-y-3">
+                    {% if retry_url %}
+                        <a href="{{ retry_url }}" 
+                           class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            Try Again
+                        </a>
+                    {% endif %}
+
+                    {% if club %}
+                        <a href="{% url 'billing:subscription_dashboard' club.slug %}" 
+                           class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            Back to Billing Dashboard
+                        </a>
+                    {% endif %}
+
+                    <a href="{% url 'core:contact' %}" 
+                       class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        Contact Support
+                    </a>
+
+                    {% if club %}
+                        <a href="{% url 'teams:club_detail' club.slug %}" 
+                           class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            Return to Club
+                        </a>
+                    {% else %}
+                        <a href="{% url 'teams:club_list' %}" 
+                           class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clip-rule="evenodd"></path>
+                            </svg>
+                            Back to Clubs
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Help -->
+        <div class="mt-6 text-center">
+            <p class="text-sm text-gray-500">
+                Need immediate assistance? 
+                <a href="mailto:support@simlane.com" class="font-medium text-primary-600 hover:text-primary-500">
+                    Email our support team
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %} 

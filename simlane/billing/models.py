@@ -120,6 +120,10 @@ class SubscriptionPlan(models.Model):
         """Get feature value or default"""
         return self.features_json.get(feature_name, default)
     
+    def get_features(self):
+        """Get list of enabled features for this plan"""
+        return [feature for feature, enabled in self.features_json.items() if enabled]
+    
     @classmethod
     def get_default_plan(cls):
         """Get the default plan for new clubs"""
@@ -336,6 +340,26 @@ class ClubSubscription(models.Model):
             'remaining': remaining,
             'status': status
         }
+    
+    def get_available_features(self):
+        """Return the raw features JSON of the associated plan.
+
+        This is used by templates to quickly inspect which features are
+        enabled for the current subscription. It simply proxies the
+        `features_json` from the related SubscriptionPlan instance.
+        """
+        return self.plan.features_json if self.plan else {}
+
+    def get_member_usage_percentage(self):
+        """Return the member usage percentage relative to plan limit.
+
+        If the plan has unlimited members (max_members == -1) the percentage
+        is always 0.
+        """
+        if self.plan.is_unlimited_members or self.plan.max_members <= 0:
+            return 0
+        current = self.calculate_seats_used()
+        return round((current / self.plan.max_members) * 100, 1)
     
     def has_feature_access(self, feature_name):
         """Check if subscription has access to a specific feature"""

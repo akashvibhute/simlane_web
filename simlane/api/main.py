@@ -8,6 +8,7 @@ from ninja.security import HttpBearer
 
 from simlane.api.routers.auth import router as auth_router
 from simlane.api.routers.clubs import router as clubs_router
+from simlane.api.routers.discord import router as discord_router
 from simlane.api.routers.events import router as events_router
 from simlane.api.routers.sim import router as sim_router
 
@@ -75,6 +76,7 @@ def generic_exception_handler(request: HttpRequest, exc: Exception):
 # Add routers
 api.add_router("/auth", auth_router, tags=["Authentication"])
 api.add_router("/clubs", clubs_router, tags=["Clubs"])
+api.add_router("/discord", discord_router, tags=["Discord Integration"])
 api.add_router("/events", events_router, tags=["Events"])
 api.add_router("/sim", sim_router, tags=["Sim Racing"])
 

@@ -13,6 +13,13 @@ urlpatterns = [
         name="subscription_dashboard",
     ),
     
+    # HTMX subscription status widget
+    path(
+        "<slug:club_slug>/status-widget/",
+        views.subscription_status_widget,
+        name="subscription_status_widget",
+    ),
+    
     # Checkout initiation for club subscriptions
     path(
         "<slug:club_slug>/checkout/",
@@ -37,6 +44,20 @@ urlpatterns = [
         "<slug:club_slug>/upgrade-required/",
         views.upgrade_required,
         name="upgrade_required",
+    ),
+    
+    # General upgrade required page (no club context)
+    path(
+        "upgrade-required/",
+        views.upgrade_required,
+        name="upgrade_required_general",
+    ),
+    
+    # Generic billing error page
+    path(
+        "error/",
+        views.billing_error,
+        name="billing_error",
     ),
     
     # === STRIPE WEBHOOKS ===

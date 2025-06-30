@@ -51,6 +51,8 @@ services:
     container_name: simlane_local_redis
     volumes:
       - simlane_local_redis_data:/data
+    ports:
+      - '6379:6379'
 
   node:
     build:

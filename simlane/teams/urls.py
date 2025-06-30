@@ -65,6 +65,28 @@ urlpatterns = [
         views.club_invitation_decline,
         name="club_invitation_decline",
     ),
+    
+    # === DISCORD INTEGRATION ===
+    path(
+        "<slug:club_slug>/discord/settings/",
+        views.club_discord_settings,
+        name="club_discord_settings",
+    ),
+    path(
+        "<slug:club_slug>/discord/invite-bot/",
+        views.club_discord_invite_bot,
+        name="club_discord_invite_bot",
+    ),
+    path(
+        "<slug:club_slug>/discord/sync-members/",
+        views.club_discord_sync_members,
+        name="club_discord_sync_members",
+    ),
+    path(
+        "<slug:club_slug>/discord/status/",
+        views.club_discord_status,
+        name="club_discord_status",
+    ),
     # === FUTURE FEATURES ===
     # These will be implemented as we build out the functionality
     # Event Organization (using Event.organizing_club)

@@ -1,8 +1,7 @@
 """
-Custom iRacing Data API Client
+iRacing Data API Client
 
-A focused implementation of the iRacing Data API client that provides only the endpoints
-we need with enhanced error handling, rate limiting, and Django integration.
+A client for the iRacing Data API with error handling, rate limiting, and integration.
 """
 
 import base64

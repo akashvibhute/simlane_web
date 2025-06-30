@@ -1,0 +1,252 @@
+<!-- Subscription Dashboard Partial for HTMX Updates -->
+<div id="subscription-content" class="space-y-6">
+    <!-- Current Plan Status -->
+    <div class="bg-white rounded-lg shadow-sm border p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Current Plan</h3>
+            {% if subscription and subscription.status == 'active' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    Active
+                </span>
+            {% elif subscription and subscription.status == 'past_due' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Past Due
+                </span>
+            {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    Free
+                </span>
+            {% endif %}
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="border-r border-gray-200 pr-4">
+                <dt class="text-sm font-medium text-gray-500">Plan</dt>
+                <dd class="mt-1 text-2xl font-semibold text-gray-900">
+                    {% if subscription %}
+                        {{ subscription.plan.name }}
+                    {% else %}
+                        Free
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div class="border-r border-gray-200 pr-4">
+                <dt class="text-sm font-medium text-gray-500">Monthly Cost</dt>
+                <dd class="mt-1 text-2xl font-semibold text-gray-900">
+                    {% if subscription and subscription.plan.monthly_price > 0 %}
+                        ${{ subscription.plan.monthly_price|floatformat:2 }}
+                    {% else %}
+                        Free
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Member Limit</dt>
+                <dd class="mt-1 text-2xl font-semibold text-gray-900">
+                    {% if subscription and subscription.plan.max_members == -1 %}
+                        Unlimited
+                    {% elif subscription %}
+                        {{ subscription.plan.max_members }}
+                    {% else %}
+                        5
+                    {% endif %}
+                </dd>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Statistics -->
+    <div class="bg-white rounded-lg shadow-sm border p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Usage</h3>
+        
+        <!-- Member Usage -->
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-700">Members</span>
+                <span class="text-sm text-gray-500">
+                    {{ current_member_count }} / 
+                    {% if subscription and subscription.plan.max_members == -1 %}
+                        ∞
+                    {% elif subscription %}
+                        {{ subscription.plan.max_members }}
+                    {% else %}
+                        5
+                    {% endif %}
+                </span>
+            </div>
+            
+            <div class="w-full bg-gray-200 rounded-full h-2">
+                {% if usage_percentage <= 100 %}
+                    <div class="bg-green-600 h-2 rounded-full transition-all duration-300" style="width: {{ usage_percentage }}%"></div>
+                {% else %}
+                    <div class="bg-red-600 h-2 rounded-full" style="width: 100%"></div>
+                {% endif %}
+            </div>
+            
+            {% if usage_percentage > 100 %}
+                <p class="text-sm text-red-600 mt-1">
+                    ⚠️ Over limit by {{ current_member_count|add:"-5" }} members
+                </p>
+            {% elif usage_percentage >= 80 %}
+                <p class="text-sm text-yellow-600 mt-1">
+                    Approaching member limit
+                </p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Plan Features -->
+    {% if subscription %}
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Plan Features</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% load billing_tags %}
+                {% subscription_feature_enabled club 'race_planning' as has_race_planning %}
+                {% if has_race_planning %}
+                    <div class="flex items-center text-green-600">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Race Planning & Strategy
+                    </div>
+                {% else %}
+                    <div class="flex items-center text-gray-400">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                        Race Planning & Strategy
+                    </div>
+                {% endif %}
+
+                {% subscription_feature_enabled club 'team_formation' as has_team_formation %}
+                {% if has_team_formation %}
+                    <div class="flex items-center text-green-600">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Advanced Team Formation
+                    </div>
+                {% else %}
+                    <div class="flex items-center text-gray-400">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                        Advanced Team Formation
+                    </div>
+                {% endif %}
+
+                {% subscription_feature_enabled club 'advanced_analytics' as has_advanced_analytics %}
+                {% if has_advanced_analytics %}
+                    <div class="flex items-center text-green-600">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Advanced Analytics
+                    </div>
+                {% else %}
+                    <div class="flex items-center text-gray-400">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                        Advanced Analytics
+                    </div>
+                {% endif %}
+
+                <div class="flex items-center text-green-600">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Basic Club Management
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Billing History -->
+    {% if billing_events %}
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Recent Billing Activity</h3>
+            
+            <div class="space-y-3">
+                {% for event in billing_events %}
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900">
+                                {% if event.event_type == 'subscription.created' %}
+                                    Subscription Created
+                                {% elif event.event_type == 'subscription.updated' %}
+                                    Subscription Updated
+                                {% elif event.event_type == 'payment.succeeded' %}
+                                    Payment Successful
+                                {% elif event.event_type == 'payment.failed' %}
+                                    Payment Failed
+                                {% else %}
+                                    {{ event.event_type|title }}
+                                {% endif %}
+                            </p>
+                            <p class="text-sm text-gray-500">
+                                {{ event.processed_at|date:"M j, Y" }}
+                            </p>
+                        </div>
+                        
+                        {% if event.event_type == 'payment.succeeded' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Success
+                            </span>
+                        {% elif event.event_type == 'payment.failed' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                Failed
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Updated
+                            </span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    {% if can_manage_billing %}
+        <div class="bg-white rounded-lg shadow-sm border p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Manage Subscription</h3>
+            
+            <div class="flex flex-wrap gap-3">
+                {% if not subscription or subscription.plan.name == 'Free' %}
+                    <!-- Upgrade buttons for each plan -->
+                    {% for plan in available_plans %}
+                        {% if plan.name != 'Free' %}
+                            <form method="post" action="{% url 'billing:start_checkout' club.slug %}" class="inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                                <button type="submit" class="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                                    Upgrade to {{ plan.name }} - ${{ plan.monthly_price|floatformat:2 }}/month
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <!-- Manage existing subscription -->
+                    <a href="{% url 'billing:manage_subscription' club.slug %}" 
+                       class="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                        Manage Billing
+                    </a>
+                    
+                    <form method="post" action="{% url 'billing:cancel_subscription' club.slug %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                onclick="return confirm('Are you sure you want to cancel your subscription? You will retain access until the end of your billing period.')"
+                                class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                            Cancel Subscription
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div> 

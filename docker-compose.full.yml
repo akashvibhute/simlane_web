@@ -79,6 +79,18 @@ services:
       - '5555:5555'
     command: /start-flower
 
+  discordbot:
+    <<: *django
+    image: simlane_local_discordbot
+    container_name: simlane_local_discordbot
+    depends_on:
+      - redis
+      - postgres
+      - django
+    ports: []
+    command: python manage.py run_discord_bot
+    restart: unless-stopped
+
   node:
     build:
       context: .

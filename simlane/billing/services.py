@@ -259,6 +259,64 @@ class StripeService:
             raise StripeServiceError(f"Failed to reactivate subscription: {e}")
     
     @staticmethod
+    def get_checkout_session(session_id: str) -> stripe.checkout.Session:
+        """
+        Retrieve a Stripe checkout session
+        
+        Args:
+            session_id: Stripe checkout session ID
+            
+        Returns:
+            stripe.checkout.Session: Retrieved checkout session
+            
+        Raises:
+            StripeServiceError: If retrieval fails
+        """
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            logger.info(f"Retrieved checkout session {session_id}")
+            return session
+            
+        except stripe.error.StripeError as e:
+            logger.error(f"Failed to retrieve checkout session {session_id}: {e}")
+            raise StripeServiceError(f"Failed to retrieve checkout session: {e}")
+    
+    @staticmethod
+    def create_customer_portal_session(
+        customer_id: str,
+        return_url: str,
+        **kwargs
+    ) -> stripe.billing_portal.Session:
+        """
+        Create a Stripe customer portal session for subscription management
+        
+        Args:
+            customer_id: Stripe customer ID
+            return_url: URL to redirect after portal session
+            **kwargs: Additional session parameters
+            
+        Returns:
+            stripe.billing_portal.Session: Created portal session
+            
+        Raises:
+            StripeServiceError: If session creation fails
+        """
+        try:
+            session_data = {
+                'customer': customer_id,
+                'return_url': return_url,
+            }
+            session_data.update(kwargs)
+            
+            session = stripe.billing_portal.Session.create(**session_data)
+            logger.info(f"Created customer portal session for customer {customer_id}")
+            return session
+            
+        except stripe.error.StripeError as e:
+            logger.error(f"Failed to create customer portal session for {customer_id}: {e}")
+            raise StripeServiceError(f"Failed to create customer portal session: {e}")
+    
+    @staticmethod
     def construct_webhook_event(payload: bytes, sig_header: str) -> stripe.Event:
         """
         Construct and verify a Stripe webhook event
@@ -671,6 +729,112 @@ class SubscriptionService:
         logger.info(f"Cancelled subscription {subscription.id} (at_period_end={at_period_end})")
         return subscription
     
+    @staticmethod
+    @transaction.atomic
+    def assign_free_plan(club) -> 'ClubSubscription':
+        """
+        Assign the free subscription plan to a club
+        
+        Args:
+            club: Club instance to assign free plan to
+            
+        Returns:
+            ClubSubscription: Created or updated subscription
+            
+        Raises:
+            SubscriptionServiceError: If free plan assignment fails
+        """
+        from .models import SubscriptionPlan, ClubSubscription
+        
+        try:
+            # Get the free plan (default plan)
+            free_plan = SubscriptionPlan.objects.filter(
+                name__iexact='free',
+                is_active=True
+            ).first()
+            
+            if not free_plan:
+                # If no "Free" plan exists, try to get the default plan
+                free_plan = SubscriptionPlan.objects.filter(
+                    is_default=True,
+                    is_active=True
+                ).first()
+            
+            if not free_plan:
+                # Create a basic free plan if none exists
+                free_plan = SubscriptionPlan.objects.create(
+                    name="Free",
+                    slug="free",
+                    max_members=5,
+                    monthly_price=0,
+                    features_json={
+                        'race_planning': False,
+                        'team_management': True,
+                        'event_participation': True,
+                        'basic_analytics': True,
+                        'discord_integration': True,
+                        'api_access': False,
+                        'priority_support': False,
+                    },
+                    description="Perfect for small clubs getting started with SimLane",
+                    is_default=True,
+                    is_active=True,
+                    display_order=0
+                )
+                logger.info(f"Created free subscription plan {free_plan.id}")
+            
+            # Get or create subscription for the club
+            subscription, created = ClubSubscription.objects.get_or_create(
+                club=club,
+                defaults={
+                    'plan': free_plan,
+                    'status': ClubSubscription.SubscriptionStatus.ACTIVE,
+                    'current_period_start': timezone.now(),
+                    'seats_used': SubscriptionService.calculate_seat_usage(club),
+                }
+            )
+            
+            # If subscription exists but is not on free plan, update it
+            if not created and subscription.plan != free_plan:
+                subscription.plan = free_plan
+                subscription.status = ClubSubscription.SubscriptionStatus.ACTIVE
+                subscription.current_period_start = timezone.now()
+                subscription.current_period_end = None  # Free plan doesn't have billing periods
+                subscription.stripe_subscription_id = None  # Remove Stripe references for free plan
+                subscription.cancel_at_period_end = False
+                subscription.canceled_at = None
+                subscription.seats_used = SubscriptionService.calculate_seat_usage(club)
+                subscription.save()
+                
+                logger.info(f"Updated club {club.id} subscription to free plan")
+            elif created:
+                logger.info(f"Created free plan subscription for club {club.id}")
+            
+            # Send signal for subscription creation/update
+            if created:
+                subscription_created.send(
+                    sender=ClubSubscription,
+                    subscription=subscription,
+                    club=club,
+                    plan=free_plan
+                )
+            else:
+                subscription_updated.send(
+                    sender=ClubSubscription,
+                    subscription=subscription,
+                    club=club,
+                    old_plan=subscription.plan if not created else None,
+                    new_plan=free_plan,
+                    old_status=subscription.status if not created else None,
+                    new_status=ClubSubscription.SubscriptionStatus.ACTIVE
+                )
+            
+            return subscription
+            
+        except Exception as e:
+            logger.error(f"Failed to assign free plan to club {club.id}: {e}")
+            raise SubscriptionServiceError(f"Failed to assign free plan: {e}")
+
     @staticmethod
     def handle_subscription_created(stripe_subscription: Dict) -> None:
         """

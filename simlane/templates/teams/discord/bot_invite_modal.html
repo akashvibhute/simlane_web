@@ -1,0 +1,352 @@
+<!-- Discord Bot Invitation Modal -->
+<div class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" id="discord-invite-modal">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 xl:w-2/5 shadow-lg rounded-md bg-white max-h-[90vh] overflow-y-auto">
+        <div class="mt-3">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-4 border-b border-gray-200">
+                <div class="flex items-center space-x-3">
+                    <div class="p-2 bg-indigo-100 rounded-lg">
+                        <svg class="w-6 h-6 text-indigo-600" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Add Simlane Bot to Discord</h3>
+                        <p class="text-sm text-gray-600">Connect {{ club.name }} to Discord</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('discord-invite-modal').remove()" 
+                        class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div class="py-6 space-y-6">
+                <!-- Step 1 -->
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <span class="text-sm font-semibold text-indigo-600">1</span>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-medium text-gray-900">Click the Discord authorization link</h4>
+                        <p class="text-sm text-gray-600 mt-1">
+                            This will open Discord in a new tab where you can select your server and authorize the bot.
+                        </p>
+                        <div class="mt-3">
+                            <a href="{{ invite_url }}" 
+                               target="_blank"
+                               id="discord-auth-link"
+                               onclick="handleDiscordAuth(this)"
+                               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 3.314-2.686 6-6 6s-6-2.686-6-6c0-.747.121-1.466.332-2.153z" clip-rule="evenodd"/>
+                                </svg>
+                                <span id="auth-button-text">Authorize Simlane Bot</span>
+                                <svg id="auth-loading" class="hidden animate-spin ml-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                function handleDiscordAuth(link) {
+                    const button = document.getElementById('discord-auth-link');
+                    const buttonText = document.getElementById('auth-button-text');
+                    const loadingIcon = document.getElementById('auth-loading');
+    
+                    // Show loading state
+                    buttonText.textContent = 'Opening Discord...';
+                    loadingIcon.classList.remove('hidden');
+                    button.disabled = true;
+    
+                    // Reset after a delay
+                    setTimeout(() => {
+                        buttonText.textContent = 'Authorize Simlane Bot';
+                        loadingIcon.classList.add('hidden');
+                        button.disabled = false;
+                    }, 3000);
+    
+                    // Track that user clicked the auth link
+                    sessionStorage.setItem('discord-auth-attempted', 'true');
+                }
+
+                function checkBotStatus() {
+                    const button = document.getElementById('check-status-btn');
+                    const buttonText = document.getElementById('check-status-text');
+                    const loadingIcon = document.getElementById('check-status-loading');
+    
+                    // Show loading state
+                    button.disabled = true;
+                    buttonText.textContent = 'Checking...';
+                    loadingIcon.classList.remove('hidden');
+    
+                    // Make API call to check bot status
+                    fetch(`/api/clubs/{{ club.slug }}/discord/status/`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.bot_connected) {
+                            showSuccessState();
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 2000);
+                        } else {
+                            showErrorState('Bot not detected in your server. Please try the authorization process again.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking bot status:', error);
+                        showErrorState('Unable to check bot status. Please refresh the page and try again.');
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        button.disabled = false;
+                        buttonText.textContent = 'Check Bot Status';
+                        loadingIcon.classList.add('hidden');
+                    });
+                }
+
+                function showSuccessState() {
+                    document.getElementById('success-state').classList.remove('hidden');
+                    document.getElementById('error-state').classList.add('hidden');
+                }
+
+                function showErrorState(message) {
+                    document.getElementById('error-state').classList.remove('hidden');
+                    document.getElementById('success-state').classList.add('hidden');
+                    document.getElementById('error-message').textContent = message;
+                }
+
+                function closeModal() {
+                    const modal = document.getElementById('discord-invite-modal');
+                    modal.classList.add('opacity-0');
+                    setTimeout(() => {
+                        modal.remove();
+                    }, 300);
+                }
+
+                // Check if user previously attempted auth and show appropriate state
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (sessionStorage.getItem('discord-auth-attempted')) {
+                        // User has attempted auth, show check status button prominently
+                        document.getElementById('check-status-btn').classList.add('ring-2', 'ring-green-500', 'ring-opacity-50');
+                    }
+                });
+
+                // Handle escape key to close modal
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape') {
+                        closeModal();
+                    }
+                });
+
+                // Handle click outside modal to close
+                document.getElementById('discord-invite-modal').addEventListener('click', function(event) {
+                    if (event.target === this) {
+                        closeModal();
+                    }
+                });
+                </script>
+
+                <!-- Step 2 -->
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <span class="text-sm font-semibold text-indigo-600">2</span>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-medium text-gray-900">Select your Discord server</h4>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Choose the Discord server where you want to add the Simlane bot. You must have "Manage Server" permissions.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                            <span class="text-sm font-semibold text-indigo-600">3</span>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-medium text-gray-900">Review and approve permissions</h4>
+                        <p class="text-sm text-gray-600 mt-1">
+                            The bot needs these permissions to function properly:
+                        </p>
+                        <div class="mt-3 space-y-2">
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-start space-x-2">
+                                        <svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <span class="font-medium text-gray-900">Manage Channels</span>
+                                            <p class="text-gray-600">Create event channels and voice rooms for races</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start space-x-2">
+                                        <svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <span class="font-medium text-gray-900">Send Messages</span>
+                                            <p class="text-gray-600">Post race updates and signup notifications</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start space-x-2">
+                                        <svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <span class="font-medium text-gray-900">Manage Roles</span>
+                                            <p class="text-gray-600">Assign team roles and manage member access</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start space-x-2">
+                                        <svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <span class="font-medium text-gray-900">Read Message History</span>
+                                            <p class="text-gray-600">Access previous messages for context and moderation</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-medium text-gray-900">Done! Return to this page</h4>
+                        <p class="text-sm text-gray-600 mt-1">
+                            After authorizing the bot, refresh this page to see the updated connection status and configure automation settings.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success State -->
+            <div id="success-state" class="hidden bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-green-800">Bot Successfully Added!</h3>
+                        <div class="mt-1 text-sm text-green-700">
+                            <p>The Simlane bot has been successfully added to your Discord server. You can now configure automation settings and start using Discord integration features.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="error-state" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-red-800">Authorization Failed</h3>
+                        <div class="mt-1 text-sm text-red-700">
+                            <p id="error-message">There was an issue adding the bot to your server. Please try again or check the troubleshooting tips below.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning -->
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-yellow-800">Important</h3>
+                        <div class="mt-1 text-sm text-yellow-700">
+                            <p>You must have "Manage Server" permissions in your Discord server to add the bot. If you don't have these permissions, ask a server administrator to complete this process.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Troubleshooting -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800">Troubleshooting Tips</h3>
+                        <div class="mt-2 text-sm text-blue-700">
+                            <ul class="list-disc list-inside space-y-1">
+                                <li>Make sure you're logged into the correct Discord account</li>
+                                <li>Verify you have "Manage Server" permissions on the target server</li>
+                                <li>Check if your server already has the maximum number of bots (100)</li>
+                                <li>Ensure pop-ups are enabled in your browser</li>
+                                <li>Try using an incognito/private browsing window</li>
+                                <li>If the bot appears offline, it may take a few minutes to come online</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-6 flex justify-between items-center">
+                <div class="text-xs text-gray-500">
+                    Need help? <a href="#" class="text-indigo-600 hover:text-indigo-500">Contact Support</a>
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="closeModal()" 
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Close
+                    </button>
+                    <button onclick="checkBotStatus()" 
+                            id="check-status-btn"
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="check-status-text">Check Bot Status</span>
+                        <svg id="check-status-loading" class="hidden animate-spin ml-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

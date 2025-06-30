@@ -88,6 +88,70 @@ def subscription_dashboard(request, club_slug):
     return render(request, 'billing/subscription_dashboard.html', context)
 
 
+@club_member_required
+def subscription_status_widget(request, club_slug):
+    """
+    HTMX endpoint for subscription status widget updates.
+    Returns just the subscription status component.
+    """
+    club = request.club
+    
+    try:
+        subscription = ClubSubscription.objects.get(club=club)
+    except ClubSubscription.DoesNotExist:
+        subscription = None
+
+    # Calculate usage
+    current_member_count = club.members.count()
+    usage_percentage = 0
+    if subscription and subscription.plan.max_members > 0:
+        usage_percentage = min(100, (current_member_count / subscription.plan.max_members) * 100)
+
+    context = {
+        'club': club,
+        'subscription': subscription,
+        'current_member_count': current_member_count,
+        'usage_percentage': usage_percentage,
+    }
+
+    return render(request, 'billing/components/subscription_status_widget.html', context)
+
+
+def billing_error(request):
+    """
+    Generic billing error page.
+    Accepts error details via GET parameters or session.
+    """
+    # Get error details from GET parameters or session
+    error_title = request.GET.get('title') or request.session.pop('billing_error_title', None)
+    error_message = request.GET.get('message') or request.session.pop('billing_error_message', None)
+    error_details = request.GET.get('details') or request.session.pop('billing_error_details', None)
+    error_code = request.GET.get('code') or request.session.pop('billing_error_code', None)
+    retry_url = request.GET.get('retry_url') or request.session.pop('billing_retry_url', None)
+
+    # Try to get club context
+    club_slug = request.GET.get('club_slug')
+    club = None
+    if club_slug:
+        try:
+            from simlane.teams.models import Club
+            club = Club.objects.get(slug=club_slug)
+        except Club.DoesNotExist:
+            pass
+
+    context = {
+        'error_title': error_title,
+        'error_message': error_message,
+        'error_details': error_details,
+        'error_code': error_code,
+        'retry_url': retry_url,
+        'club': club,
+        'error_timestamp': timezone.now(),
+    }
+
+    return render(request, 'billing/billing_error.html', context)
+
+
 @club_admin_required
 @require_POST
 def start_checkout(request, club_slug):

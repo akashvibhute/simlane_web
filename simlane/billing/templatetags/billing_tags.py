@@ -379,3 +379,9 @@ def billing_dashboard_url(context, club):
         })
     except Exception:
         return "#"
+
+
+@register.filter(name='subscription_feature_enabled')
+def subscription_feature_enabled_filter(club, feature_name):
+    """Filter alias to allow usage `club|subscription_feature_enabled:'feature'`."""
+    return subscription_feature_enabled(club, feature_name)

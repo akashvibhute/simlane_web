@@ -12,8 +12,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 
-from .decorators import club_admin_required
-from .decorators import club_manager_required
+from .decorators import club_admin_required, club_manager_required
 from .decorators import club_member_required
 from .forms import ClubCreateForm
 from .forms import ClubEventSignupBulkCreateForm
@@ -28,6 +27,10 @@ from .models import ClubRole
 from .models import EventParticipation
 from .models import Team
 from .models import TeamMember
+
+# Discord integration imports
+from simlane.discord.models import DiscordGuild, ClubDiscordSettings, EventDiscordChannel
+from simlane.discord.tasks import sync_discord_members
 
 # Import billing decorators for subscription enforcement
 from simlane.billing.decorators import race_planning_required
@@ -998,3 +1001,174 @@ def club_event_signup_edit(request, club_slug, sheet_id):
         "title": f"Edit Signup - {signup_sheet.title}",
     }
     return render(request, "teams/club_event_signup_edit.html", context)
+
+
+# Discord Integration Views
+
+@club_admin_required  
+def club_discord_settings(request, club_slug):
+    """Discord settings management for club admins"""
+    club = request.club
+    
+    # Get or create Discord settings
+    settings, created = ClubDiscordSettings.objects.get_or_create(
+        club=club,
+        defaults={
+            'auto_create_channels': True,
+            'enable_voice_channels': True,
+            'enable_stint_alerts': True,
+            'channel_naming_pattern': '{series_name}-{event_name}'
+        }
+    )
+    
+    # Get Discord guild info if connected
+    discord_guild = getattr(club, 'discord_guild', None)
+    
+    # Get recent Discord channels
+    recent_channels = []
+    if discord_guild:
+        recent_channels = EventDiscordChannel.objects.filter(
+            guild=discord_guild
+        ).select_related('event_signup_sheet__event').order_by('-created_at')[:5]
+    
+    # Get Discord status info
+    discord_status = {
+        'connected': bool(discord_guild),
+        'guild_name': discord_guild.name if discord_guild else None,
+        'guild_id': discord_guild.guild_id if discord_guild else None,
+        'is_active': discord_guild.is_active if discord_guild else False,
+        'channels_count': len(recent_channels),
+        'last_sync': None
+    }
+    
+    if discord_guild:
+        latest_sync = discord_guild.discordmembersync_set.first()
+        if latest_sync:
+            discord_status['last_sync'] = latest_sync.sync_timestamp
+    
+    context = {
+        'club': club,
+        'discord_settings': settings,
+        'discord_status': discord_status,
+        'recent_channels': recent_channels,
+        'settings_created': created
+    }
+    
+    if request.headers.get("HX-Request"):
+        return render(request, "teams/discord/discord_settings.html", context)
+    
+    return render(request, "teams/discord/discord_settings.html", context)
+
+
+@club_manager_required
+def club_discord_invite_bot(request, club_slug):
+    """Generate Discord bot invitation URL for club"""
+    club = request.club
+    
+    if request.method == "POST":
+        # This would integrate with the API to generate the invite URL
+        # For now, show modal with instructions
+        from django.conf import settings
+        
+        bot_client_id = getattr(settings, 'DISCORD_BOT_CLIENT_ID', 'YOUR_BOT_CLIENT_ID')
+        permissions = "34630287424"  # Combined permissions for bot
+        
+        invite_url = (
+            f"https://discord.com/oauth2/authorize?"
+            f"client_id={bot_client_id}&"
+            f"permissions={permissions}&"
+            f"scope=bot%20applications.commands&"
+            f"state={club.id}"
+        )
+        
+        context = {
+            'club': club,
+            'invite_url': invite_url,
+            'permissions_list': [
+                "Manage Channels",
+                "Manage Roles", 
+                "Send Messages",
+                "Create Threads",
+                "Connect Voice",
+                "View Channel History",
+                "Use External Emojis"
+            ]
+        }
+        
+        return render(request, "teams/discord/bot_invite_modal.html", context)
+    
+    return redirect("teams:club_discord_settings", club_slug=club.slug)
+
+
+@club_admin_required
+def club_discord_sync_members(request, club_slug):
+    """Trigger Discord member sync for club"""
+    club = request.club
+    
+    # Check if club has Discord integration
+    if not hasattr(club, 'discord_guild'):
+        messages.error(request, "Discord integration not set up for this club.")
+        return redirect("teams:club_discord_settings", club_slug=club.slug)
+    
+    if request.method == "POST":
+        # Trigger member sync task
+        task = sync_discord_members.delay(
+            club.discord_guild.guild_id,
+            sync_type='manual'
+        )
+        
+        messages.success(
+            request, 
+            "Discord member sync has been started. This may take a few minutes to complete."
+        )
+        
+        if request.headers.get("HX-Request"):
+            return render(request, "teams/discord/member_sync_status.html", {
+                'club': club,
+                'task_id': task.id,
+                'sync_status': 'started'
+            })
+    
+    return redirect("teams:club_discord_settings", club_slug=club.slug)
+
+
+@club_member_required
+def club_discord_status(request, club_slug):
+    """Display Discord integration status for club"""
+    club = request.club
+    
+    # Get Discord guild info
+    discord_guild = getattr(club, 'discord_guild', None)
+    
+    # Get Discord settings
+    settings = None
+    if hasattr(club, 'discord_settings'):
+        settings = club.discord_settings
+    
+    # Get recent sync history
+    sync_history = []
+    if discord_guild:
+        sync_history = discord_guild.discordmembersync_set.order_by('-sync_timestamp')[:10]
+    
+    # Get active channels
+    active_channels = []
+    if discord_guild:
+        active_channels = EventDiscordChannel.objects.filter(
+            guild=discord_guild,
+            status='active'
+        ).select_related('event_signup_sheet__event')
+    
+    context = {
+        'club': club,
+        'discord_guild': discord_guild,
+        'discord_settings': settings,
+        'sync_history': sync_history,
+        'active_channels': active_channels,
+        'is_connected': bool(discord_guild),
+        'can_manage': request.club_member.can_manage_club()
+    }
+    
+    if request.headers.get("HX-Request"):
+        return render(request, "teams/discord/member_sync_status.html", context)
+    
+    return render(request, "teams/discord/member_sync_status.html", context)

@@ -1,0 +1,83 @@
+<!-- Subscription Usage Bar Component -->
+<div class="subscription-usage-bar" data-club-id="{{ club.id }}">
+    <div class="flex justify-between items-center mb-2">
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+            {% if subscription %}
+                {{ subscription.plan.name }} Plan Usage
+            {% else %}
+                Free Plan Usage
+            {% endif %}
+        </span>
+        <span class="text-sm text-gray-500 dark:text-gray-400">
+            {{ member_count }}{% if not is_unlimited %} / {{ max_members }}{% endif %} members
+        </span>
+    </div>
+    
+    <!-- Usage Progress Bar -->
+    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+        {% if is_unlimited %}
+            <!-- For unlimited plans, show a different visual -->
+            <div class="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full animate-pulse" style="width: 100%"></div>
+        {% else %}
+            {% if usage_percentage <= 100 %}
+                <div class="h-3 rounded-full transition-all duration-500 {% if usage_class == 'success' %}bg-green-500{% elif usage_class == 'warning' %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
+                     style="width: {{ usage_percentage }}%"></div>
+            {% else %}
+                <!-- Over limit - show full bar in red -->
+                <div class="bg-red-500 h-3 rounded-full" style="width: 100%"></div>
+            {% endif %}
+        {% endif %}
+    </div>
+    
+    <!-- Status Message -->
+    <div class="text-xs">
+        {% if is_unlimited %}
+            <span class="text-green-600 dark:text-green-400 font-medium">✓ Unlimited members</span>
+        {% elif is_over_limit %}
+            <span class="text-red-600 dark:text-red-400 font-medium">
+                ⚠️ Over limit by {{ member_count|add:max_members|add:"-"|add:max_members }} members
+            </span>
+        {% elif usage_percentage >= 90 %}
+            <span class="text-red-600 dark:text-red-400 font-medium">
+                ⚠️ Nearly at limit ({{ max_members|add:member_count|add:"-"|add:member_count }} remaining)
+            </span>
+        {% elif usage_percentage >= 75 %}
+            <span class="text-yellow-600 dark:text-yellow-400 font-medium">
+                ⚠️ Approaching limit ({{ max_members|add:member_count|add:"-"|add:member_count }} remaining)
+            </span>
+        {% else %}
+            <span class="text-green-600 dark:text-green-400">
+                {{ max_members|add:member_count|add:"-"|add:member_count }} members remaining
+            </span>
+        {% endif %}
+    </div>
+    
+    <!-- Upgrade Prompt for Free/Limited Plans -->
+    {% if not is_unlimited and usage_percentage >= 80 %}
+        <div class="mt-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div class="flex items-center justify-between">
+                <span class="text-xs text-yellow-800 dark:text-yellow-300">
+                    Need more members?
+                </span>
+                {% if request.user.is_authenticated %}
+                    <a href="{% url 'billing:subscription_dashboard' club.slug %}" 
+                       class="text-xs text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 font-medium underline">
+                        Upgrade Plan
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Auto-refresh for real-time updates (optional) -->
+<script>
+    // Auto-refresh usage bar every 5 minutes
+    setInterval(function() {
+        const usageBar = document.querySelector('.subscription-usage-bar[data-club-id="{{ club.id }}"]');
+        if (usageBar && typeof htmx !== 'undefined') {
+            // Use HTMX to refresh if available
+            htmx.trigger(usageBar, 'refresh-usage');
+        }
+    }, 300000); // 5 minutes
+</script> 
