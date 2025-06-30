@@ -10,9 +10,11 @@ from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
 
+from simlane.billing.models import ClubSubscription
+
 
 def club_admin_required(view_func):
-    """Decorator to ensure user is club admin (ClubRole.ADMIN)"""
+    """Decorator to ensure user is club admin (ClubRole.ADMIN) and has active subscription"""
 
     @wraps(view_func)
     @login_required
@@ -55,9 +57,17 @@ def club_admin_required(view_func):
         except ClubMember.DoesNotExist:
             return HttpResponseForbidden("You must be a club admin to access this page")
 
-        # Add club_member to request for use in view
+        # Add club_member and club to request for use in view
         request.club_member = club_member
         request.club = club
+
+        # Verify active subscription
+        club_sub = ClubSubscription.objects.filter(club=club, status='active').first()
+        if not club_sub:
+            return HttpResponseForbidden("An active subscription is required to access this page")
+
+        # Attach subscription context
+        request.club_subscription = club_sub
 
         return view_func(request, *args, **kwargs)
 
@@ -65,7 +75,7 @@ def club_admin_required(view_func):
 
 
 def club_manager_required(view_func):
-    """Decorator for admin or teams_manager roles"""
+    """Decorator for admin or teams_manager roles and active subscription"""
 
     @wraps(view_func)
     @login_required
@@ -110,8 +120,17 @@ def club_manager_required(view_func):
                 "You must be a club admin or teams manager to access this page",
             )
 
+        # Add club_member and club to request for use in view
         request.club_member = club_member
         request.club = club
+
+        # Verify active subscription
+        club_sub = ClubSubscription.objects.filter(club=club, status='active').first()
+        if not club_sub:
+            return HttpResponseForbidden("An active subscription is required to access this page")
+
+        # Attach subscription context
+        request.club_subscription = club_sub
 
         return view_func(request, *args, **kwargs)
 
@@ -119,7 +138,7 @@ def club_manager_required(view_func):
 
 
 def club_member_required(view_func):
-    """Decorator to ensure user is club member (any role)"""
+    """Decorator to ensure user is club member (any role) and has active subscription"""
 
     @wraps(view_func)
     @login_required
@@ -179,8 +198,17 @@ def club_member_required(view_func):
                 "You must be a club member to access this page",
             )
 
+        # Add club_member and club to request for use in view
         request.club_member = club_member
         request.club = club
+
+        # Verify active subscription
+        club_sub = ClubSubscription.objects.filter(club=club, status='active').first()
+        if not club_sub:
+            return HttpResponseForbidden("An active subscription is required to access this page")
+
+        # Attach subscription context
+        request.club_subscription = club_sub
 
         return view_func(request, *args, **kwargs)
 

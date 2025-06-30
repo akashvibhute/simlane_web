@@ -1,4 +1,4 @@
-{% load static %}
+{% load static billing_tags %}
 
 <div class="p-6">
   {% if active_section == 'overview' %}
@@ -35,6 +35,42 @@
               <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100 ml-2">
                 Public
               </span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <!-- Subscription Status Widget -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6" 
+           hx-trigger="load, club:subscription_updated from:body" 
+           hx-get="{% url 'billing:subscription_status_partial' club.slug %}" 
+           hx-swap="outerHTML">
+        {% get_club_subscription club as subscription %}
+        <div class="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+          <div class="flex-1">
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+              Plan: <span class="font-semibold text-gray-900 dark:text-white">{{ subscription.plan.name }}</span>
+            </p>
+            <div class="mt-2">
+              {% subscription_usage_bar club %}
+            </div>
+          </div>
+          <div class="flex items-center space-x-4">
+            {% subscription_feature_enabled club 'race_planning' as race_planning %}
+            {% if race_planning %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                Race Planning Enabled
+              </span>
+            {% else %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">
+                Race Planning Locked
+              </span>
+            {% endif %}
+            {% if subscription.plan.max_members and subscription.seats_used >= subscription.plan.max_members %}
+              {% upgrade_prompt club %}
+            {% elif subscription.plan.max_members and subscription.seats_used >= subscription.plan.max_members|add:'-1' %}
+              <a href="{% url 'billing:subscription_dashboard' club.slug %}" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                Upgrade Plan
+              </a>
             {% endif %}
           </div>
         </div>

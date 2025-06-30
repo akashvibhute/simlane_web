@@ -1,0 +1,524 @@
+{% load billing_tags %}
+
+<!-- Hero Section -->
+<div class="text-center py-12">
+  <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+    {% if user.is_authenticated %}
+      Choose Your Plan
+    {% else %}
+      Simple, Transparent Pricing
+    {% endif %}
+  </h1>
+  <p class="text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto mb-8">
+    {% if user.is_authenticated %}
+      Upgrade your club's capabilities with our flexible subscription plans. Scale as your community grows.
+    {% else %}
+      Start free and upgrade as your simracing club grows. All plans include core features with no hidden fees.
+    {% endif %}
+  </p>
+  
+  {% if user.is_authenticated %}
+    {# Find the first admin club in the view and pass as admin_club, or fallback to the first in the template if not provided #}
+    {% if admin_club %}
+      {% get_club_subscription admin_club as current_subscription %}
+      <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md mx-auto mb-8">
+        <div class="flex items-center justify-center space-x-2">
+          <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="text-sm font-medium text-blue-900 dark:text-blue-100">
+            {% if current_subscription %}
+              {{ admin_club.name }}: {{ current_subscription.plan.name }} Plan
+            {% else %}
+              {{ admin_club.name }}: Free Plan
+            {% endif %}
+          </span>
+        </div>
+        {% if current_subscription %}
+          <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">
+            {% if current_subscription.is_on_trial %}
+              Trial ends {{ current_subscription.trial_end|date:"M j, Y" }}
+            {% else %}
+              Next billing: {{ current_subscription.current_period_end|date:"M j, Y" }}
+            {% endif %}
+          </p>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+
+<!-- Pricing Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-16">
+  <!-- Free Plan -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 relative">
+    <div class="text-center">
+      <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Free</h3>
+      <div class="mb-4">
+        <span class="text-4xl font-bold text-gray-900 dark:text-white">$0</span>
+        <span class="text-gray-600 dark:text-gray-400">/month</span>
+      </div>
+      <p class="text-gray-600 dark:text-gray-400 mb-6">Perfect for getting started</p>
+      
+      <ul class="space-y-3 mb-8 text-left">
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Up to 5 club members</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Basic club management</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Member profiles</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Basic performance tracking</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Community support</span>
+        </li>
+      </ul>
+      
+      {% if user.is_authenticated %}
+        <button class="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md font-medium transition-colors" disabled>
+          Current Plan
+        </button>
+      {% else %}
+        <a href="{% url 'account_signup' %}" class="block w-full py-3 px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md font-medium text-center transition-colors">
+          Get Started Free
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Basic Plan -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-primary-500 p-8 relative">
+    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
+      <span class="bg-primary-500 text-white px-4 py-1 rounded-full text-sm font-medium">Most Popular</span>
+    </div>
+    
+    <div class="text-center">
+      <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Basic</h3>
+      <div class="mb-4">
+        <span class="text-4xl font-bold text-gray-900 dark:text-white">$9.99</span>
+        <span class="text-gray-600 dark:text-gray-400">/month</span>
+      </div>
+      <p class="text-gray-600 dark:text-gray-400 mb-6">For growing racing clubs</p>
+      
+      <ul class="space-y-3 mb-8 text-left">
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Up to 25 club members</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Everything in Free</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Race planning tools</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Advanced analytics</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Event management</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Priority support</span>
+        </li>
+      </ul>
+      
+      {% if user.is_authenticated %}
+        {% if admin_club %}
+          {% get_club_subscription admin_club as current_subscription %}
+          {% if current_subscription and current_subscription.plan.name == 'Basic' %}
+            <button class="w-full py-3 px-4 border border-primary-500 text-primary-600 dark:text-primary-400 bg-white dark:bg-gray-800 rounded-md font-medium" disabled>
+              Current Plan
+            </button>
+          {% else %}
+            <a href="#" class="block w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-md font-medium text-center transition-colors">
+              Upgrade to Basic
+            </a>
+          {% endif %}
+        {% else %}
+          <a href="{% url 'account_signup' %}" class="block w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-md font-medium text-center transition-colors">
+            Start with Basic
+          </a>
+        {% endif %}
+      {% else %}
+        <a href="{% url 'account_signup' %}" class="block w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-md font-medium text-center transition-colors">
+          Start with Basic
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Pro Plan -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 relative">
+    <div class="text-center">
+      <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pro</h3>
+      <div class="mb-4">
+        <span class="text-4xl font-bold text-gray-900 dark:text-white">$19.99</span>
+        <span class="text-gray-600 dark:text-gray-400">/month</span>
+      </div>
+      <p class="text-gray-600 dark:text-gray-400 mb-6">For serious racing organizations</p>
+      
+      <ul class="space-y-3 mb-8 text-left">
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Unlimited club members</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Everything in Basic</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Advanced race strategies</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Custom branding</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">API access</span>
+        </li>
+        <li class="flex items-center">
+          <svg class="w-5 h-5 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span class="text-gray-700 dark:text-gray-300">Dedicated support</span>
+        </li>
+      </ul>
+      
+      {% if user.is_authenticated %}
+        {% if admin_club %}
+          {% get_club_subscription admin_club as current_subscription %}
+          {% if current_subscription and current_subscription.plan.name == 'Pro' %}
+            <button class="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md font-medium" disabled>
+              Current Plan
+            </button>
+          {% else %}
+            <a href="#" class="block w-full py-3 px-4 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white rounded-md font-medium text-center transition-colors">
+              Upgrade to Pro
+            </a>
+          {% endif %}
+        {% else %}
+          <a href="{% url 'account_signup' %}" class="block w-full py-3 px-4 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white rounded-md font-medium text-center transition-colors">
+            Start with Pro
+          </a>
+        {% endif %}
+      {% else %}
+        <a href="{% url 'account_signup' %}" class="block w-full py-3 px-4 bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white rounded-md font-medium text-center transition-colors">
+          Start with Pro
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Feature Comparison Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-16">
+  <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Compare Plans</h2>
+    <p class="text-gray-600 dark:text-gray-400 mt-1">See what's included in each subscription tier</p>
+  </div>
+  
+  <div class="overflow-x-auto">
+    <table class="w-full">
+      <thead class="bg-gray-50 dark:bg-gray-700">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Features</th>
+          <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Free</th>
+          <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Basic</th>
+          <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pro</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        <tr>
+          <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Club Members</td>
+          <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">Up to 5</td>
+          <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">Up to 25</td>
+          <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">Unlimited</td>
+        </tr>
+        <tr class="bg-gray-50 dark:bg-gray-700/50">
+          <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Basic Club Management</td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+        </tr>
+        <tr>
+          <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Performance Tracking</td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+        </tr>
+        <tr class="bg-gray-50 dark:bg-gray-700/50">
+          <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Race Planning Tools</td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+        </tr>
+        <tr>
+          <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Advanced Analytics</td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+        </tr>
+        <tr class="bg-gray-50 dark:bg-gray-700/50">
+          <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Event Management</td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+        </tr>
+        <tr>
+          <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Custom Branding</td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+        </tr>
+        <tr class="bg-gray-50 dark:bg-gray-700/50">
+          <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">API Access</td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <svg class="w-5 h-5 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FAQ Section -->
+<div class="max-w-4xl mx-auto mb-16">
+  <div class="text-center mb-12">
+    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Frequently Asked Questions</h2>
+    <p class="text-lg text-gray-600 dark:text-gray-400">Everything you need to know about our pricing and plans</p>
+  </div>
+  
+  <div class="space-y-8">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Can I change plans at any time?</h3>
+      <p class="text-gray-600 dark:text-gray-400">
+        Yes! You can upgrade or downgrade your plan at any time. When you upgrade, you'll be charged the prorated difference immediately. 
+        When you downgrade, the change will take effect at the end of your current billing period.
+      </p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">What happens if I exceed my member limit?</h3>
+      <p class="text-gray-600 dark:text-gray-400">
+        If you're on the Free plan and exceed 5 members, or on Basic and exceed 25 members, you'll be prompted to upgrade. 
+        We'll give you a grace period to either upgrade your plan or remove members to stay within your limit.
+      </p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Is there a free trial for paid plans?</h3>
+      <p class="text-gray-600 dark:text-gray-400">
+        Yes! All paid plans come with a 14-day free trial. You can explore all the premium features without any commitment. 
+        You won't be charged until the trial period ends.
+      </p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Can I cancel my subscription?</h3>
+      <p class="text-gray-600 dark:text-gray-400">
+        Absolutely. You can cancel your subscription at any time from your billing dashboard. 
+        You'll continue to have access to paid features until the end of your current billing period, then your club will automatically move to the Free plan.
+      </p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">Do you offer discounts for annual billing?</h3>
+      <p class="text-gray-600 dark:text-gray-400">
+        Currently, we only offer monthly billing to keep things simple and flexible. 
+        However, we're considering annual plans with discounts in the future. Stay tuned for updates!
+      </p>
+    </div>
+    
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">What payment methods do you accept?</h3>
+      <p class="text-gray-600 dark:text-gray-400">
+        We accept all major credit cards (Visa, MasterCard, American Express) and debit cards through our secure payment processor, Stripe. 
+        All payments are encrypted and secure.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Call to Action -->
+<div class="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-lg p-8 text-center">
+  <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+    {% if user.is_authenticated %}
+      Ready to upgrade your club?
+    {% else %}
+      Ready to get started?
+    {% endif %}
+  </h2>
+  <p class="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+    {% if user.is_authenticated %}
+      Choose the plan that best fits your club's needs and unlock powerful features to enhance your simracing experience.
+    {% else %}
+      Join thousands of simracers already using SimLane to track their progress and connect with the community.
+    {% endif %}
+  </p>
+  
+  <div class="flex justify-center space-x-4">
+    {% if user.is_authenticated %}
+      {% if admin_club %}
+        <a href="#" class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+          Manage Billing
+        </a>
+      {% else %}
+        <a href="{% url 'account_signup' %}" class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+          Create Your Club
+          <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </a>
+      {% endif %}
+    {% else %}
+      <a href="{% url 'account_signup' %}" class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+        Start Free Trial
+        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+      </a>
+      <a href="{% url 'core:about' %}" 
+         hx-get="{% url 'core:about' %}"
+         hx-target="#main-content"
+         hx-push-url="true"
+         class="inline-flex items-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+        Learn More
+      </a>
+    {% endif %}
+  </div>
+</div>

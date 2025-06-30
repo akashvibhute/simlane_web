@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.views.generic import FormView
 
+from simlane.billing.models import SubscriptionPlan
 from simlane.sim.models import SimProfile
 
 from .forms import ContactForm
@@ -251,6 +252,49 @@ def terms_view(request):
 
     # Otherwise return the full page
     return render(request, "core/terms.html")
+
+
+def pricing_view(request):
+    """Pricing page view that handles HTMX requests."""
+    # Get active subscription plans ordered by display_order and price
+    subscription_plans = SubscriptionPlan.objects.filter(
+        is_active=True
+    ).order_by('display_order', 'monthly_price')
+    
+    # Initialize context with subscription plans
+    context = {
+        'subscription_plans': subscription_plans,
+        'user_subscription': None,
+        'user_clubs': [],
+    }
+    
+    # Add user subscription context if authenticated
+    if request.user.is_authenticated:
+        try:
+            from simlane.teams.models import ClubMember
+            
+            # Get user's club memberships
+            club_memberships = ClubMember.objects.filter(
+                user=request.user
+            ).select_related('club', 'club__subscription', 'club__subscription__plan')
+            
+            user_clubs = [cm.club for cm in club_memberships]
+            context['user_clubs'] = user_clubs
+            
+            # Get the first club's subscription for display (most users will have one primary club)
+            if user_clubs and hasattr(user_clubs[0], 'subscription'):
+                context['user_subscription'] = user_clubs[0].subscription
+                
+        except ImportError:
+            # Teams model might not exist yet
+            pass
+    
+    # If this is an HTMX request for navigation, return content partial
+    if request.htmx:
+        return render(request, "core/pricing_content_partial.html", context)
+
+    # Otherwise return the full page
+    return render(request, "core/pricing.html", context)
 
 
 @login_required

@@ -113,6 +113,7 @@ LOCAL_APPS = [
     "simlane.core",
     "simlane.sim",
     "simlane.teams",
+    "simlane.billing",
     "simlane.iracing",
     "simlane.discord",
     "simlane.garage61",
@@ -340,6 +341,17 @@ CELERY_WORKER_SEND_TASK_EVENTS = True
 CELERY_TASK_SEND_SENT_EVENT = True
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#worker-hijack-root-logger
 CELERY_WORKER_HIJACK_ROOT_LOGGER = False
+
+# Rate limiting and concurrency for iRacing tasks
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-routes
+CELERY_TASK_ROUTES = {
+    'simlane.iracing.tasks.sync_past_seasons_task': {'rate_limit': '2/m'},
+    'simlane.iracing.tasks.sync_past_seasons_batched_task': {'rate_limit': '1/10m'},
+}
+
+# Limit concurrent tasks per worker (optional)
+# https://docs.celeryq.dev/en/stable/userguide/configuration.html#worker-prefetch-multiplier
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 # django-allauth
 # ------------------------------------------------------------------------------
 ACCOUNT_ALLOW_REGISTRATION = env.bool("DJANGO_ACCOUNT_ALLOW_REGISTRATION", default=True)
@@ -475,3 +487,9 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+# Stripe Configuration
+# ------------------------------------------------------------------------------
+STRIPE_PUBLISHABLE_KEY = env("STRIPE_PUBLISHABLE_KEY", default="")
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")

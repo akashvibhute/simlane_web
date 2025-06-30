@@ -47,6 +47,7 @@ urlpatterns = [
     # Your stuff: custom urls includes go here
     path("", include("simlane.core.urls", namespace="core")),
     path("teams/", include("simlane.teams.urls", namespace="teams")),
+    path("billing/", include("simlane.billing.urls", namespace="billing")),
     # Top-level drivers and dashboard
     path("drivers/", include((profiles_patterns, "drivers"), namespace="drivers")),
     path(

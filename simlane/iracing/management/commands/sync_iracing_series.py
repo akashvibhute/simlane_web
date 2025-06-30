@@ -14,11 +14,8 @@ from typing import Any
 
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
-from django.utils.text import slugify
 
 from simlane.iracing.services import iracing_service
-from simlane.iracing.tasks import sync_past_seasons_task
-from simlane.iracing.tasks import sync_series_seasons_task
 from simlane.sim.models import Series
 from simlane.sim.models import Simulator
 
@@ -146,7 +143,6 @@ class Command(BaseCommand):
 
                 defaults = {
                     "name": obj.get("series_name", f"Series {series_id}"),
-                    "slug": slugify(obj.get("series_name", str(series_id)))[:280],
                     "simulator": iracing_simulator,
                     "category": obj.get("category", ""),
                     "description": obj.get("forum_url", ""),  # temporary
@@ -229,6 +225,10 @@ class Command(BaseCommand):
         # --- Queue season sync tasks after processing all series ---
         if sync_seasons and not dry_run:
             try:
+                # Import tasks here to avoid circular import issues
+                from simlane.iracing.tasks import sync_past_seasons_batched_task
+                from simlane.iracing.tasks import sync_series_seasons_task
+
                 # Queue current/future seasons sync for all series (single API call)
                 sync_series_seasons_task.delay(
                     series_id=None,  # None means sync all series
@@ -238,17 +238,29 @@ class Command(BaseCommand):
                 )
                 season_tasks_queued = 1
 
-                # Queue past seasons sync if requested (needs per-series calls)
+                # Queue past seasons sync if requested (batched sequential processing)
                 if sync_past_seasons:
-                    # Queue past seasons sync for each series
-                    for obj in series_list:
-                        series_id = obj.get("series_id")
-                        if series_id:
-                            sync_past_seasons_task.delay(
-                                series_id=series_id,
-                                refresh=refresh,
+                    # Collect all series IDs for batched processing
+                    series_ids = [
+                        obj.get("series_id") for obj in series_list 
+                        if obj.get("series_id")
+                    ]
+                    
+                    if series_ids:
+                        # Queue single batched task that processes all series sequentially
+                        sync_past_seasons_batched_task.delay(
+                            series_ids=series_ids,
+                            refresh=refresh,
+                            batch_delay=10,  # 10 seconds between each series
+                        )
+                        past_season_tasks_queued = 1  # Single batched task
+                        
+                        self.stdout.write(
+                            self.style.SUCCESS(
+                                f"✓ Queued batched past seasons sync for {len(series_ids)} series "
+                                f"(sequential processing with 10s delays)"
                             )
-                            past_season_tasks_queued += 1
+                        )
 
             except Exception as e:
                 logger.error("Failed to queue season sync tasks: %s", e)

@@ -11,7 +11,7 @@ from typing import Any
 
 from django.conf import settings
 
-from .iracing_api_client import IRacingAPIClient
+from .client import IRacingClient, IRacingAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +40,9 @@ class IRacingAPIService:
                 logger.warning("iRacing credentials not configured in settings")
                 return
 
-            self.client = IRacingAPIClient.from_system_cache()
+            self.client = IRacingClient.from_settings()
             logger.info(
-                "iRacing API client initialized successfully (via session manager)",
+                "iRacing API client initialized successfully",
             )
         except Exception:
             logger.exception("Failed to initialize iRacing API client")
@@ -130,9 +130,22 @@ class IRacingAPIService:
 
         try:
             return self.client.get_series()
+        except IRacingAPIError as e:
+            # Log the detailed error information that our wrapper captured
+            logger.error(
+                "iRacing API error fetching series data: %s",
+                e,
+                extra={
+                    "status_code": e.status_code,
+                    "endpoint": e.endpoint,
+                    "response_data": e.response_data,
+                }
+            )
+            msg = f"Failed to fetch series data: {e}"
+            raise IRacingServiceError(msg) from e
         except Exception as e:
-            logger.exception("Error fetching series data")
-            msg = "Failed to fetch series data"
+            logger.exception("Unexpected error fetching series data")
+            msg = "Failed to fetch series data due to unexpected error"
             raise IRacingServiceError(msg) from e
 
     def search_series_results(

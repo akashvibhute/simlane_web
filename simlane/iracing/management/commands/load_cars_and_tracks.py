@@ -479,9 +479,7 @@ class Command(BaseCommand):
                     "package_id": package_id,  # Critical for ownership tracking
                     "display_name": track_name,
                     "slug": slugify(f"iracing-{track_name}"),
-                    "is_laser_scanned": any(
-                        config.get("tech_track", False) for config in track_configs
-                    ),
+                    "is_laser_scanned": True, # All iRacing tracks are laser scanned
                     "rain_enabled": any(
                         config.get("rain_enabled", False) for config in track_configs
                     ),
@@ -549,16 +547,14 @@ class Command(BaseCommand):
                     track_type = self._determine_track_type(
                         config.get("config_name", ""),
                     )
-                    config_name = config.get("config_name", "Unknown Configuration")
+                    config_name = config.get("config_name", "Default")
 
                     layout_defaults = {
                         "name": config_name,
                         "slug": slugify(f"{track_name}-{config_name}"),
                         "type": track_type,
                         "layout_type": track_type,  # Set both fields for compatibility
-                        "length_km": config.get("track_config_length", 0) / 1000
-                        if config.get("track_config_length")
-                        else 0,
+                        "length_km": config.get("track_config_length", 0) * 1.60934,  # Convert miles to km
                         "image_url": config.get("track_map_image", ""),
                         "retired": config.get("retired", False),
                         # Technical specifications from API

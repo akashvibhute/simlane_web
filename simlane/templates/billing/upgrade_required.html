@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block title %}
+  Upgrade Required - SimLane
+{% endblock title %}
+
+{% block content %}
+  <div class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 dark:bg-yellow-900/20 mb-4">
+          <svg class="h-8 w-8 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Upgrade Required</h1>
+        <p class="text-lg text-gray-600 dark:text-gray-400">
+          You've reached the limits of your current plan
+        </p>
+      </div>
+
+      <!-- Current Plan Limitation Alert -->
+      <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-6 mb-8">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              {{ restriction_reason|default:"Feature access restricted" }}
+            </h3>
+            <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+              <p>
+                {% if current_plan %}
+                  Your current <strong>{{ current_plan.name }}</strong> plan 
+                  {% if current_plan.max_members %}
+                    allows up to {{ current_plan.max_members }} members
+                  {% endif %}
+                  {% if feature_name %}
+                    and doesn't include {{ feature_name }} functionality
+                  {% endif %}.
+                {% else %}
+                  Your current plan has limitations that prevent access to this feature.
+                {% endif %}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current Usage (if applicable) -->
+      {% if current_usage %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Current Usage</h3>
+          <div class="space-y-4">
+            {% if current_usage.members %}
+              <div>
+                <div class="flex justify-between text-sm text-gray-600 dark:text-gray-400 mb-1">
+                  <span>Club Members</span>
+                  <span>{{ current_usage.members.used }} / {{ current_usage.members.limit|default:"∞" }}</span>
+                </div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div class="bg-primary-600 h-2 rounded-full" style="width: {{ current_usage.members.percentage }}%"></div>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Pricing Plans -->
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white text-center mb-8">Choose Your Plan</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          <!-- Free Plan -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 {% if current_plan.name == 'Free' %}ring-2 ring-gray-300 dark:ring-gray-600{% endif %}">
+            <div class="text-center">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">Free</h3>
+              <div class="mt-4">
+                <span class="text-3xl font-bold text-gray-900 dark:text-white">$0</span>
+                <span class="text-gray-500 dark:text-gray-400">/month</span>
+              </div>
+            </div>
+            <ul class="mt-6 space-y-3">
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Up to 5 members</span>
+              </li>
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Basic club management</span>
+              </li>
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-red-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">No race planning</span>
+              </li>
+            </ul>
+            {% if current_plan.name == 'Free' %}
+              <div class="mt-6">
+                <div class="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 py-2 px-4 rounded-md text-center text-sm font-medium">
+                  Current Plan
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Basic Plan -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-primary-500 p-6 relative {% if current_plan.name == 'Basic' %}ring-2 ring-primary-300 dark:ring-primary-600{% endif %}">
+            <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <span class="bg-primary-500 text-white px-3 py-1 text-xs font-medium rounded-full">Recommended</span>
+            </div>
+            <div class="text-center">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">Basic</h3>
+              <div class="mt-4">
+                <span class="text-3xl font-bold text-gray-900 dark:text-white">$9</span>
+                <span class="text-gray-500 dark:text-gray-400">/month</span>
+              </div>
+            </div>
+            <ul class="mt-6 space-y-3">
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Up to 25 members</span>
+              </li>
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Full race planning</span>
+              </li>
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Team formation & strategy</span>
+              </li>
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Stint planning</span>
+              </li>
+            </ul>
+            <div class="mt-6">
+              {% if current_plan.name == 'Basic' %}
+                <div class="w-full bg-primary-100 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 py-2 px-4 rounded-md text-center text-sm font-medium">
+                  Current Plan
+                </div>
+              {% else %}
+                <a href="{% url 'billing:start_checkout' club.slug %}?plan=basic" 
+                   class="w-full bg-primary-600 hover:bg-primary-700 text-white py-2 px-4 rounded-md text-center text-sm font-medium inline-block transition-colors">
+                  Upgrade to Basic
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Pro Plan -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 {% if current_plan.name == 'Pro' %}ring-2 ring-purple-300 dark:ring-purple-600{% endif %}">
+            <div class="text-center">
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">Pro</h3>
+              <div class="mt-4">
+                <span class="text-3xl font-bold text-gray-900 dark:text-white">$19</span>
+                <span class="text-gray-500 dark:text-gray-400">/month</span>
+              </div>
+            </div>
+            <ul class="mt-6 space-y-3">
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Unlimited members</span>
+              </li>
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">All race planning features</span>
+              </li>
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Advanced analytics</span>
+              </li>
+              <li class="flex items-center">
+                <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-sm text-gray-600 dark:text-gray-400">Priority support</span>
+              </li>
+            </ul>
+            <div class="mt-6">
+              {% if current_plan.name == 'Pro' %}
+                <div class="w-full bg-purple-100 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 py-2 px-4 rounded-md text-center text-sm font-medium">
+                  Current Plan
+                </div>
+              {% else %}
+                <a href="{% url 'billing:start_checkout' club.slug %}?plan=pro" 
+                   class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-md text-center text-sm font-medium inline-block transition-colors">
+                  Upgrade to Pro
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Benefits Section -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Why Upgrade?</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-primary-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white">Grow Your Club</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Add more members and build a larger racing community.</p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-primary-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white">Advanced Race Planning</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Create detailed race strategies and manage team formations.</p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-primary-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white">Stint Planning</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Plan driver stints and optimize race performance.</p>
+            </div>
+          </div>
+          <div class="flex items-start">
+            <div class="flex-shrink-0">
+              <svg class="h-6 w-6 text-primary-500 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white">Better Organization</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Keep your club organized with advanced management tools.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="text-center space-y-4">
+        <div class="space-x-4">
+          <a href="{% url 'teams:club_dashboard' club.slug %}" 
+             class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to Dashboard
+          </a>
+          {% if club.subscription.plan.name != 'Pro' %}
+            <a href="{% url 'billing:subscription_dashboard' club.slug %}" 
+               class="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors">
+              View Billing Options
+            </a>
+          {% endif %}
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Questions? <a href="mailto:support@traycer.ai" class="text-primary-600 dark:text-primary-400 hover:underline">Contact our support team</a>
+        </p>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

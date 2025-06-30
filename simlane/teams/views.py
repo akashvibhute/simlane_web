@@ -29,6 +29,12 @@ from .models import EventParticipation
 from .models import Team
 from .models import TeamMember
 
+# Import billing decorators for subscription enforcement
+from simlane.billing.decorators import race_planning_required
+from simlane.billing.decorators import member_limit_enforced
+from simlane.billing.decorators import subscription_required
+from simlane.billing.decorators import check_member_limit
+
 User = get_user_model()
 
 
@@ -187,6 +193,46 @@ def club_dashboard_section(request, club_slug, section="overview"):
                 "This club is private. You must be a member to view it."
             )
 
+    # Get subscription information for the club
+    subscription_info = None
+    member_usage_info = None
+    subscription_features = []
+    
+    try:
+        from simlane.billing.models import ClubSubscription
+        subscription = ClubSubscription.objects.select_related('plan').get(
+            club=club, 
+            status__in=['active', 'trialing']
+        )
+        subscription_info = {
+            'plan': subscription.plan,
+            'status': subscription.status,
+            'current_period_end': subscription.current_period_end,
+            'seats_used': subscription.seats_used,
+        }
+        subscription_features = subscription.get_available_features()
+        
+        # Get member usage information
+        current_members = club.members.count()
+        max_members = subscription.plan.max_members
+        member_usage_info = {
+            'current': current_members,
+            'limit': max_members if max_members and max_members > 0 else 'Unlimited',
+            'percentage': subscription.get_member_usage_percentage() if max_members and max_members > 0 else 0,
+            'can_add_members': max_members is None or max_members < 0 or current_members < max_members,
+            'approaching_limit': max_members and max_members > 0 and current_members >= (max_members * 0.8),
+        }
+    except (ImportError, ClubSubscription.DoesNotExist):
+        # Billing not available or no subscription - use free plan defaults
+        current_members = club.members.count()
+        member_usage_info = {
+            'current': current_members,
+            'limit': 5,  # Free plan default
+            'percentage': (current_members / 5) * 100,
+            'can_add_members': current_members < 5,
+            'approaching_limit': current_members >= 4,
+        }
+
     # Get user's other clubs for navigation
     user_clubs = ClubMember.objects.filter(user=request.user).select_related("club")
 
@@ -308,6 +354,11 @@ def club_dashboard_section(request, club_slug, section="overview"):
         "upcoming_signup_sheets": upcoming_signup_sheets,
         "past_signup_sheets": past_signup_sheets,
         "events_tab": events_tab,
+        # Add subscription context
+        "subscription_info": subscription_info,
+        "member_usage_info": member_usage_info,
+        "subscription_features": subscription_features,
+        "race_planning_available": 'race_planning' in subscription_features,
     }
 
     # HTMX requests return partial content
@@ -341,6 +392,15 @@ def club_create(request):
                     club=club,
                     role=ClubRole.ADMIN,
                 )
+
+                # Assign free subscription plan to new club
+                try:
+                    from simlane.billing.services import SubscriptionService
+                    subscription_service = SubscriptionService()
+                    subscription_service.assign_free_plan(club)
+                except ImportError:
+                    # Billing system not available - continue without subscription
+                    pass
 
                 messages.success(request, f"Club '{club.name}' created successfully!")
                 return redirect("teams:club_dashboard", club_slug=club.slug)
@@ -414,10 +474,19 @@ def club_members_partial(request, club_slug):
     return club_members(request, club_slug)
 
 
-@club_manager_required
+@member_limit_enforced
 def club_invite_member(request, club_slug):
     """Send invitations to new members"""
     club = request.club
+
+    # Check member limits before showing form
+    can_add, limit_message, current_count, max_count = check_member_limit(club, 1)
+    
+    if not can_add:
+        messages.error(request, limit_message)
+        if request.headers.get("HX-Request"):
+            return redirect("teams:club_members", club_slug=club.slug)
+        return redirect("teams:club_members", club_slug=club.slug)
 
     if request.method == "POST":
         form = ClubInvitationForm(request.POST, club=club, inviter=request.user)
@@ -442,6 +511,7 @@ def club_invite_member(request, club_slug):
         "form": form,
         "club": club,
         "title": f"Invite Member to {club.name}",
+        "member_limit_info": getattr(request, 'member_limit_info', None),
     }
 
     if request.headers.get("HX-Request"):
@@ -450,9 +520,9 @@ def club_invite_member(request, club_slug):
     return render(request, "teams/club_invite_member.html", context)
 
 
-@club_manager_required
+@race_planning_required
 def club_event_signup_create(request, club_slug):
-    """Create an event signup sheet for the club"""
+    """Create an event signup sheet for the club - requires race planning subscription"""
     club = request.club
 
     if request.method == "POST":
@@ -507,9 +577,9 @@ def club_event_signup_create(request, club_slug):
     return render(request, "teams/club_event_signup_create.html", context)
 
 
-@club_manager_required
+@race_planning_required
 def club_event_signup_bulk_create(request, club_slug):
-    """Create multiple event signup sheets at once"""
+    """Create multiple event signup sheets at once - requires race planning subscription"""
     club = request.club
 
     if request.method == "POST":
@@ -632,6 +702,17 @@ def club_invitation_accept(request, token):
             messages.error(request, "This invitation has expired.")
             return redirect("teams:clubs_dashboard")
 
+        # Check member limits before accepting
+        can_add, limit_message, current_count, max_count = check_member_limit(invitation.club, 1)
+        
+        if not can_add:
+            messages.error(
+                request, 
+                f"Cannot accept invitation: {limit_message}. "
+                "Please contact the club administrator about upgrading their subscription."
+            )
+            return redirect("teams:clubs_dashboard")
+
         club_member = invitation.accept(request.user)
         messages.success(request, f"Welcome to {invitation.club.name}!")
 
@@ -698,6 +779,126 @@ def stint_plan_partial_legacy(request, allocation_id):
     return redirect("teams:clubs_dashboard")
 
 
+# === RACE PLANNING AND TEAM FORMATION VIEWS ===
+# These views handle advanced race planning functionality that requires subscription
+
+@race_planning_required
+def event_team_formation(request, club_slug, sheet_id):
+    """Form teams for an event - requires race planning subscription."""
+    club = request.club
+    signup_sheet = get_object_or_404(ClubEventSignupSheet, id=sheet_id, club=club)
+    
+    # Get all signups ready for team formation
+    signups = EventParticipation.get_team_formation_candidates(signup_sheet.event)
+    
+    # Get team formation recommendations if we have enough participants
+    recommendations = []
+    if signups.count() >= signup_sheet.min_drivers_per_team:
+        from simlane.teams.models import AvailabilityWindow
+        recommendations = AvailabilityWindow.get_team_formation_recommendations(
+            signup_sheet.event,
+            team_size=signup_sheet.target_team_size
+        )
+    
+    context = {
+        "club": club,
+        "signup_sheet": signup_sheet,
+        "signups": signups,
+        "recommendations": recommendations,
+        "title": f"Team Formation - {signup_sheet.title}",
+    }
+    
+    return render(request, "teams/event_team_formation.html", context)
+
+
+@race_planning_required
+def event_race_strategy_create(request, club_slug, team_id, event_id):
+    """Create race strategy for a team - requires race planning subscription."""
+    club = request.club
+    team = get_object_or_404(Team, id=team_id, club=club)
+    
+    from simlane.sim.models import Event
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Check if user can manage this team
+    if not team.can_user_manage(request.user):
+        return HttpResponseForbidden("You don't have permission to manage this team's strategy")
+    
+    if request.method == "POST":
+        # Handle race strategy creation
+        # This would involve forms for RaceStrategy and StintPlan models
+        messages.success(request, "Race strategy created successfully!")
+        return redirect("teams:club_dashboard", club_slug=club.slug)
+    
+    context = {
+        "club": club,
+        "team": team,
+        "event": event,
+        "title": f"Create Race Strategy - {team.name}",
+    }
+    
+    return render(request, "teams/race_strategy_create.html", context)
+
+
+@race_planning_required
+def stint_plan_management(request, club_slug, strategy_id):
+    """Manage stint plans for a race strategy - requires race planning subscription."""
+    club = request.club
+    
+    from simlane.teams.models import RaceStrategy
+    strategy = get_object_or_404(RaceStrategy, id=strategy_id, team__club=club)
+    
+    # Check permissions
+    if not strategy.team.can_user_manage(request.user):
+        return HttpResponseForbidden("You don't have permission to manage this strategy")
+    
+    stint_plans = strategy.stint_plans.all().order_by('stint_number')
+    
+    context = {
+        "club": club,
+        "strategy": strategy,
+        "stint_plans": stint_plans,
+        "title": f"Stint Planning - {strategy.name}",
+    }
+    
+    return render(request, "teams/stint_plan_management.html", context)
+
+
+# === SUBSCRIPTION UPGRADE VIEWS ===
+
+@club_member_required
+def subscription_upgrade_prompt(request, club_slug):
+    """Show upgrade prompt when subscription limits are reached."""
+    club = request.club
+    
+    # Get current subscription info
+    try:
+        from simlane.billing.models import ClubSubscription
+        subscription = ClubSubscription.objects.select_related('plan').get(
+            club=club, 
+            status__in=['active', 'trialing']
+        )
+    except (ImportError, ClubSubscription.DoesNotExist):
+        subscription = None
+    
+    # Get available plans for upgrade
+    available_plans = []
+    try:
+        from simlane.billing.models import SubscriptionPlan
+        available_plans = SubscriptionPlan.objects.filter(is_active=True).order_by('monthly_price')
+    except ImportError:
+        pass
+    
+    context = {
+        "club": club,
+        "current_subscription": subscription,
+        "available_plans": available_plans,
+        "title": f"Upgrade Subscription - {club.name}",
+    }
+    
+    return render(request, "teams/subscription_upgrade_prompt.html", context)
+
+
 # === FUTURE VIEWS ===
 # These will be implemented as we build out the functionality:
 #
@@ -709,17 +910,12 @@ def stint_plan_partial_legacy(request, allocation_id):
 # - club_teams_list: List teams in the club
 # - club_team_create: Create a new team within the club
 # - club_team_detail: View team details
-#
-# Race Planning & Strategy:
-# - event_race_plan: Plan race strategy for an event
-# - event_signup: Sign up for an event (individual or team)
-# - event_team_formation: Form teams for an event
 
 
 # === EVENT SIGNUP SHEET DETAIL ===
-@club_member_required
+@subscription_required(features=['race_planning'])
 def club_event_signup_detail(request, club_slug, sheet_id):
-    """Detailed view of a club's event signup sheet."""
+    """Detailed view of a club's event signup sheet - requires race planning subscription."""
     club = request.club
     signup_sheet = get_object_or_404(
         ClubEventSignupSheet.objects.select_related(
@@ -748,12 +944,17 @@ def club_event_signup_detail(request, club_slug, sheet_id):
         else False
     )
 
+    # Check if team formation features are available
+    team_formation_available = hasattr(request, 'club_subscription') and request.club_subscription.has_feature('race_planning')
+
     context = {
         "club": club,
         "signup_sheet": signup_sheet,
         "signups": signups_qs,
         "can_manage": can_manage,
         "title": signup_sheet.title,
+        "team_formation_available": team_formation_available,
+        "subscription_info": getattr(request, 'club_subscription', None),
     }
 
     if request.headers.get("HX-Request"):
@@ -762,9 +963,9 @@ def club_event_signup_detail(request, club_slug, sheet_id):
     return render(request, "teams/club_event_signup_detail.html", context)
 
 
-@club_manager_required
+@race_planning_required
 def club_event_signup_edit(request, club_slug, sheet_id):
-    """Edit an existing signup sheet (event is immutable)."""
+    """Edit an existing signup sheet (event is immutable) - requires race planning subscription."""
     club = request.club
     signup_sheet = get_object_or_404(ClubEventSignupSheet, id=sheet_id, club=club)
 

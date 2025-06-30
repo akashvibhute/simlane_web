@@ -1,7 +1,8 @@
 # Register your models here.
 
 from django.contrib import admin
-from unfold.admin import ModelAdmin
+from django.db.models import Count
+from unfold.admin import ModelAdmin, TabularInline
 
 from .models import CarClass
 from .models import CarModel
@@ -28,6 +29,32 @@ from .models import TeamResult
 from .models import TimeSlot
 from .models import TrackModel
 from .models import WeatherForecast
+
+
+# Inline classes for tabular displays
+class SeasonInline(TabularInline):
+    model = Season
+    extra = 0
+    readonly_fields = ["external_season_id", "created_at", "updated_at"]
+    fields = [
+        "name", "external_season_id", "start_date", "end_date", 
+        "active", "complete", "created_at"
+    ]
+    show_change_link = True
+    ordering = ["-start_date"]
+
+
+class EventInline(TabularInline):
+    model = Event
+    extra = 0
+    readonly_fields = ["created_at", "updated_at"]
+    fields = [
+        "name", "simulator", "type", "status", "event_date",
+        "start_date", "end_date", "round_number"
+    ]
+    show_change_link = True
+    raw_id_fields = ["simulator", "sim_layout"]
+    ordering = ["event_date", "round_number"]
 
 
 @admin.register(Simulator)
@@ -127,6 +154,7 @@ class SimLayoutAdmin(ModelAdmin):
 class SeriesAdmin(ModelAdmin):
     list_display = [
         "name",
+        "seasons_count",
         "is_team_event",
         "min_drivers_per_entry",
         "max_drivers_per_entry",
@@ -134,6 +162,19 @@ class SeriesAdmin(ModelAdmin):
     list_filter = ["is_team_event", "created_at"]
     search_fields = ["name", "description"]
     readonly_fields = ["created_at", "updated_at"]
+    inlines = [SeasonInline]
+
+    def get_queryset(self, request):
+        """Optimize queryset for admin with season count"""
+        return super().get_queryset(request).annotate(
+            seasons_count=Count('seasons')
+        )
+
+    def seasons_count(self, obj):
+        """Display season count for each series"""
+        return obj.seasons_count
+    seasons_count.short_description = "Seasons"
+    seasons_count.admin_order_field = "seasons_count"
 
 
 @admin.register(Event)
@@ -332,6 +373,7 @@ class SeasonAdmin(ModelAdmin):
     list_display = [
         "series",
         "name",
+        "events_count",
         "external_season_id",
         "start_date",
         "end_date",
@@ -343,6 +385,19 @@ class SeasonAdmin(ModelAdmin):
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["series"]
     date_hierarchy = "start_date"
+    inlines = [EventInline]
+
+    def get_queryset(self, request):
+        """Optimize queryset for admin with event count"""
+        return super().get_queryset(request).annotate(
+            events_count=Count('events')
+        )
+
+    def events_count(self, obj):
+        """Display event count for each season"""
+        return obj.events_count
+    events_count.short_description = "Events"
+    events_count.admin_order_field = "events_count"
 
 
 @admin.register(CarRestriction)

@@ -63,6 +63,13 @@
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">About</a>
           </li>
           <li>
+            <a href="{% url 'core:pricing' %}"
+               hx-get="{% url 'core:pricing' %}"
+               hx-target="#main-content"
+               hx-push-url="true"
+               class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Pricing</a>
+          </li>
+          <li>
             <a href="{% url 'core:search' %}"
                class="text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors text-sm">Search</a>
           </li>

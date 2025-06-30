@@ -114,8 +114,15 @@ def _get_or_create_iracing_event(
 
         if not created:
             # Update existing event with new defaults
+            update_fields = []
             for key, value in event_defaults.items():
-                setattr(event, key, value)
+                if hasattr(event, key):  # Only update valid model fields
+                    setattr(event, key, value)
+                    update_fields.append(key)
+            
+            if update_fields:
+                # Call save() without update_fields to trigger slug generation
+                # The Event model's save() method handles slug generation automatically
                 event.save()
 
         return event, created
@@ -182,23 +189,86 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                     if not season_id:
                         continue
 
-                    # Get or create season
+                    # Calculate season dates and status from schedules
+                    schedules = season_data.get("schedules", [])
+                    season_start_date = None
+                    season_end_date = None
+                    
+                    if schedules:
+                        # Parse dates from schedules to determine season start/end
+                        from datetime import datetime
+                        start_dates = []
+                        end_dates = []
+                        
+                        for schedule in schedules:
+                            start_str = schedule.get("start_date")
+                            end_str = schedule.get("week_end_time")
+                            
+                            try:
+                                if start_str:
+                                    if isinstance(start_str, str):
+                                        start_date = datetime.fromisoformat(start_str.replace('Z', '+00:00')).date()
+                                    else:
+                                        start_date = start_str.date() if hasattr(start_str, 'date') else start_str
+                                    start_dates.append(start_date)
+                            except (ValueError, AttributeError):
+                                pass
+                                
+                            try:
+                                if end_str:
+                                    if isinstance(end_str, str):
+                                        end_date = datetime.fromisoformat(end_str.replace('Z', '+00:00')).date()
+                                    else:
+                                        end_date = end_str.date() if hasattr(end_str, 'date') else end_str
+                                    end_dates.append(end_date)
+                            except (ValueError, AttributeError):
+                                pass
+                        
+                        if start_dates:
+                            season_start_date = min(start_dates)
+                        if end_dates:
+                            season_end_date = max(end_dates)
+                    
+                    # Determine if season is active/complete based on dates
+                    from datetime import date
+                    today = date.today()
+                    
+                    if season_end_date and season_end_date < today:
+                        # Past season - completed
+                        is_active = False
+                        is_complete = True
+                    elif season_start_date and season_start_date > today:
+                        # Future season - scheduled but not active yet
+                        is_active = False
+                        is_complete = False
+                    else:
+                        # Current season or unknown dates - active
+                        is_active = True
+                        is_complete = False
+                    
+                    # Get or create season with proper flags and dates
                     season, season_created = Season.objects.get_or_create(
                         external_season_id=season_id,
                         defaults={
                             "name": season_name,
                             "series": series,
-                            "active": True,
+                            "active": is_active,
+                            "complete": is_complete,
+                            "start_date": season_start_date,
+                            "end_date": season_end_date,
                         },
                     )
 
                     if not season_created:
-                        # Update existing season
+                        # Update existing season with calculated values
                         season.name = season_name
-                        season.save(update_fields=["name"])
+                        season.active = is_active
+                        season.complete = is_complete
+                        season.start_date = season_start_date
+                        season.end_date = season_end_date
+                        season.save(update_fields=["name", "active", "complete", "start_date", "end_date"])
 
                     # Process schedules/events
-                    schedules = season_data.get("schedules", [])
                     for schedule_data in schedules:
                         try:
                             round_num = schedule_data.get("race_week_num")
@@ -206,9 +276,11 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                             track_name = schedule_data.get("track", {}).get(
                                 "track_name", ""
                             )
-                            layout_id = schedule_data.get("track", {}).get(
+                            layout_name = schedule_data.get("track", {}).get(
                                 "config_name"
-                            )
+                            ) or "Default"
+                            week_end_time = schedule_data.get("week_end_time")
+                            start_date = schedule_data.get("start_date")
 
                             if not track_id or round_num is None:
                                 continue
@@ -216,30 +288,51 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                             # Try to find track layout
                             try:
                                 sim_layout = SimLayout.objects.get(
-                                    sim_track__external_track_id=track_id,
-                                    layout_code=layout_id,
+                                    layout_code=track_id,
                                 )
                             except SimLayout.DoesNotExist:
                                 # Try to find by track name as fallback
                                 try:
                                     sim_layout = SimLayout.objects.get(
                                         sim_track__name__icontains=track_name,
-                                        layout_code=layout_id,
+                                        name__icontains=layout_name,
                                     )
                                 except SimLayout.DoesNotExist:
                                     logger.warning(
-                                        f"Track layout not found for {track_name} ({track_id}) layout {layout_id}",
+                                        f"Track layout not found for {track_name} ({track_id}) layout {layout_name}",
                                     )
                                     continue
 
-                            # Create event name
-                            event_name = (
-                                f"{series_name} - Week {round_num} - {track_name}"
-                            )
-                            if layout_id and layout_id.lower() != "default":
-                                event_name += f" ({layout_id})"
+                            # Create event name with better fallbacks
+                            series_display_name = series_name or series.name or f"Series {series_id}"
+                            track_display_name = track_name or f"Track {track_id}"
+                            week_display = f"Week {round_num}" if round_num is not None else "Event"
+                            
+                            event_name = f"{series_display_name} - {week_display} - {track_display_name}"
+                            if layout_name and layout_name.lower() not in ["default", ""]:
+                                event_name += f" ({layout_name})"
+                            
+                            # Generate slug from event name
+                            from django.utils.text import slugify
+                            event_slug = slugify(event_name)[:280]  # Match model's max_length
+                            
+                            # Debug logging for event name generation
+                            logger.debug(f"Generated event name: '{event_name}' for series {series_id}, round {round_num}")
+                            logger.debug(f"Generated event slug: '{event_slug}'")
+                            logger.debug(f"  - series_name: '{series_name}', track_name: '{track_name}', layout_name: '{layout_name}'")
 
-                            # Prepare event defaults
+                            # Extract weather and timing data from schedule
+                            weather_data = schedule_data.get("weather", {})
+                            race_time_descriptors = schedule_data.get("race_time_descriptors", {})
+                            car_restrictions = schedule_data.get("car_restrictions", [])
+                            
+                            # Parse weather summary for quick stats
+                            weather_summary = weather_data.get("weather_summary", {})
+                            min_temp = weather_summary.get("temp_low")
+                            max_temp = weather_summary.get("temp_high") 
+                            max_precip = weather_summary.get("precip_chance", 0)
+                            
+                            # Prepare event defaults with all RaceWeek fields
                             event_defaults = {
                                 "series": series,
                                 "season": season,
@@ -247,11 +340,29 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                                 "sim_layout": sim_layout,
                                 "event_source": EventSource.SERIES,
                                 "status": EventStatus.SCHEDULED,
+                                "start_date": start_date,
+                                "end_date": week_end_time,
+                                "name": event_name,
+                                "slug": event_slug,
                                 "description": f"iRacing {series_name} Week {round_num}",
+                                "round_number": round_num,
+                                "category": schedule_data.get("track", {}).get("category", ""),
+                                
+                                # Weather configuration (from RaceWeek merger)
+                                "weather_config": weather_data,
+                                "weather_forecast_url": weather_data.get("weather_url", ""),
+                                "min_air_temp": min_temp,
+                                "max_air_temp": max_temp,
+                                "max_precip_chance": max_precip,
+                                
+                                # Time pattern (from RaceWeek merger)  
+                                "time_pattern": race_time_descriptors,
+                                
+                                # Entry requirements with UUID fix
                                 "entry_requirements": {
                                     "round_number": round_num,
                                     "track_id": track_id,
-                                    "layout_id": layout_id,
+                                    "layout_id": str(sim_layout.id),  # Convert UUID to string for JSON serialization
                                 },
                             }
 
@@ -284,7 +395,7 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
                                     car_class_id = car_class_data.get("car_class_id")
                                     if car_class_id:
                                         car_class, _ = CarClass.objects.get_or_create(
-                                            external_car_class_id=car_class_id,
+                                            sim_api_id=car_class_id,
                                             defaults={
                                                 "name": car_class_data.get(
                                                     "car_class_name", ""
@@ -306,6 +417,38 @@ def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[s
 
                                 except Exception as e:
                                     logger.warning(f"Error processing car class: {e}")
+
+                            # Process car restrictions (BOP data)
+                            for restriction_data in car_restrictions:
+                                try:
+                                    car_id = restriction_data.get("car_id")
+                                    if car_id:
+                                        from simlane.sim.models import SimCar, CarRestriction
+                                        
+                                        try:
+                                            sim_car = SimCar.objects.get(
+                                                sim_api_id=car_id,
+                                                simulator=iracing_simulator
+                                            )
+                                            
+                                            # Create or update car restriction
+                                            restriction, _ = CarRestriction.objects.update_or_create(
+                                                event=event,
+                                                sim_car=sim_car,
+                                                defaults={
+                                                    "max_dry_tire_sets": restriction_data.get("max_dry_tire_sets", 0),
+                                                    "max_pct_fuel_fill": restriction_data.get("max_pct_fuel_fill", 100),
+                                                    "power_adjust_pct": restriction_data.get("power_adjust_pct", 0.0),
+                                                    "weight_penalty_kg": restriction_data.get("weight_penalty_kg", 0),
+                                                    "is_fixed_setup": bool(restriction_data.get("race_setup_id") or restriction_data.get("qual_setup_id")),
+                                                },
+                                            )
+                                            
+                                        except SimCar.DoesNotExist:
+                                            logger.warning(f"SimCar not found for car_id {car_id}")
+                                            
+                                except Exception as e:
+                                    logger.warning(f"Error processing car restriction: {e}")
 
                         except Exception as e:
                             error_msg = f"Error processing schedule for series {series_id}, season {season_id}: {e!s}"
@@ -416,7 +559,12 @@ def sync_series_seasons_task(
         }
 
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+@shared_task(
+    bind=True, 
+    max_retries=3, 
+    default_retry_delay=60,
+    rate_limit="1/m"  # 1 task per minute
+)
 def sync_past_seasons_task(
     self, series_id: int, refresh: bool = False
 ) -> dict[str, Any]:
@@ -564,6 +712,184 @@ def sync_past_seasons_task(
             "error": str(exc),
             "timestamp": timezone.now().isoformat(),
             "series_id": series_id,
+        }
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def sync_past_seasons_batched_task(
+    self, 
+    series_ids: list[int], 
+    refresh: bool = False,
+    batch_delay: int = 10,  # seconds between each series
+) -> dict[str, Any]:
+    """
+    Sync past seasons for multiple series sequentially with delays.
+    
+    This prevents overwhelming the iRacing API by processing series one at a time
+    with configurable delays between each API call.
+
+    Args:
+        series_ids: List of series IDs to sync past seasons for
+        refresh: Whether to bypass cache
+        batch_delay: Seconds to wait between processing each series
+
+    Returns:
+        Dict containing sync results for all series
+    """
+    import time
+    
+    try:
+        logger.info(f"Starting batched past seasons sync for {len(series_ids)} series")
+
+        _ensure_service_available()
+
+        total_events_created = 0
+        total_events_updated = 0
+        all_errors = []
+        processed_series = []
+        failed_series = []
+
+        # Get or create iRacing simulator
+        try:
+            iracing_simulator = Simulator.objects.get(name="iRacing")
+        except Simulator.DoesNotExist:
+            error_msg = "iRacing simulator not found in database"
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "error": error_msg,
+                "timestamp": timezone.now().isoformat(),
+            }
+
+        for i, series_id in enumerate(series_ids):
+            try:
+                logger.info(f"Processing series {series_id} ({i+1}/{len(series_ids)})")
+
+                # Get series
+                try:
+                    series = Series.objects.get(external_series_id=series_id)
+                except Series.DoesNotExist:
+                    error_msg = f"Series {series_id} not found in database"
+                    logger.warning(error_msg)
+                    failed_series.append(series_id)
+                    all_errors.append(error_msg)
+                    continue
+
+                # Get past seasons for the series
+                past_seasons_response = iracing_service.get_series_past_seasons(
+                    series_id=series_id
+                )
+
+                # Process the response
+                if (
+                    isinstance(past_seasons_response, dict)
+                    and "seasons" in past_seasons_response
+                ):
+                    past_seasons = past_seasons_response["seasons"]
+                else:
+                    error_msg = f"Unexpected past seasons response format for series {series_id}: {type(past_seasons_response)}"
+                    logger.error(error_msg)
+                    failed_series.append(series_id)
+                    all_errors.append(error_msg)
+                    continue
+
+                if not isinstance(past_seasons, list):
+                    error_msg = f"Unexpected past seasons data format for series {series_id}: {type(past_seasons)}"
+                    logger.error(error_msg)
+                    failed_series.append(series_id)
+                    all_errors.append(error_msg)
+                    continue
+
+                events_created = 0
+                events_updated = 0
+
+                # Process each past season
+                for past_season in past_seasons:
+                    try:
+                        season_id = past_season.get("season_id")
+                        if not season_id:
+                            continue
+
+                        # Get season schedule
+                        season_schedule_response = iracing_service.get_series_season_schedule(
+                            season_id
+                        )
+
+                        # Transform the data
+                        transformed_season = {
+                            "season_id": season_id,
+                            "season_name": past_season.get("season_name", ""),
+                            "season_year": past_season.get("season_year"),
+                            "season_quarter": past_season.get("season_quarter"),
+                            "series_id": series_id,
+                            "active": False,  # Past seasons are not active
+                            "completed": True,  # Past seasons are completed
+                            "schedules": season_schedule_response.get("schedules", []),
+                        }
+
+                        season_data = {
+                            "series_id": series_id,
+                            "series_name": series.name,
+                            "allowed_licenses": series.allowed_licenses or [],
+                            "seasons": [transformed_season],
+                        }
+
+                        created, updated, season_errors = _process_series_seasons([season_data])
+                        events_created += created
+                        events_updated += updated
+                        all_errors.extend(season_errors)
+
+                    except Exception as e:
+                        error_msg = f"Error processing past season {past_season.get('season_id', 'unknown')} for series {series_id}: {e!s}"
+                        logger.exception(error_msg)
+                        all_errors.append(error_msg)
+
+                total_events_created += events_created
+                total_events_updated += events_updated
+                processed_series.append(series_id)
+
+                logger.info(
+                    f"Completed series {series_id}: {events_created} created, {events_updated} updated"
+                )
+
+                # Add delay between series (except for the last one)
+                if i < len(series_ids) - 1:
+                    logger.debug(f"Waiting {batch_delay} seconds before next series...")
+                    time.sleep(batch_delay)
+
+            except Exception as e:
+                error_msg = f"Error processing series {series_id}: {e!s}"
+                logger.exception(error_msg)
+                failed_series.append(series_id)
+                all_errors.append(error_msg)
+
+        logger.info(
+            f"Batched past seasons sync complete: {len(processed_series)} successful, {len(failed_series)} failed, "
+            f"{total_events_created} events created, {total_events_updated} events updated"
+        )
+
+        return {
+            "success": True,
+            "total_events_created": total_events_created,
+            "total_events_updated": total_events_updated,
+            "processed_series": processed_series,
+            "failed_series": failed_series,
+            "errors": all_errors,
+            "timestamp": timezone.now().isoformat(),
+        }
+
+    except Exception as exc:
+        logger.exception("Error in batched past seasons sync")
+
+        if self.request.retries < self.max_retries:
+            logger.info("Retrying task in %s seconds...", self.default_retry_delay)
+            raise self.retry(exc=exc) from exc
+
+        return {
+            "success": False,
+            "error": str(exc),
+            "timestamp": timezone.now().isoformat(),
+            "series_ids": series_ids,
         }
 
 

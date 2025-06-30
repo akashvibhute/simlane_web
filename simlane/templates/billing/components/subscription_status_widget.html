@@ -1,0 +1,223 @@
+{% load billing_tags %}
+
+<c-vars
+  club="{{ club }}"
+  subscription="{{ club|get_club_subscription }}"
+/>
+
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+  <div class="flex items-center justify-between mb-4">
+    <div class="flex items-center space-x-3">
+      <div class="flex-shrink-0">
+        <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+      <div>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Subscription Plan</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          {% if subscription %}
+            {{ subscription.plan.name }} Plan
+          {% else %}
+            Free Plan
+          {% endif %}
+        </p>
+      </div>
+    </div>
+    
+    {% if subscription and subscription.plan.name != 'Free' %}
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+        {% if subscription.status == 'active' %}
+          bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100
+        {% elif subscription.status == 'past_due' %}
+          bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100
+        {% elif subscription.status == 'canceled' %}
+          bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100
+        {% else %}
+          bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100
+        {% endif %}">
+        {{ subscription.get_status_display }}
+      </span>
+    {% endif %}
+  </div>
+
+  <!-- Member Usage Progress Bar -->
+  <div class="mb-6">
+    <div class="flex items-center justify-between mb-2">
+      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Member Usage</span>
+      <span class="text-sm text-gray-500 dark:text-gray-400">
+        {% if subscription %}
+          {{ subscription.seats_used }}/{% if subscription.plan.max_members == -1 %}∞{% else %}{{ subscription.plan.max_members }}{% endif %}
+        {% else %}
+          {{ club.members.count }}/5
+        {% endif %}
+      </span>
+    </div>
+    
+    {% if subscription and subscription.plan.max_members != -1 %}
+      {% with usage_percentage=subscription.seats_used|floatformat:0|add:0 max_members=subscription.plan.max_members|add:0 %}
+        {% with percentage=usage_percentage|mul:100|div:max_members %}
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div class="h-2 rounded-full transition-all duration-300
+              {% if percentage >= 90 %}
+                bg-red-500
+              {% elif percentage >= 75 %}
+                bg-yellow-500
+              {% else %}
+                bg-green-500
+              {% endif %}" 
+              style="width: {% if percentage > 100 %}100{% else %}{{ percentage }}{% endif %}%">
+            </div>
+          </div>
+        {% endwith %}
+      {% endwith %}
+    {% elif not subscription %}
+      {% with current_members=club.members.count|add:0 %}
+        {% with percentage=current_members|mul:100|div:5 %}
+          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div class="h-2 rounded-full transition-all duration-300
+              {% if percentage >= 90 %}
+                bg-red-500
+              {% elif percentage >= 75 %}
+                bg-yellow-500
+              {% else %}
+                bg-green-500
+              {% endif %}" 
+              style="width: {% if percentage > 100 %}100{% else %}{{ percentage }}{% endif %}%">
+            </div>
+          </div>
+        {% endwith %}
+      {% endwith %}
+    {% else %}
+      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+        <div class="h-2 rounded-full bg-green-500" style="width: 25%"></div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Feature Status Indicators -->
+  <div class="space-y-3 mb-6">
+    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Available Features</h4>
+    
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span class="text-sm text-gray-700 dark:text-gray-300">Club Management</span>
+      </div>
+      <span class="text-xs text-green-600 dark:text-green-400 font-medium">Included</span>
+    </div>
+    
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span class="text-sm text-gray-700 dark:text-gray-300">Event Signups</span>
+      </div>
+      <span class="text-xs text-green-600 dark:text-green-400 font-medium">Included</span>
+    </div>
+    
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        {% if club|subscription_feature_enabled:'race_planning' %}
+          <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <span class="text-sm text-gray-700 dark:text-gray-300">Race Planning</span>
+        {% else %}
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+          <span class="text-sm text-gray-400">Race Planning</span>
+        {% endif %}
+      </div>
+      {% if club|subscription_feature_enabled:'race_planning' %}
+        <span class="text-xs text-green-600 dark:text-green-400 font-medium">Included</span>
+      {% else %}
+        <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Upgrade Required</span>
+      {% endif %}
+    </div>
+    
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-2">
+        {% if club|subscription_feature_enabled:'advanced_analytics' %}
+          <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <span class="text-sm text-gray-700 dark:text-gray-300">Advanced Analytics</span>
+        {% else %}
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+          <span class="text-sm text-gray-400">Advanced Analytics</span>
+        {% endif %}
+      </div>
+      {% if club|subscription_feature_enabled:'advanced_analytics' %}
+        <span class="text-xs text-green-600 dark:text-green-400 font-medium">Included</span>
+      {% else %}
+        <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Pro Feature</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Upgrade Button (when appropriate) -->
+  {% if not subscription or subscription.plan.name == 'Free' or subscription.status != 'active' %}
+    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+      {% if subscription and subscription.plan.max_members != -1 and subscription.seats_used >= subscription.plan.max_members %}
+        <div class="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div class="flex items-center">
+            <svg class="w-4 h-4 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            <span class="text-sm text-red-700 dark:text-red-300 font-medium">Member limit reached</span>
+          </div>
+        </div>
+      {% elif not subscription and club.members.count >= 5 %}
+        <div class="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <div class="flex items-center">
+            <svg class="w-4 h-4 text-yellow-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+            </svg>
+            <span class="text-sm text-yellow-700 dark:text-yellow-300 font-medium">Free plan limit reached</span>
+          </div>
+        </div>
+      {% endif %}
+      
+      <div class="flex space-x-3">
+        <a href="{% url 'billing:subscription_dashboard' club.slug %}" 
+           class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+          View Plans
+        </a>
+        
+        {% if not subscription or subscription.plan.name == 'Free' %}
+          <a href="{% url 'billing:start_checkout' club.slug %}?plan=basic" 
+             class="flex-1 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            Upgrade Now
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <!-- Manage Subscription for Active Paid Plans -->
+    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+      <a href="{% url 'billing:subscription_dashboard' club.slug %}" 
+         class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        Manage Subscription
+      </a>
+    </div>
+  {% endif %}
+</div>
