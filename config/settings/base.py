@@ -365,6 +365,9 @@ SOCIALACCOUNT_STORE_TOKENS = True
 # https://docs.allauth.org/en/latest/socialaccount/configuration.html
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 SOCIALACCOUNT_EMAIL_REQUIRED = True
+
+DISCORD_CLIENT_ID = env("DISCORD_CLIENT_ID")
+
 # https://docs.allauth.org/en/latest/socialaccount/providers/discord.html
 SOCIALACCOUNT_PROVIDERS = {
     "discord": {
@@ -375,7 +378,7 @@ SOCIALACCOUNT_PROVIDERS = {
         "EMAIL_AUTHENTICATION": True,
         "APPS": [
             {
-                "client_id": env("DISCORD_CLIENT_ID"),
+                "client_id": DISCORD_CLIENT_ID,
                 "secret": env("DISCORD_CLIENT_SECRET"),
             },
         ],

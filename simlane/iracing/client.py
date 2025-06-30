@@ -446,7 +446,7 @@ class IRacingClient:
         if not isinstance(result, dict):
             raise IRacingAPIError("Invalid response format for car assets", endpoint="/data/car/assets")
         return result  # type: ignore
-    
+        
     def get_tracks(self) -> List[Track]:
         """Get all available tracks."""
         result = self._make_request("/data/track/get")

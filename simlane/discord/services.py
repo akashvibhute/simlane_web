@@ -27,22 +27,34 @@ class DiscordBotService:
     def get_invite_url(
         self,
         scopes: Optional[List[str]] = None,
-        permissions: Optional[int] = None
+        permissions: Optional[int] = None,
+        state: Optional[str] = None,
+        redirect_uri: Optional[str] = None,
+        response_type: Optional[str] = None,
     ) -> str:
         """
         Generate the OAuth2 invite URL for the bot.
         Uses DISCORD_CLIENT_ID and DISCORD_BOT_PERMISSIONS from settings.
+        Optionally supports state, redirect_uri, and response_type for OAuth2 callback.
         """
+        import urllib.parse
         client_id = getattr(settings, 'DISCORD_CLIENT_ID', None)
         if not client_id:
             raise ValueError("DISCORD_CLIENT_ID not configured in settings")
         scopes = scopes or ['bot', 'applications.commands']
         permissions = permissions or getattr(settings, 'DISCORD_BOT_PERMISSIONS', 0)
         scope_param = '%20'.join(scopes)
-        return (
+        url = (
             f"https://discord.com/oauth2/authorize?"
             f"client_id={client_id}&permissions={permissions}&scope={scope_param}"
         )
+        if state:
+            url += f"&state={urllib.parse.quote(str(state))}"
+        if redirect_uri:
+            url += f"&redirect_uri={urllib.parse.quote(redirect_uri)}"
+        if response_type:
+            url += f"&response_type={urllib.parse.quote(response_type)}"
+        return url
 
     async def get_guild_info(self, guild_id: str) -> Dict:
         """Get Discord guild information"""

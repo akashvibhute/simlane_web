@@ -31,6 +31,7 @@ from .models import TeamMember
 # Discord integration imports
 from simlane.discord.models import DiscordGuild, ClubDiscordSettings, EventDiscordChannel
 from simlane.discord.tasks import sync_discord_members
+from simlane.discord.services import DiscordBotService
 
 # Import billing decorators for subscription enforcement
 from simlane.billing.decorators import race_planning_required
@@ -752,36 +753,6 @@ def club_invitation_decline(request, token):
         messages.error(request, "Invalid invitation link.")
         return redirect("teams:clubs_dashboard")
 
-
-# Legacy views - redirect to main dashboard
-@login_required
-def stint_plan_update_legacy(request, allocation_id):
-    """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(
-        request, "Stint planning has been moved to the enhanced team formation system"
-    )
-    return redirect("teams:clubs_dashboard")
-
-
-@login_required
-def stint_plan_export_legacy(request, allocation_id):
-    """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(
-        request,
-        "Export functionality has been moved to the enhanced team formation system",
-    )
-    return redirect("teams:clubs_dashboard")
-
-
-@login_required
-def stint_plan_partial_legacy(request, allocation_id):
-    """Legacy view - replaced by enhanced team formation system"""
-    messages.warning(
-        request, "Stint planning has been moved to the enhanced team formation system"
-    )
-    return redirect("teams:clubs_dashboard")
-
-
 # === RACE PLANNING AND TEAM FORMATION VIEWS ===
 # These views handle advanced race planning functionality that requires subscription
 
@@ -1066,21 +1037,16 @@ def club_discord_invite_bot(request, club_slug):
     club = request.club
     
     if request.method == "POST":
-        # This would integrate with the API to generate the invite URL
-        # For now, show modal with instructions
+        permissions = 34630287424  # Combined permissions as int
         from django.conf import settings
-        
-        bot_client_id = getattr(settings, 'DISCORD_BOT_CLIENT_ID', 'YOUR_BOT_CLIENT_ID')
-        permissions = "34630287424"  # Combined permissions for bot
-        
-        invite_url = (
-            f"https://discord.com/oauth2/authorize?"
-            f"client_id={bot_client_id}&"
-            f"permissions={permissions}&"
-            f"scope=bot%20applications.commands&"
-            f"state={club.id}"
+        redirect_uri = request.build_absolute_uri("/discord/bot/callback/")
+        invite_url = DiscordBotService().get_invite_url(
+            scopes=["bot", "applications.commands"],
+            permissions=permissions,
+            state=club.id,
+            redirect_uri=redirect_uri,
+            response_type="code",
         )
-        
         context = {
             'club': club,
             'invite_url': invite_url,
@@ -1094,7 +1060,6 @@ def club_discord_invite_bot(request, club_slug):
                 "Use External Emojis"
             ]
         }
-        
         return render(request, "teams/discord/bot_invite_modal.html", context)
     
     return redirect("teams:club_discord_settings", club_slug=club.slug)

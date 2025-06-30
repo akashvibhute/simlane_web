@@ -18,6 +18,7 @@ from unfold.widgets import UnfoldAdminSelectWidget
 from unfold.widgets import UnfoldAdminTextInputWidget
 
 from .models import ContactMessage
+from .models import MediaGallery
 
 # Unregister the default django-celery-beat admin classes
 admin.site.unregister(PeriodicTask)
@@ -290,3 +291,78 @@ class ContactMessageAdmin(ModelAdmin):
         """Mark selected messages as closed."""
         queryset.update(status="closed")
         self.message_user(request, f"{queryset.count()} messages marked as closed.")
+
+
+@admin.register(MediaGallery)
+class MediaGalleryAdmin(ModelAdmin):
+    """Admin interface for MediaGallery model."""
+
+    list_display = [
+        "content_object",
+        "gallery_type",
+        "order",
+        "created_at",
+    ]
+    list_filter = [
+        "gallery_type",
+        "created_at",
+        "content_type",
+    ]
+    search_fields = [
+        "caption",
+        "original_filename",
+        "original_url",
+    ]
+    readonly_fields = [
+        "created_at",
+        "updated_at",
+    ]
+    raw_id_fields = [
+        "content_type",
+    ]
+
+    fieldsets = (
+        (
+            "Media",
+            {
+                "fields": (
+                    "content_type",
+                    "object_id",
+                    "gallery_type",
+                    "image",
+                    "caption",
+                    "order",
+                ),
+            },
+        ),
+        (
+            "Original Source",
+            {
+                "fields": (
+                    "original_filename",
+                    "original_url",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Timestamps",
+            {
+                "fields": (
+                    "created_at",
+                    "updated_at",
+                ),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    def has_add_permission(self, request):
+        # Allow adding via admin interface
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        return True

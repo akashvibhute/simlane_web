@@ -9,6 +9,8 @@ from django.core.management.base import BaseCommand
 
 from simlane.discord.models import BotCommand
 from simlane.discord.models import DiscordGuild
+from simlane.discord.utils import get_club_for_guild, get_django_user_from_discord_id
+from simlane.teams.models import ClubMember, ClubRole
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,40 @@ class SimlaneBot(commands.Bot):
         """Called when bot leaves a guild"""
         logger.info("Left guild: %s (%s)", guild.name, guild.id)
         await self.deactivate_guild(guild.id)
+
+    async def on_member_join(self, member):
+        """
+        Called when a user joins a guild. If the guild is linked to a club and the user has a Simlane account, create a ClubMember.
+        """
+        # Only handle real users (not bots)
+        if member.bot:
+            return
+
+        # Get the club for this guild
+        club = await sync_to_async(get_club_for_guild)(str(member.guild.id))
+        if not club:
+            return  # Guild not linked to a club
+
+        # Get the Django user for this Discord user
+        user = await sync_to_async(get_django_user_from_discord_id)(str(member.id))
+        if not user:
+            return  # User not registered on Simlane
+
+        # Create ClubMember if not already present
+        def create_club_member():
+            obj, created = ClubMember.objects.get_or_create(
+                user=user,
+                club=club,
+                defaults={"role": ClubRole.MEMBER},
+            )
+            return created
+
+        created = await sync_to_async(create_club_member)()
+        display_name = getattr(user, 'name', None) or getattr(user, 'username', None) or str(user.pk)
+        if created:
+            logger.info(f"Added {display_name} as ClubMember to {club.name} via Discord join event.")
+        else:
+            logger.info(f"{display_name} is already a ClubMember of {club.name}.")
 
     @sync_to_async
     def create_or_update_guild(self, guild):

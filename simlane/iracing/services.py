@@ -459,7 +459,7 @@ class IRacingAPIService:
             raise IRacingServiceError(msg)
 
         try:
-            return self.client.get_carclasses()
+            return self.client.get_car_classes()
         except Exception as e:
             logger.exception("Error fetching car classes")
             msg = "Failed to fetch car classes"

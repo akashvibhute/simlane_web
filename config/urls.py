@@ -64,6 +64,7 @@ urlpatterns = [
     path("api/auth/", include("allauth.headless.urls")),
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
+    path("discord/", include("simlane.discord.urls")),
 ]
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development

@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, render
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone
+import urllib.parse
 
 from nacl.signing import VerifyKey
 from nacl.exceptions import BadSignatureError
@@ -15,6 +16,7 @@ from simlane.teams.models import Club, ClubMember
 from simlane.discord.models import DiscordGuild, ClubDiscordSettings, EventDiscordChannel
 from simlane.discord.tasks import sync_discord_members, send_discord_notification
 from simlane.api.routers.clubs import check_club_access, check_club_admin
+from simlane.discord.services import DiscordBotService
 
 from ..schemas.discord import (
     DiscordBotInviteURL,
@@ -39,28 +41,15 @@ def generate_bot_invite_url(
     club = get_object_or_404(Club, id=club_id)
     check_club_admin(request.auth, club)
 
-    # Generate Discord OAuth URL with required permissions
-    bot_client_id = getattr(settings, 'DISCORD_BOT_CLIENT_ID', None)
-    if not bot_client_id:
-        raise HttpError(500, "Discord bot client ID is not configured")
-
-    # Discord permission integer calculation:
-    # Manage Channels: 16
-    # Manage Roles: 268435456  
-    # Send Messages: 2048
-    # Create Threads: 34359738368
-    # Connect: 1048576
-    # View Channel History: 65536
-    # Use External Emojis: 262144
-    permissions = "34630287424"  # Combined permissions
-
-    invite_url = (
-        f"https://discord.com/oauth2/authorize?"
-        f"client_id={bot_client_id}&"
-        f"permissions={permissions}&"
-        f"scope=bot%20applications.commands&"
-        f"state={club_id}&"
-        f"guild_id="
+    # Use DiscordBotService to generate the invite URL
+    permissions = 34630287424  # Combined permissions as int
+    redirect_uri = settings.SITE_URL.rstrip("/") + "/discord/bot/callback/"
+    invite_url = DiscordBotService().get_invite_url(
+        scopes=["bot", "applications.commands"],
+        permissions=permissions,
+        state=club_id,
+        redirect_uri=redirect_uri,
+        response_type="code",
     )
 
     context = {
@@ -290,4 +279,39 @@ def send_test_notification(
         "message": "Test notification sent",
         "task_id": task.id,
         "channel_id": test_channel.text_channel_id
+    }
+
+
+@router.get("/clubs/{club_id}/status/", auth=None)
+def get_bot_status(
+    request: HttpRequest,
+    club_id: str,
+):
+    """Return whether the Discord bot is connected for the given club.
+
+    This endpoint is primarily consumed by the frontend *bot invite* modal
+    which polls `/api/clubs/<slug>/discord/status/` to verify that the bot
+    has successfully joined the server after the OAuth flow has completed.
+
+    The implementation purposefully keeps the response minimal – a single
+    `bot_connected` boolean – to avoid exposing sensitive guild data to
+    unauthorised users.  Only club members may call this endpoint; admins
+    or team-managers are required to perform write actions elsewhere.
+    """
+
+    # We accept either authenticated user or anonymous (auth may be null when
+    # checking from public pages).  If auth is required later, swap to
+    # `check_club_access`.
+
+    club = get_object_or_404(Club, id=club_id)
+
+    # Determine if a Discord guild is already linked and active
+    discord_guild = getattr(club, "discord_guild", None)
+
+    bot_connected = bool(discord_guild and discord_guild.is_active)
+
+    return {
+        "bot_connected": bot_connected,
+        "guild_name": getattr(discord_guild, "name", None),
+        "guild_id": getattr(discord_guild, "guild_id", None),
     }

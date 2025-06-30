@@ -112,6 +112,11 @@ UNFOLD = {
                         "icon": "group",
                         "link": reverse_lazy("admin:auth_group_changelist"),
                     },
+                    {
+                        "title": _("Sites"),
+                        "icon": "public",
+                        "link": reverse_lazy("admin:sites_site_changelist"),
+                    },
                 ],
             },
             {
@@ -123,6 +128,11 @@ UNFOLD = {
                         "title": _("Contact Messages"),
                         "icon": "mail",
                         "link": reverse_lazy("admin:core_contactmessage_changelist"),
+                    },
+                    {
+                        "title": _("Media Gallery"),
+                        "icon": "perm_media",
+                        "link": reverse_lazy("admin:core_mediagallery_changelist"),
                     },
                 ],
             },
@@ -180,6 +190,16 @@ UNFOLD = {
                         "title": _("Profile Ratings"),
                         "icon": "grade",
                         "link": reverse_lazy("admin:sim_profilerating_changelist"),
+                    },
+                    {
+                        "title": _("Car Ownership"),
+                        "icon": "garage",
+                        "link": reverse_lazy("admin:sim_simprofilecarownership_changelist"),
+                    },
+                    {
+                        "title": _("Track Ownership"),
+                        "icon": "map",
+                        "link": reverse_lazy("admin:sim_simprofiletrackownership_changelist"),
                     },
                 ],
             },
@@ -291,6 +311,11 @@ UNFOLD = {
                             "admin:teams_availabilitywindow_changelist"
                         ),
                     },
+                    {
+                        "title": _("Signup Sheets"),
+                        "icon": "assignment",
+                        "link": reverse_lazy("admin:teams_clubeventsignupsheet_changelist"),
+                    },
                 ],
             },
             {
@@ -333,6 +358,65 @@ UNFOLD = {
                         "link": reverse_lazy(
                             "admin:discord_bot_botsettings_changelist"
                         ),
+                    },
+                    {
+                        "title": _("Event Channels"),
+                        "icon": "chat",
+                        "link": reverse_lazy("admin:discord_bot_eventdiscordchannel_changelist"),
+                    },
+                    {
+                        "title": _("Member Syncs"),
+                        "icon": "sync",
+                        "link": reverse_lazy("admin:discord_bot_discordmembersync_changelist"),
+                    },
+                    {
+                        "title": _("Club Discord Settings"),
+                        "icon": "tune",
+                        "link": reverse_lazy("admin:discord_bot_clubdiscordsettings_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Results & Standings"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Event Results"),
+                        "icon": "emoji_events",
+                        "link": reverse_lazy("admin:sim_eventresult_changelist"),
+                    },
+                    {
+                        "title": _("Team Results"),
+                        "icon": "emoji_events",
+                        "link": reverse_lazy("admin:sim_teamresult_changelist"),
+                    },
+                    {
+                        "title": _("Participant Results"),
+                        "icon": "emoji_events",
+                        "link": reverse_lazy("admin:sim_participantresult_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": _("Billing & Subscriptions"),
+                "separator": True,
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": _("Subscription Plans"),
+                        "icon": "view_list",
+                        "link": reverse_lazy("admin:billing_subscriptionplan_changelist"),
+                    },
+                    {
+                        "title": _("Club Subscriptions"),
+                        "icon": "subscriptions",
+                        "link": reverse_lazy("admin:billing_clubsubscription_changelist"),
+                    },
+                    {
+                        "title": _("Billing Event Logs"),
+                        "icon": "receipt_long",
+                        "link": reverse_lazy("admin:billing_billingeventlog_changelist"),
                     },
                 ],
             },
