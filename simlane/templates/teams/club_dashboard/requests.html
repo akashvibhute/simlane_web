@@ -1,56 +1,107 @@
 {% extends "teams/club_dashboard/_base.html" %}
+{% load static %}
+
 {% block page_content %}
-<div class="space-y-6">
-  <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-      <h2 class="text-lg font-medium">Join Requests</h2>
-      {% if pending_requests_count %}
-        <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">{{ pending_requests_count }} pending</span>
+  <div class="space-y-6">
+    <!-- Header with filters -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Join Requests</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Review and manage membership requests for {{ club.name }}.
+        </p>
+      </div>
+      {% if pending_requests_count > 0 %}
+        <div class="flex space-x-3">
+          <button onclick="approveAllRequests()"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Approve All Pending
+          </button>
+        </div>
       {% endif %}
     </div>
 
-    <!-- Filter Tabs -->
-    <div class="px-6 py-3 border-b border-gray-200 dark:border-gray-700">
-      <nav class="flex space-x-6 text-sm">
-        {% for code,label in [('all','All'),('pending','Pending'),('approved','Approved'),('rejected','Rejected')] %}
-          <a href="{% url 'clubs:requests' club.slug %}{% if code != 'all' %}?status={{ code }}{% endif %}"
-             class="{% if status_filter == code or (code == 'all' and status_filter=='all') %}text-primary-600 border-b-2 border-primary-600{% else %}text-gray-500 hover:text-gray-700{% endif %} py-2 px-1">
-            {{ label }}
-          </a>
-        {% endfor %}
+    <!-- Status Filter Tabs with HTMX -->
+    <div class="border-b border-gray-200 dark:border-gray-700">
+      <nav class="-mb-px flex space-x-8">
+        <button hx-get="{% url 'clubs:requests' club.slug %}?status=all"
+                hx-target="#requests-list"
+                hx-push-url="false"
+                class="{% if current_filter == 'all' %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600{% endif %} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+          All Requests
+          <span class="ml-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 py-0.5 px-2.5 rounded-full text-xs">{{ total_requests }}</span>
+        </button>
+        <button hx-get="{% url 'clubs:requests' club.slug %}?status=pending"
+                hx-target="#requests-list"
+                hx-push-url="false"
+                class="{% if current_filter == 'pending' %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600{% endif %} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+          Pending
+          <span class="ml-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 py-0.5 px-2.5 rounded-full text-xs">{{ pending_requests_count }}</span>
+        </button>
+        <button hx-get="{% url 'clubs:requests' club.slug %}?status=approved"
+                hx-target="#requests-list"
+                hx-push-url="false"
+                class="{% if current_filter == 'approved' %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600{% endif %} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+          Approved
+          <span class="ml-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 py-0.5 px-2.5 rounded-full text-xs">{{ approved_requests_count }}</span>
+        </button>
+        <button hx-get="{% url 'clubs:requests' club.slug %}?status=rejected"
+                hx-target="#requests-list"
+                hx-push-url="false"
+                class="{% if current_filter == 'rejected' %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600{% endif %} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+          Rejected
+          <span class="ml-2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 py-0.5 px-2.5 rounded-full text-xs">{{ rejected_requests_count }}</span>
+        </button>
       </nav>
     </div>
 
-    <div class="p-6 space-y-4">
-      {% for request in join_requests %}
-        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
-          <div>
-            <p class="font-medium">{{ request.user.get_full_name|default:request.user.username }}</p>
-            <p class="text-xs text-gray-500">{{ request.created_at|timesince }} ago &middot; {{ request.status|title }}</p>
-          </div>
-          {% if request.status == 'pending' %}
-            <div class="space-x-2">
-              <a href="{% url 'teams:handle_join_request' club.slug request.id %}?action=approve" class="text-green-600 text-xs">Approve</a>
-              <a href="{% url 'teams:handle_join_request' club.slug request.id %}?action=reject" class="text-red-600 text-xs">Reject</a>
-            </div>
-          {% endif %}
-        </div>
-      {% empty %}
-        <p class="text-sm text-gray-500">No requests found.</p>
-      {% endfor %}
-
-      {% if is_paginated %}
-        <div class="pt-4 text-sm flex justify-between">
-          {% if page_obj.has_previous %}
-            <a href="?page={{ page_obj.previous_page_number }}{% if status_filter!='all' %}&status={{ status_filter }}{% endif %}" class="hover:underline">Previous</a>
-          {% endif %}
-          <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
-          {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{% if status_filter!='all' %}&status={{ status_filter }}{% endif %}" class="hover:underline">Next</a>
-          {% endif %}
-        </div>
-      {% endif %}
+    <!-- Requests List Container -->
+    <div id="requests-list">
+      {% include "teams/club_dashboard/_requests_list.html" %}
     </div>
   </div>
-</div>
+
+  <!-- Scripts for request management -->
+  <script>
+    function approveRequest(requestId) {
+      if (confirm('Are you sure you want to approve this request?')) {
+        htmx.ajax('POST', `{% url 'teams:approve_join_request' club.slug 0 %}`.replace('0', requestId), {
+          target: '#requests-list',
+          swap: 'outerHTML'
+        });
+      }
+    }
+    
+    function rejectRequest(requestId) {
+      const reason = prompt('Please provide a reason for rejection (optional):');
+      if (reason !== null) {
+        htmx.ajax('POST', `{% url 'teams:reject_join_request' club.slug 0 %}`.replace('0', requestId), {
+          target: '#requests-list',
+          swap: 'outerHTML',
+          values: {'reason': reason}
+        });
+      }
+    }
+    
+    function approveAllRequests() {
+      if (confirm('Are you sure you want to approve all pending requests?')) {
+        htmx.ajax('POST', `{% url 'teams:bulk_approve_requests' club.slug %}`, {
+          target: '#requests-list',
+          swap: 'outerHTML'
+        });
+      }
+    }
+    
+    function deleteRequest(requestId) {
+      if (confirm('Are you sure you want to permanently delete this request? This action cannot be undone.')) {
+        htmx.ajax('DELETE', `{% url 'teams:delete_join_request' club.slug 0 %}`.replace('0', requestId), {
+          target: '#requests-list',
+          swap: 'outerHTML'
+        });
+      }
+    }
+  </script>
 {% endblock %} 

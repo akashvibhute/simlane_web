@@ -1,29 +1,288 @@
 {% extends "teams/club_dashboard/_base.html" %}
+{% load static billing_tags %}
 
 {% block page_content %}
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <!-- Members count -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Members</h2>
-      <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{{ member_count }}</p>
+  <div class="space-y-6">
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-600 dark:text-blue-300"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
+                </path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Club Members</p>
+            <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ total_members }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-green-600 dark:text-green-300"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                </path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Event Entries</p>
+            <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ total_entries }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-purple-600 dark:text-purple-300"
+                   fill="none"
+                   stroke="currentColor"
+                   viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                </path>
+              </svg>
+            </div>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Teams</p>
+            <p class="text-2xl font-semibold text-gray-900 dark:text-white">{{ total_teams }}</p>
+          </div>
+        </div>
+      </div>
     </div>
-    <!-- Teams count -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-      <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Teams</h2>
-      <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{{ club_team_count }}</p>
+
+    <!-- Subscription Info (if available) -->
+    {% if subscription_info or member_usage_info %}
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+      <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Subscription Status
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% if subscription_info %}
+        <div>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Current Plan</p>
+          <p class="text-lg font-semibold text-gray-900 dark:text-white">{{ subscription_info.plan.name }}</p>
+          <p class="text-xs text-gray-500 dark:text-gray-400">Status: {{ subscription_info.status|title }}</p>
+        </div>
+        {% endif %}
+        {% if member_usage_info %}
+        <div>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Member Usage</p>
+          <div class="flex items-center">
+            <p class="text-lg font-semibold text-gray-900 dark:text-white mr-2">{{ member_usage_info.current }}/{{ member_usage_info.limit }}</p>
+            {% if member_usage_info.approaching_limit %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">
+                Near Limit
+              </span>
+            {% endif %}
+          </div>
+          {% if member_usage_info.limit != 'Unlimited' %}
+          <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div class="bg-blue-600 h-2 rounded-full" style="width: {{ member_usage_info.percentage }}%"></div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Event Signups Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+            <svg class="w-5 h-5 mr-2"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            Recent Event Signups
+          </h3>
+          <div class="flex space-x-2">
+            {% if can_manage_events %}
+              <a href="{% url 'teams:club_event_signup_bulk_create' club.slug %}"
+                 class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <svg class="w-4 h-4 mr-2"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Bulk Create
+              </a>
+              <a href="{% url 'teams:club_event_signup_create' club.slug %}"
+                 class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                <svg class="w-4 h-4 mr-2"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Create Signup
+              </a>
+            {% endif %}
+            <a href="{% url 'teams:club_event_signups' club.slug %}"
+               class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+              View All
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="p-6">
+        {% if recent_signup_sheets %}
+          <div class="space-y-4">
+            {% for sheet in recent_signup_sheets %}
+              <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600/50 transition-colors">
+                <div class="flex items-center flex-1">
+                  <div class="flex-shrink-0">
+                    <div class="h-12 w-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded flex items-center justify-center">
+                      <svg class="w-6 h-6 text-white"
+                           fill="none"
+                           stroke="currentColor"
+                           viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="ml-4 flex-1">
+                    <div class="flex items-center space-x-2">
+                      <h4 class="text-sm font-medium text-gray-900 dark:text-white">{{ sheet.title }}</h4>
+                      {% if sheet.is_open %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                          Open
+                        </span>
+                      {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                          {{ sheet.status|capfirst }}
+                        </span>
+                      {% endif %}
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">{{ sheet.event.name }}</p>
+                    <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+                      <span>{{ sheet.signup_count }} signups</span>
+                      <span>•</span>
+                      <span>Closes: {{ sheet.signup_closes|date:"M j, g:i A" }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center space-x-2 ml-4">
+                  <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}"
+                     class="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    View
+                  </a>
+                  {% if can_manage_events and sheet.is_open %}
+                    <a href="{% url 'teams:club_event_signup_detail' club.slug sheet.id %}#management"
+                       class="inline-flex items-center px-3 py-1 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30">
+                      Manage
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No event signups yet</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Start organizing events by creating signup sheets.</p>
+            {% if can_manage_events %}
+              <div class="mt-4 space-x-2">
+                <a href="{% url 'teams:club_event_signup_bulk_create' club.slug %}"
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <svg class="w-4 h-4 mr-2"
+                       fill="none"
+                       stroke="currentColor"
+                       viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  Bulk Create
+                </a>
+                <a href="{% url 'teams:club_event_signup_create' club.slug %}"
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800">
+                  <svg class="w-4 h-4 mr-2"
+                       fill="none"
+                       stroke="currentColor"
+                       viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Create Your First Signup
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Recent Activity</h3>
+      </div>
+      <div class="p-6">
+        {% if recent_entries %}
+          <div class="flow-root">
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+              {% for entry in recent_entries %}
+                <li class="py-4">
+                  <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                      <div class="h-8 w-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4 text-green-600 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {{ entry.user.get_full_name|default:entry.user.username }}
+                      </p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        Participated in {{ entry.event.name }}
+                        {% if entry.team %} with {{ entry.team.name }}{% endif %}
+                      </p>
+                    </div>
+                    <div class="flex-shrink-0 text-sm text-gray-500 dark:text-gray-400">
+                      {{ entry.created_at|timesince }} ago
+                    </div>
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% else %}
+          <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No recent activity</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Activity will appear here as members participate in events.</p>
+          </div>
+        {% endif %}
+      </div>
     </div>
   </div>
-
-  <h2 class="text-lg font-medium text-gray-900 dark:text-white mt-8 mb-4">Recent Activity</h2>
-  {% if recent_entries %}
-    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-      {% for entry in recent_entries %}
-        <li class="py-4 text-sm text-gray-700 dark:text-gray-300">
-          {{ entry.user.username }} – {{ entry.event.name }}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-sm text-gray-500 dark:text-gray-400">No recent activity.</p>
-  {% endif %}
 {% endblock %} 

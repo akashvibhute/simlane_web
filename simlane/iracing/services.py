@@ -11,6 +11,8 @@ from typing import Any
 
 from django.conf import settings
 
+from simlane.iracing.types import SeriesSeasons
+
 from .client import IRacingClient, IRacingAPIError
 
 logger = logging.getLogger(__name__)
@@ -378,7 +380,7 @@ class IRacingAPIService:
         self,
         series_ids: list[int] | None = None,
         include_series: bool = True,
-    ) -> list[dict[str, Any]]:
+    ) -> list[SeriesSeasons]:
         """
         Get series seasons data with optional series filtering.
 
@@ -393,8 +395,11 @@ class IRacingAPIService:
             msg = "iRacing API client not available"
             raise IRacingServiceError(msg)
         try:
+            if self.client is None:
+                raise IRacingServiceError("iRacing API client not available")
+            
             # The iRacing API series_seasons method only accepts include_series parameter
-            data = self.client.series_seasons(include_series=include_series)
+            data = self.client.get_series_seasons(include_series=include_series)
 
             # Client-side filtering if series_ids provided
             if series_ids:

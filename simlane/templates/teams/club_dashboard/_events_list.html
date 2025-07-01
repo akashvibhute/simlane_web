@@ -1,0 +1,282 @@
+<!-- Events List Content (for HTMX updates) -->
+{% if club_events %}
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {% for event in club_events %}
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+        <div class="p-6">
+          <!-- Event Header -->
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center space-x-3">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                  <a href="{% url 'teams:event_detail' club.slug event.slug %}" class="hover:text-primary-600 dark:hover:text-primary-400">
+                    {{ event.name }}
+                  </a>
+                </h3>
+                
+                <!-- Event Status -->
+                {% if event.status == 'draft' %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                    Draft
+                  </span>
+                {% elif event.status == 'published' %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    Published
+                  </span>
+                {% elif event.status == 'ongoing' %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                    <svg class="w-3 h-3 mr-1 animate-pulse" fill="currentColor" viewBox="0 0 8 8">
+                      <circle cx="4" cy="4" r="3"/>
+                    </svg>
+                    Live
+                  </span>
+                {% elif event.status == 'completed' %}
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                    Completed
+                  </span>
+                {% endif %}
+              </div>
+              
+              <!-- Event Description -->
+              {% if event.description %}
+                <p class="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                  {{ event.description }}
+                </p>
+              {% endif %}
+            </div>
+            
+            <!-- Admin Actions Dropdown -->
+            {% if user_role == 'admin' or user_role == 'teams_manager' %}
+              <div class="relative ml-4">
+                <button type="button" 
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        onclick="document.getElementById('event-menu-{{ event.id }}').classList.toggle('hidden')">
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                  </svg>
+                </button>
+                <div class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-10"
+                     id="event-menu-{{ event.id }}">
+                  <div class="py-1">
+                    <a href="{% url 'teams:edit_event' club.slug event.slug %}"
+                       class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                      Edit Event
+                    </a>
+                    {% if event.status == 'draft' %}
+                      <button onclick="publishEvent('{{ event.id }}')"
+                              class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        Publish Event
+                      </button>
+                    {% endif %}
+                    <button onclick="duplicateEvent('{{ event.id }}')"
+                            class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                      Duplicate Event
+                    </button>
+                    <a href="{% url 'teams:event_manage_signups' club.slug event.slug %}"
+                       class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                      Manage Signups
+                    </a>
+                    <button onclick="deleteEvent('{{ event.id }}')"
+                            class="block w-full text-left px-4 py-2 text-sm text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20">
+                      Delete Event
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Event Details -->
+          <div class="space-y-3">
+            <!-- Date and Time -->
+            <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+              <span>{{ event.date|date:"l, F j, Y" }} at {{ event.time|time:"g:i A" }}</span>
+            </div>
+            
+            <!-- Track/Location -->
+            {% if event.track or event.location %}
+              <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span>{{ event.track|default:event.location }}</span>
+              </div>
+            {% endif %}
+            
+            <!-- Series/Category -->
+            {% if event.series %}
+              <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <span>{{ event.series }}</span>
+                {% if event.category %}
+                  <span class="mx-1">•</span>
+                  <span>{{ event.category }}</span>
+                {% endif %}
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Signup Stats -->
+          <div class="mt-4 flex items-center justify-between">
+            <div class="flex items-center space-x-4 text-sm">
+              <!-- Signup Count -->
+              <div class="flex items-center text-gray-500 dark:text-gray-400">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                <span>{{ event.signups_count }} signed up</span>
+                {% if event.max_participants %}
+                  <span class="text-gray-400"> / {{ event.max_participants }}</span>
+                {% endif %}
+              </div>
+              
+              <!-- Signup Deadline -->
+              {% if event.signup_deadline %}
+                <div class="flex items-center text-gray-500 dark:text-gray-400">
+                  <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                  <span>Signup by {{ event.signup_deadline|date:"M j" }}</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="mt-6 flex space-x-2">
+            <a href="{% url 'teams:event_detail' club.slug event.slug %}"
+               class="flex-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-800/30 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors">
+              View Details
+            </a>
+            
+            {% if event.status == 'published' and event.is_signup_open %}
+              {% if user_is_signed_up %}
+                <button onclick="withdrawFromEvent('{{ event.id }}')"
+                        class="bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-800/30 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                  Withdraw
+                </button>
+              {% else %}
+                {% if event.can_signup %}
+                  <button onclick="signupForEvent('{{ event.id }}')"
+                          class="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800/30 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    Sign Up
+                  </button>
+                {% else %}
+                  <button disabled
+                          class="bg-gray-50 dark:bg-gray-700 text-gray-400 px-3 py-2 rounded-md text-sm font-medium cursor-not-allowed">
+                    {% if event.is_full %}Full{% else %}Signup Closed{% endif %}
+                  </button>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+    <div class="mt-8 flex items-center justify-center">
+      <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+        {% if page_obj.has_previous %}
+          <button hx-get="{% url 'clubs:events' club.slug %}?tab={{ current_tab }}&page={{ page_obj.previous_page_number }}"
+                  hx-target="#events-content"
+                  hx-push-url="false"
+                  class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <span class="sr-only">Previous</span>
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        {% endif %}
+        
+        {% for num in paginator.page_range %}
+          {% if page_obj.number == num %}
+            <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 dark:bg-primary-900/30 text-sm font-medium text-primary-600 dark:text-primary-400">
+              {{ num }}
+            </span>
+          {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            <button hx-get="{% url 'clubs:events' club.slug %}?tab={{ current_tab }}&page={{ num }}"
+                    hx-target="#events-content"
+                    hx-push-url="false"
+                    class="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+              {{ num }}
+            </button>
+          {% endif %}
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+          <button hx-get="{% url 'clubs:events' club.slug %}?tab={{ current_tab }}&page={{ page_obj.next_page_number }}"
+                  hx-target="#events-content"
+                  hx-push-url="false"
+                  class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <span class="sr-only">Next</span>
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
+            </svg>
+          </button>
+        {% endif %}
+      </nav>
+    </div>
+  {% endif %}
+
+{% else %}
+  <!-- Empty State -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="px-6 py-12 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+        {% if current_tab == 'upcoming' %}No upcoming events
+        {% elif current_tab == 'ongoing' %}No ongoing events
+        {% elif current_tab == 'past' %}No past events
+        {% elif current_tab == 'drafts' %}No draft events
+        {% else %}No events{% endif %}
+      </h3>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        {% if current_tab == 'upcoming' %}
+          Upcoming events will appear here when they're scheduled.
+        {% elif current_tab == 'ongoing' %}
+          Events currently in progress will appear here.
+        {% elif current_tab == 'past' %}
+          Completed events will be listed here for reference.
+        {% elif current_tab == 'drafts' %}
+          Draft events that haven't been published yet will appear here.
+        {% else %}
+          Get started by creating your first event.
+        {% endif %}
+      </p>
+      {% if user_role == 'admin' or user_role == 'teams_manager' %}
+        <div class="mt-6">
+          <a href="{% url 'teams:create_event' club.slug %}"
+             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create First Event
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
+
+<!-- Close dropdowns when clicking outside -->
+<script>
+  document.addEventListener('click', function(event) {
+    const dropdowns = document.querySelectorAll('[id^="event-menu-"]');
+    dropdowns.forEach(function(dropdown) {
+      if (!dropdown.contains(event.target) && !event.target.closest('button')) {
+        dropdown.classList.add('hidden');
+      }
+    });
+  });
+</script> 

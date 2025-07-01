@@ -1,5 +1,321 @@
 {% extends "teams/club_dashboard/_base.html" %}
+{% load static %}
+
 {% block page_content %}
-<h2 class="text-lg font-medium mb-4">Club Settings</h2>
-<p class="text-sm text-gray-500">Settings form coming soon.</p>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Club Settings</h1>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        Manage your club's configuration, branding, and preferences.
+      </p>
+    </div>
+
+    <!-- Basic Information -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Basic Information</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Update your club's name, description, and basic details.</p>
+      </div>
+      <form hx-post="{% url 'clubs:update_basic_info' club.slug %}"
+            hx-target="#basic-info-form"
+            hx-swap="outerHTML"
+            class="p-6 space-y-4" id="basic-info-form">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="club_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Club Name</label>
+            <input type="text" 
+                   name="name" 
+                   id="club_name" 
+                   value="{{ club.name }}"
+                   class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                   required>
+          </div>
+          
+          <div>
+            <label for="club_slug" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Club URL Slug</label>
+            <div class="mt-1 flex rounded-md shadow-sm">
+              <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400 text-sm">
+                simlane.com/clubs/
+              </span>
+              <input type="text" 
+                     name="slug" 
+                     id="club_slug" 
+                     value="{{ club.slug }}"
+                     class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border-gray-300 dark:border-gray-600 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                     pattern="[a-z0-9-]+"
+                     title="Only lowercase letters, numbers, and hyphens allowed"
+                     required>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <label for="club_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+          <textarea name="description" 
+                    id="club_description" 
+                    rows="3" 
+                    class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                    placeholder="Describe your club...">{{ club.description }}</textarea>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="club_location" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
+            <input type="text" 
+                   name="location" 
+                   id="club_location" 
+                   value="{{ club.location|default:'' }}"
+                   class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                   placeholder="e.g., United States, Europe">
+          </div>
+          
+          <div>
+            <label for="club_website" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Website</label>
+            <input type="url" 
+                   name="website" 
+                   id="club_website" 
+                   value="{{ club.website|default:'' }}"
+                   class="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white sm:text-sm"
+                   placeholder="https://your-website.com">
+          </div>
+        </div>
+        
+        <div class="flex justify-end">
+          <button type="submit" 
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Branding & Media -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Branding & Media</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Upload your club logo and banner to customize your club's appearance.</p>
+      </div>
+      <div class="p-6 space-y-6">
+        
+        <!-- Logo Upload -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Club Logo</label>
+          <div class="flex items-center space-x-4">
+            <div class="flex-shrink-0">
+              {% if club.logo_url %}
+                <img src="{{ club.logo_url }}" alt="{{ club.name }}" class="w-16 h-16 rounded-lg object-cover">
+              {% else %}
+                <div class="w-16 h-16 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                  <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+              {% endif %}
+            </div>
+            <div class="flex-1">
+              <form hx-post="{% url 'clubs:upload_logo' club.slug %}" 
+                    hx-encoding="multipart/form-data"
+                    hx-target="#logo-upload-result">
+                {% csrf_token %}
+                <input type="file" 
+                       name="logo" 
+                       accept="image/*"
+                       class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                       onchange="this.form.requestSubmit()">
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">PNG, JPG up to 2MB. Recommended 256x256px.</p>
+              </form>
+              <div id="logo-upload-result"></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Banner Upload -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Club Banner</label>
+          <div class="space-y-4">
+            {% if club.banner_image %}
+              <div class="relative">
+                <img src="{{ club.banner_image.url }}" alt="{{ club.name }} banner" class="w-full h-32 object-cover rounded-lg">
+                <button hx-delete="{% url 'clubs:remove_banner' club.slug %}"
+                        hx-target="#banner-section"
+                        hx-confirm="Are you sure you want to remove the banner?"
+                        class="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-md hover:bg-red-700">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                </button>
+              </div>
+            {% else %}
+              <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No banner uploaded</p>
+              </div>
+            {% endif %}
+            
+            <form hx-post="{% url 'clubs:upload_banner' club.slug %}" 
+                  hx-encoding="multipart/form-data"
+                  hx-target="#banner-section"
+                  id="banner-section">
+              {% csrf_token %}
+              <input type="file" 
+                     name="banner" 
+                     accept="image/*"
+                     class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+                     onchange="this.form.requestSubmit()">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">PNG, JPG up to 5MB. Recommended 1200x300px.</p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Privacy & Visibility -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Privacy & Visibility</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Control who can see and join your club.</p>
+      </div>
+      <form hx-post="{% url 'clubs:update_privacy_settings' club.slug %}"
+            hx-target="#privacy-form"
+            hx-swap="outerHTML"
+            class="p-6 space-y-4" id="privacy-form">
+        {% csrf_token %}
+        
+        <div class="space-y-4">
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input id="is_public" 
+                     name="is_public" 
+                     type="checkbox" 
+                     {% if club.is_public %}checked{% endif %}
+                     class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="is_public" class="font-medium text-gray-700 dark:text-gray-300">Public Club</label>
+              <p class="text-gray-500 dark:text-gray-400">Allow anyone to view your club's page and member list.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input id="allow_join_requests" 
+                     name="allow_join_requests" 
+                     type="checkbox" 
+                     {% if club.allow_join_requests %}checked{% endif %}
+                     class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="allow_join_requests" class="font-medium text-gray-700 dark:text-gray-300">Allow Join Requests</label>
+              <p class="text-gray-500 dark:text-gray-400">Let users request to join your club.</p>
+            </div>
+          </div>
+          
+          <div class="flex items-start">
+            <div class="flex items-center h-5">
+              <input id="require_approval" 
+                     name="require_approval" 
+                     type="checkbox" 
+                     {% if club.require_approval %}checked{% endif %}
+                     class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded">
+            </div>
+            <div class="ml-3 text-sm">
+              <label for="require_approval" class="font-medium text-gray-700 dark:text-gray-300">Require Approval</label>
+              <p class="text-gray-500 dark:text-gray-400">All join requests must be approved by an admin.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex justify-end">
+          <button type="submit" 
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            Update Privacy Settings
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-red-200 dark:border-red-800">
+      <div class="px-6 py-4 border-b border-red-200 dark:border-red-800">
+        <h3 class="text-lg font-medium text-red-900 dark:text-red-200">Danger Zone</h3>
+        <p class="text-sm text-red-600 dark:text-red-400">Irreversible and destructive actions.</p>
+      </div>
+      <div class="p-6 space-y-4">
+        
+        <!-- Transfer Ownership -->
+        <div class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <div class="flex-1">
+            <h4 class="text-sm font-medium text-gray-900 dark:text-white">Transfer Club Ownership</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Transfer ownership to another admin member.</p>
+          </div>
+          <button onclick="openTransferModal()"
+                  class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+            Transfer
+          </button>
+        </div>
+        
+        <!-- Archive Club -->
+        <div class="flex items-center justify-between p-4 border border-yellow-200 dark:border-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+          <div class="flex-1">
+            <h4 class="text-sm font-medium text-yellow-900 dark:text-yellow-200">Archive Club</h4>
+            <p class="text-sm text-yellow-700 dark:text-yellow-300">Hide club from public view but preserve data. Can be reversed.</p>
+          </div>
+          <button onclick="archiveClub()"
+                  class="inline-flex items-center px-3 py-2 border border-yellow-300 dark:border-yellow-600 text-sm font-medium rounded-md text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-800 hover:bg-yellow-200 dark:hover:bg-yellow-700">
+            Archive
+          </button>
+        </div>
+        
+        <!-- Delete Club -->
+        <div class="flex items-center justify-between p-4 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20">
+          <div class="flex-1">
+            <h4 class="text-sm font-medium text-red-900 dark:text-red-200">Delete Club</h4>
+            <p class="text-sm text-red-700 dark:text-red-300">Permanently delete this club and all associated data. This cannot be undone.</p>
+          </div>
+          <button onclick="deleteClub()"
+                  class="inline-flex items-center px-3 py-2 border border-red-300 dark:border-red-600 text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700">
+            Delete Forever
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript for danger zone actions -->
+  <script>
+    function openTransferModal() {
+      // TODO: Implement transfer ownership modal
+      alert('Transfer ownership functionality will be implemented.');
+    }
+    
+    function archiveClub() {
+      if (confirm('Are you sure you want to archive this club? It will be hidden from public view but can be restored later.')) {
+        htmx.ajax('POST', `{% url 'clubs:archive_club' club.slug %}`, {
+          target: 'body',
+          swap: 'outerHTML'
+        });
+      }
+    }
+    
+    function deleteClub() {
+      const clubName = '{{ club.name }}';
+      const confirmText = prompt(`To confirm deletion, please type the club name: "${clubName}"`);
+      
+      if (confirmText === clubName) {
+        if (confirm('This will permanently delete the club and ALL associated data. This action cannot be undone. Are you absolutely sure?')) {
+          htmx.ajax('DELETE', `{% url 'clubs:delete_club' club.slug %}`, {
+            target: 'body',
+            swap: 'outerHTML'
+          });
+        }
+      } else if (confirmText !== null) {
+        alert('Club name did not match. Deletion cancelled.');
+      }
+    }
+  </script>
 {% endblock %} 

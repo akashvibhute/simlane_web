@@ -1,15 +1,200 @@
 {% extends "teams/club_dashboard/_base.html" %}
+{% load static billing_tags %}
 
 {% block page_content %}
-  <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Members</h2>
-  <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-    {% for member in members %}
-      <li class="py-3 flex items-center justify-between">
-        <span class="text-sm text-gray-900 dark:text-white">{{ member.user.username }}</span>
-        <span class="text-xs text-gray-500 dark:text-gray-400">{{ member.role|title }}</span>
-      </li>
-    {% empty %}
-      <li class="py-6 text-sm text-gray-500 dark:text-gray-400">No members found.</li>
-    {% endfor %}
-  </ul>
+  <div class="space-y-6">
+    <!-- Header with actions -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Club Members</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Manage your club's {{ total_members }} members and their roles.
+        </p>
+      </div>
+      {% if user_role == 'admin' or user_role == 'teams_manager' %}
+        <div class="flex space-x-3">
+          {% if member_usage_info.can_add_members %}
+            <a href="{% url 'teams:club_invite_member' club.slug %}"
+               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Invite Member
+            </a>
+          {% else %}
+            <button disabled
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Member Limit Reached
+            </button>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Member limit warning -->
+    {% if member_usage_info.approaching_limit and not member_usage_info.can_add_members %}
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Member limit reached</h3>
+          <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+            <p>You've reached your plan's member limit ({{ member_usage_info.current }}/{{ member_usage_info.limit }}). 
+            {% if subscription_info %}Upgrade your plan{% else %}Consider upgrading{% endif %} to add more members.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Members List -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">All Members</h3>
+      </div>
+      <div class="overflow-hidden">
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for member in club_members %}
+            <li class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center min-w-0 flex-1">
+                  <!-- Avatar -->
+                  <div class="flex-shrink-0">
+                    {% if member.user.profile_picture %}
+                      <img class="h-10 w-10 rounded-full" src="{{ member.user.profile_picture.url }}" alt="{{ member.user.get_full_name|default:member.user.username }}">
+                    {% else %}
+                      <div class="h-10 w-10 bg-primary-500 rounded-full flex items-center justify-center">
+                        <span class="text-sm font-medium text-white">
+                          {{ member.user.get_full_name|default:member.user.username|first|upper }}
+                        </span>
+                      </div>
+                    {% endif %}
+                  </div>
+                  
+                  <!-- Member Info -->
+                  <div class="ml-4 flex-1 min-w-0">
+                    <div class="flex items-center">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {{ member.user.get_full_name|default:member.user.username }}
+                      </p>
+                      <!-- Role Badge -->
+                      <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                        {% if member.role == 'admin' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                        {% elif member.role == 'teams_manager' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                        {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                        {{ member.get_role_display }}
+                      </span>
+                    </div>
+                    <div class="flex items-center mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      <span>{{ member.user.email }}</span>
+                      <span class="mx-2">•</span>
+                      <span>Joined {{ member.created_at|date:"M j, Y" }}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Actions -->
+                {% if user_role == 'admin' and member.user != request.user %}
+                  <div class="flex items-center space-x-2 ml-4">
+                    <!-- Role Change Dropdown -->
+                    <div class="relative">
+                      <button type="button" 
+                              class="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                              onclick="document.getElementById('role-menu-{{ member.id }}').classList.toggle('hidden')">
+                        Change Role
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                      </button>
+                      <div class="hidden absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-10"
+                           id="role-menu-{{ member.id }}">
+                        <div class="py-1">
+                          {% for role_value, role_label in member.ROLE_CHOICES %}
+                            {% if role_value != member.role %}
+                              <a href="#" onclick="updateMemberRole('{{ member.id }}', '{{ role_value }}')"
+                                 class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                Make {{ role_label }}
+                              </a>
+                            {% endif %}
+                          {% endfor %}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Remove Member -->
+                    <button type="button" 
+                            onclick="removeMember('{{ member.id }}', '{{ member.user.get_full_name|default:member.user.username }}')"
+                            class="inline-flex items-center px-3 py-1 border border-red-300 dark:border-red-600 text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/30">
+                      Remove
+                    </button>
+                  </div>
+                {% elif user_role == 'teams_manager' and member.role == 'member' %}
+                  <div class="flex items-center space-x-2 ml-4">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Limited permissions</span>
+                  </div>
+                {% endif %}
+              </div>
+              
+              <!-- User's Teams in Club -->
+              {% if user_teams_in_club %}
+                <div class="mt-3 ml-14">
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Member of teams:</p>
+                  <div class="flex flex-wrap gap-1">
+                    {% for team in user_teams_in_club %}
+                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                        {{ team.name }}
+                      </span>
+                    {% endfor %}
+                  </div>
+                </div>
+              {% endif %}
+            </li>
+          {% empty %}
+            <li class="px-6 py-12 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No members yet</h3>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by inviting your first member.</p>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript for member management -->
+  <script>
+    function updateMemberRole(memberId, newRole) {
+      // Hide dropdown
+      document.getElementById('role-menu-' + memberId).classList.add('hidden');
+      
+      // TODO: Implement HTMX request to update member role
+      console.log('Updating member', memberId, 'to role', newRole);
+    }
+    
+    function removeMember(memberId, memberName) {
+      if (confirm('Are you sure you want to remove ' + memberName + ' from the club?')) {
+        // TODO: Implement HTMX request to remove member
+        console.log('Removing member', memberId);
+      }
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+      const dropdowns = document.querySelectorAll('[id^="role-menu-"]');
+      dropdowns.forEach(function(dropdown) {
+        if (!dropdown.contains(event.target) && !event.target.closest('button')) {
+          dropdown.classList.add('hidden');
+        }
+      });
+    });
+  </script>
 {% endblock %} 

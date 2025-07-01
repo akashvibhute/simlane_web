@@ -1,0 +1,72 @@
+<form hx-post="{% url 'clubs:update_discord_channels' club.slug %}"
+      hx-target="#join-request-form"
+      hx-swap="outerHTML"
+      id="join-request-form">
+  {% csrf_token %}
+  
+  <div class="space-y-4">
+    <!-- Enable notifications toggle -->
+    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+      <div>
+        <label class="text-sm font-medium text-gray-900 dark:text-white">Enable Join Request Notifications</label>
+        <p class="text-sm text-gray-600 dark:text-gray-400">Send notifications when users request to join the club</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" 
+               name="enable_join_request_notifications" 
+               {% if discord_settings.enable_join_request_notifications %}checked{% endif %}
+               class="sr-only peer">
+        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+      </label>
+    </div>
+
+    <!-- Channel selection -->
+    <div>
+      <label for="join_requests_channel_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        Notification Channel
+      </label>
+      <div class="relative">
+        <select name="join_requests_channel_id" id="join_requests_channel_id"
+                class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+          <option value="">Select a channel...</option>
+          {% for channel in available_channels %}
+            <option value="{{ channel.id }}" {% if channel.id == discord_settings.join_requests_channel_id %}selected{% endif %}>
+              #{{ channel.name }}
+            </option>
+          {% empty %}
+            <option disabled>No text channels available</option>
+          {% endfor %}
+        </select>
+        <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+          <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </div>
+      </div>
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        Channel where join request notifications will be sent
+      </p>
+      
+      {% if not available_channels %}
+        <div class="mt-2 flex items-center space-x-2">
+          <button type="button" 
+                  hx-post="{% url 'clubs:refresh_discord_channels' club.slug %}"
+                  hx-target="#join-request-form"
+                  hx-swap="outerHTML"
+                  class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-medium">
+            Refresh Channels
+          </button>
+          <span class="text-gray-400">•</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400">No channels found</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="mt-6 flex justify-end">
+    <button type="submit"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+      Save Settings
+    </button>
+  </div>
+</form> 

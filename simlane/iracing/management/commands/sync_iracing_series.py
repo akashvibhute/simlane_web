@@ -137,10 +137,11 @@ class Command(BaseCommand):
         for obj in series_list:
             try:
                 series_id = obj.get("series_id")
+                
                 if not series_id:
                     logger.debug("Skipping entry without series_id: %s", obj)
                     continue
-
+                
                 defaults = {
                     "name": obj.get("series_name", f"Series {series_id}"),
                     "simulator": iracing_simulator,
@@ -183,6 +184,7 @@ class Command(BaseCommand):
 
                 _, created_flag = Series.objects.update_or_create(
                     external_series_id=series_id,
+                    simulator=iracing_simulator,
                     defaults=defaults,
                 )
 

@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from simlane.iracing.services import IRacingServiceError
 from simlane.iracing.services import iracing_service
+from simlane.iracing.types import SeriesSeasons
 from simlane.sim.models import CarClass
 from simlane.sim.models import Event
 from simlane.sim.models import EventClass
@@ -135,7 +136,7 @@ def _get_or_create_iracing_event(
         raise
 
 
-def _process_series_seasons(series_seasons_data: list) -> tuple[int, int, list[str]]:
+def _process_series_seasons(series_seasons_data: list[SeriesSeasons]) -> tuple[int, int, list[str]]:
     """
     Process series seasons data and create/update Event records.
 
@@ -523,7 +524,7 @@ def sync_series_seasons_task(
                     filtered_data.append(series_data_copy)
 
             seasons_data = filtered_data
-
+        
         # Process the data
         events_created, events_updated, errors = _process_series_seasons(seasons_data)
 

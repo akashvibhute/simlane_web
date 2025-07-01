@@ -1,14 +1,199 @@
 {% extends "teams/club_dashboard/_base.html" %}
+{% load static %}
 
 {% block page_content %}
-  <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Teams</h2>
-  <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-    {% for team in teams %}
-      <li class="py-3 flex items-center justify-between">
-        <span class="text-sm text-gray-900 dark:text-white">{{ team.name }}</span>
-      </li>
-    {% empty %}
-      <li class="py-6 text-sm text-gray-500 dark:text-gray-400">No teams found.</li>
-    {% endfor %}
-  </ul>
+  <div class="space-y-6">
+    <!-- Header with actions -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Teams</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Manage your club's {{ teams|length }} teams and their members.
+        </p>
+      </div>
+      {% if user_role == 'admin' or user_role == 'teams_manager' %}
+        <div class="flex space-x-3">
+          <button onclick="alert('Team creation feature coming soon!')"
+             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create Team
+          </button>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Teams Grid -->
+    {% if teams %}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for team in teams %}
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+            <div class="p-6">
+              <!-- Team Header -->
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center min-w-0 flex-1">
+                  {% if team.logo_url %}
+                    <img src="{{ team.logo_url }}" alt="{{ team.name }}" class="w-12 h-12 rounded-lg object-cover mr-3">
+                  {% else %}
+                    <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mr-3">
+                      <span class="text-lg font-bold text-white">{{ team.name|first|upper }}</span>
+                    </div>
+                  {% endif %}
+                  <div class="min-w-0 flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate">
+                      <span class="hover:text-primary-600 dark:hover:text-primary-400">
+                        {{ team.name }}
+                      </span>
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ team.member_count }} member{{ team.member_count|pluralize }}
+                    </p>
+                  </div>
+                </div>
+                
+                <!-- Status Badge -->
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                  {% if team.is_active %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                  {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                  {% if team.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+              </div>
+
+              <!-- Team Description -->
+              {% if team.description %}
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+                  {{ team.description }}
+                </p>
+              {% endif %}
+
+              <!-- Team Members Preview -->
+              {% if team.members.all %}
+                <div class="mb-4">
+                  <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Team Members</p>
+                  <div class="flex -space-x-2 overflow-hidden">
+                    {% for membership in team.members.all|slice:":5" %}
+                      {% if membership.user.profile_picture %}
+                        <img class="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-gray-800" 
+                             src="{{ membership.user.profile_picture.url }}" 
+                             alt="{{ membership.user.get_full_name|default:membership.user.username }}"
+                             title="{{ membership.user.get_full_name|default:membership.user.username }}">
+                      {% else %}
+                        <div class="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-gray-800 bg-primary-500 flex items-center justify-center"
+                             title="{{ membership.user.get_full_name|default:membership.user.username }}">
+                          <span class="text-xs font-medium text-white">
+                            {{ membership.user.get_full_name|default:membership.user.username|first|upper }}
+                          </span>
+                        </div>
+                      {% endif %}
+                    {% endfor %}
+                    {% if team.member_count > 5 %}
+                      <div class="inline-block h-8 w-8 rounded-full ring-2 ring-white dark:ring-gray-800 bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300">+{{ team.member_count|add:"-5" }}</span>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+
+              <!-- Team Stats -->
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="text-center">
+                  <div class="text-lg font-semibold text-gray-900 dark:text-white">0</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">Recent Events</div>
+                </div>
+                <div class="text-center">
+                  <div class="text-lg font-semibold text-gray-900 dark:text-white">0</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">Race Entries</div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex space-x-2">
+                <button onclick="alert('Team details view coming soon!')"
+                   class="flex-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-800/30 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors">
+                  View Team
+                </button>
+                {% if user_role == 'admin' or user_role == 'teams_manager' %}
+                  <button onclick="alert('Team editing feature coming soon!')"
+                     class="bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 px-3 py-2 rounded-md text-sm font-medium text-center transition-colors">
+                    Edit
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- Empty State -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-12 text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No teams yet</h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by creating your first team.</p>
+          {% if user_role == 'admin' or user_role == 'teams_manager' %}
+            <div class="mt-6">
+              <button onclick="alert('Team creation feature coming soon!')"
+                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Create First Team
+              </button>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Team Management Quick Actions (Admin Only) -->
+    {% if user_role == 'admin' and teams %}
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 class="text-lg font-medium text-gray-900 dark:text-white">Quick Actions</h3>
+        </div>
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button onclick="bulkActivateTeams()"
+                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              Activate All Teams
+            </button>
+            <button onclick="exportTeamData()"
+                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              Export Team Data
+            </button>
+            <button onclick="alert('Team analytics feature coming soon!')"
+               class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+              <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              View Analytics
+            </button>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- JavaScript for team management -->
+  <script>
+    function bulkActivateTeams() {
+      if (confirm('Are you sure you want to activate all teams?')) {
+        alert('Bulk team activation feature coming soon!');
+      }
+    }
+    
+    function exportTeamData() {
+      alert('Team data export feature coming soon!');
+    }
+  </script>
 {% endblock %} 

@@ -1,15 +1,114 @@
 {% extends "teams/club_dashboard/_base.html" %}
+{% load static %}
 
 {% block page_content %}
-  <h2 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Events</h2>
-  <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-    {% for event in club_events %}
-      <li class="py-3 flex items-center justify-between">
-        <span class="text-sm text-gray-900 dark:text-white">{{ event.name }}</span>
-        <span class="text-xs text-gray-500 dark:text-gray-400">{{ event.date|date:"M d, Y" }}</span>
-      </li>
-    {% empty %}
-      <li class="py-6 text-sm text-gray-500 dark:text-gray-400">No events found.</li>
-    {% endfor %}
-  </ul>
+  <div class="space-y-6">
+    <!-- Header with actions -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Events</h1>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Manage your club's {{ total_events }} events and race signups.
+        </p>
+      </div>
+      {% if user_role == 'admin' or user_role == 'teams_manager' %}
+        <div class="flex space-x-3">
+          <a href="{% url 'teams:create_event' club.slug %}"
+             class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Create Event
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Event Tabs with HTMX -->
+    <div class="border-b border-gray-200 dark:border-gray-700">
+      <nav class="-mb-px flex space-x-8">
+        <button hx-get="{% url 'clubs:events' club.slug %}?tab=upcoming"
+                hx-target="#events-content"
+                hx-push-url="false"
+                class="{% if current_tab == 'upcoming' %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600{% endif %} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+          Upcoming Events
+          <span class="ml-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 py-0.5 px-2.5 rounded-full text-xs">{{ upcoming_events_count }}</span>
+        </button>
+        <button hx-get="{% url 'clubs:events' club.slug %}?tab=ongoing"
+                hx-target="#events-content"
+                hx-push-url="false"
+                class="{% if current_tab == 'ongoing' %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600{% endif %} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+          Live/Ongoing
+          <span class="ml-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 py-0.5 px-2.5 rounded-full text-xs">{{ ongoing_events_count }}</span>
+        </button>
+        <button hx-get="{% url 'clubs:events' club.slug %}?tab=past"
+                hx-target="#events-content"
+                hx-push-url="false"
+                class="{% if current_tab == 'past' %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600{% endif %} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+          Past Events
+          <span class="ml-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-300 py-0.5 px-2.5 rounded-full text-xs">{{ past_events_count }}</span>
+        </button>
+        {% if user_role == 'admin' or user_role == 'teams_manager' %}
+        <button hx-get="{% url 'clubs:events' club.slug %}?tab=drafts"
+                hx-target="#events-content"
+                hx-push-url="false"
+                class="{% if current_tab == 'drafts' %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600{% endif %} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+          Drafts
+          <span class="ml-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 py-0.5 px-2.5 rounded-full text-xs">{{ draft_events_count }}</span>
+        </button>
+        {% endif %}
+      </nav>
+    </div>
+
+    <!-- Events Content Container -->
+    <div id="events-content">
+      {% include "teams/club_dashboard/_events_list.html" %}
+    </div>
+  </div>
+
+  <!-- JavaScript for event management -->
+  <script>
+    function signupForEvent(eventId) {
+      htmx.ajax('POST', `{% url 'teams:event_signup' club.slug 0 %}`.replace('0', eventId), {
+        target: '#events-content',
+        swap: 'outerHTML'
+      });
+    }
+    
+    function withdrawFromEvent(eventId) {
+      if (confirm('Are you sure you want to withdraw from this event?')) {
+        htmx.ajax('DELETE', `{% url 'teams:event_withdraw' club.slug 0 %}`.replace('0', eventId), {
+          target: '#events-content',
+          swap: 'outerHTML'
+        });
+      }
+    }
+    
+    function duplicateEvent(eventId) {
+      if (confirm('Create a copy of this event?')) {
+        htmx.ajax('POST', `{% url 'teams:duplicate_event' club.slug 0 %}`.replace('0', eventId), {
+          target: '#events-content',
+          swap: 'outerHTML'
+        });
+      }
+    }
+    
+    function deleteEvent(eventId) {
+      if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+        htmx.ajax('DELETE', `{% url 'teams:delete_event' club.slug 0 %}`.replace('0', eventId), {
+          target: '#events-content',
+          swap: 'outerHTML'
+        });
+      }
+    }
+    
+    function publishEvent(eventId) {
+      if (confirm('Publish this event and notify all members?')) {
+        htmx.ajax('POST', `{% url 'teams:publish_event' club.slug 0 %}`.replace('0', eventId), {
+          target: '#events-content',
+          swap: 'outerHTML'
+        });
+      }
+    }
+  </script>
 {% endblock %} 

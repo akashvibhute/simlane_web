@@ -1,0 +1,702 @@
+{% extends "teams/club_dashboard/_base.html" %}
+{% load static %}
+
+{% block page_content %}
+<div class="space-y-6">
+  <!-- Page Header -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Discord Settings</h1>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+      Configure Discord integration and notification settings for your club.
+    </p>
+  </div>
+
+  {% if not discord_connected %}
+    <!-- Not Connected State -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-8 text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+          <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">Discord Not Connected</h3>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">
+          Connect your Discord server to enable automated notifications and role management.
+        </p>
+        <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">
+          Connect Discord Server
+        </button>
+      </div>
+    </div>
+  {% else %}
+    <!-- Connected State -->
+    
+    <!-- Join Request Notifications -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Join Request Notifications</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Configure where Discord notifications are sent when users request to join your club.</p>
+      </div>
+      
+      <div class="p-6">
+        <form hx-post="{% url 'clubs:update_discord_channels' club.slug %}"
+              hx-target="#join-request-form"
+              hx-swap="outerHTML"
+              id="join-request-form">
+          {% csrf_token %}
+          
+          <div class="space-y-4">
+            <!-- Enable notifications toggle -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Enable Join Request Notifications</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Send notifications when users request to join the club</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="enable_join_request_notifications" 
+                       {% if discord_settings.enable_join_request_notifications %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Channel selection -->
+            <div>
+              <label for="join_requests_channel_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notification Channel
+              </label>
+              <div class="relative">
+                <select name="join_requests_channel_id" id="join_requests_channel_id"
+                        class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                  <option value="">Select a channel...</option>
+                  {% for channel in available_channels %}
+                    <option value="{{ channel.id }}" {% if channel.id == discord_settings.join_requests_channel_id %}selected{% endif %}>
+                      #{{ channel.name }}
+                    </option>
+                  {% empty %}
+                    <option disabled>No text channels available</option>
+                  {% endfor %}
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </div>
+              </div>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Channel where join request notifications will be sent
+              </p>
+              
+              {% if not available_channels %}
+                <div class="mt-2 flex items-center space-x-2">
+                  <button type="button" 
+                          hx-post="{% url 'clubs:refresh_discord_channels' club.slug %}"
+                          hx-target="#join-request-form"
+                          hx-swap="outerHTML"
+                          class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 font-medium">
+                    Refresh Channels
+                  </button>
+                  <span class="text-gray-400">•</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-400">No channels found</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Channel Creation Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Channel Creation</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Configure automatic channel creation for events and naming patterns.</p>
+      </div>
+      
+      <div class="p-6">
+        <form hx-post="{% url 'clubs:update_discord_channels' club.slug %}"
+              hx-target="#channel-creation-form"
+              hx-swap="outerHTML"
+              id="channel-creation-form">
+          {% csrf_token %}
+          
+          <div class="space-y-6">
+            <!-- Auto create channels toggle -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Auto-create Event Channels</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Automatically create Discord channels for new events</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="auto_create_channels" 
+                       {% if discord_settings.auto_create_channels %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Channel naming pattern -->
+            <div>
+              <label for="channel_naming_pattern" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Channel Naming Pattern
+              </label>
+              <input type="text" 
+                     name="channel_naming_pattern" 
+                     id="channel_naming_pattern"
+                     value="{{ discord_settings.channel_naming_pattern }}"
+                     class="block w-full pl-3 pr-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                     placeholder="{series_name}-{event_name}">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Available variables: {series_name}, {event_name}, {date}, {club_name}
+              </p>
+            </div>
+
+            <!-- Category naming pattern -->
+            <div>
+              <label for="category_naming_pattern" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Category Naming Pattern
+              </label>
+              <input type="text" 
+                     name="category_naming_pattern" 
+                     id="category_naming_pattern"
+                     value="{{ discord_settings.category_naming_pattern }}"
+                     class="block w-full pl-3 pr-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                     placeholder="{series_name} Events">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Template for Discord category names
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Voice Channel Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Voice Channels</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Configure voice channel creation and settings for events.</p>
+      </div>
+      
+      <div class="p-6">
+        <form hx-post="{% url 'clubs:update_discord_channels' club.slug %}"
+              hx-target="#voice-channels-form"
+              hx-swap="outerHTML"
+              id="voice-channels-form">
+          {% csrf_token %}
+          
+          <div class="space-y-6">
+            <!-- Enable voice channels -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Enable Voice Channels</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Create voice channels for events</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="enable_voice_channels" 
+                       {% if discord_settings.enable_voice_channels %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Enable practice voice -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Practice Voice Channels</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Create separate practice voice channels</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="enable_practice_voice" 
+                       {% if discord_settings.enable_practice_voice %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Voice channel user limit -->
+            <div>
+              <label for="voice_channel_user_limit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Voice Channel User Limit
+              </label>
+              <input type="number" 
+                     name="voice_channel_user_limit" 
+                     id="voice_channel_user_limit"
+                     value="{{ discord_settings.voice_channel_user_limit }}"
+                     min="0"
+                     max="99"
+                     class="block w-full pl-3 pr-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Maximum users in voice channels (0 = unlimited)
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Team Formation Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Team Formation</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Configure team formation channels and thread creation.</p>
+      </div>
+      
+      <div class="p-6">
+        <form hx-post="{% url 'clubs:update_discord_channels' club.slug %}"
+              hx-target="#team-formation-form"
+              hx-swap="outerHTML"
+              id="team-formation-form">
+          {% csrf_token %}
+          
+          <div class="space-y-6">
+            <!-- Enable team formation channels -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Team Formation Channels</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Create channels for team formation discussions</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="enable_team_formation_channels" 
+                       {% if discord_settings.enable_team_formation_channels %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Auto create team threads -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Auto-create Team Threads</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Automatically create threads for formed teams</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="auto_create_team_threads" 
+                       {% if discord_settings.auto_create_team_threads %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Member Sync Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Member Synchronization</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Configure automatic member synchronization between SimLane and Discord.</p>
+      </div>
+      
+      <div class="p-6">
+        <form hx-post="{% url 'clubs:update_discord_channels' club.slug %}"
+              hx-target="#member-sync-form"
+              hx-swap="outerHTML"
+              id="member-sync-form">
+          {% csrf_token %}
+          
+          <div class="space-y-6">
+            <!-- Auto sync members -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Auto-sync Members</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Automatically sync Discord members with club members</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="auto_sync_members" 
+                       {% if discord_settings.auto_sync_members %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Sync frequency -->
+            <div>
+              <label for="sync_frequency_hours" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Sync Frequency (Hours)
+              </label>
+              <input type="number" 
+                     name="sync_frequency_hours" 
+                     id="sync_frequency_hours"
+                     value="{{ discord_settings.sync_frequency_hours }}"
+                     min="1"
+                     max="168"
+                     class="block w-full pl-3 pr-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Hours between automatic member syncs (1-168 hours)
+              </p>
+            </div>
+
+            <!-- Require linked account -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Require Linked Account</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Require Discord account to be linked to club membership</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="require_linked_account" 
+                       {% if discord_settings.require_linked_account %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Event Notifications -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Event Notifications</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Configure notifications for events and stint changes.</p>
+      </div>
+      
+      <div class="p-6">
+        <form hx-post="{% url 'clubs:update_discord_channels' club.slug %}"
+              hx-target="#event-notifications-form"
+              hx-swap="outerHTML"
+              id="event-notifications-form">
+          {% csrf_token %}
+          
+          <div class="space-y-6">
+            <!-- Enable stint alerts -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Stint Alerts</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Send alerts for stint changes during events</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="enable_stint_alerts" 
+                       {% if discord_settings.enable_stint_alerts %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Enable event reminders -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Event Reminders</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Send reminders before events start</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="enable_event_reminders" 
+                       {% if discord_settings.enable_event_reminders %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Signup update frequency -->
+            <div>
+              <label for="signup_update_frequency" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Signup Update Frequency (Hours)
+              </label>
+              <input type="number" 
+                     name="signup_update_frequency" 
+                     id="signup_update_frequency"
+                     value="{{ discord_settings.signup_update_frequency }}"
+                     min="1"
+                     max="72"
+                     class="block w-full pl-3 pr-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Hours between signup status updates
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Channel Cleanup Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Channel Cleanup</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Configure automatic archiving and cleanup of event channels.</p>
+      </div>
+      
+      <div class="p-6">
+        <form hx-post="{% url 'clubs:update_discord_channels' club.slug %}"
+              hx-target="#channel-cleanup-form"
+              hx-swap="outerHTML"
+              id="channel-cleanup-form">
+          {% csrf_token %}
+          
+          <div class="space-y-6">
+            <!-- Auto archive completed events -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Auto-archive Completed Events</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Automatically archive channels after events complete</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="auto_archive_completed_events" 
+                       {% if discord_settings.auto_archive_completed_events %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Archive delay hours -->
+            <div>
+              <label for="archive_delay_hours" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Archive Delay (Hours)
+              </label>
+              <input type="number" 
+                     name="archive_delay_hours" 
+                     id="archive_delay_hours"
+                     value="{{ discord_settings.archive_delay_hours }}"
+                     min="0"
+                     max="720"
+                     class="block w-full pl-3 pr-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Hours to wait before archiving completed event channels
+              </p>
+            </div>
+
+            <!-- Delete archived after days -->
+            <div>
+              <label for="delete_archived_after_days" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Delete Archived After (Days)
+              </label>
+              <input type="number" 
+                     name="delete_archived_after_days" 
+                     id="delete_archived_after_days"
+                     value="{{ discord_settings.delete_archived_after_days }}"
+                     min="0"
+                     max="365"
+                     class="block w-full pl-3 pr-3 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Days to keep archived channels before deletion (0 = never delete)
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+              Save Settings
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Role Synchronization -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Role Synchronization</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Map club roles to Discord roles and manage automatic role assignment.</p>
+      </div>
+      
+      <div class="p-6">
+        <form hx-post="{% url 'clubs:update_discord_role_mapping' club.slug %}"
+              hx-target="#role-mapping-form"
+              hx-swap="outerHTML"
+              id="role-mapping-form">
+          {% csrf_token %}
+          
+          <div class="space-y-6">
+            <!-- Auto-assign roles toggle -->
+            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div>
+                <label class="text-sm font-medium text-gray-900 dark:text-white">Auto-assign Roles</label>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Automatically assign Discord roles based on club membership</p>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" 
+                       name="auto_assign_roles" 
+                       {% if discord_settings.auto_assign_roles %}checked{% endif %}
+                       class="sr-only peer">
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+              </label>
+            </div>
+
+            <!-- Role mappings -->
+            <div class="space-y-4">
+              <h4 class="text-sm font-medium text-gray-900 dark:text-white">Role Mapping</h4>
+              
+              <!-- Admin Role -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Club Admin</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Full club management permissions</p>
+                </div>
+                <div>
+                  <select name="admin_role_id" 
+                          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">No Discord role</option>
+                    <!-- TODO: Add Discord roles here -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Teams Manager Role -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Teams Manager</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Can manage teams and events</p>
+                </div>
+                <div>
+                  <select name="teams_manager_role_id" 
+                          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">No Discord role</option>
+                    <!-- TODO: Add Discord roles here -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Member Role -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                <div>
+                  <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Club Member</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Basic club membership</p>
+                </div>
+                <div>
+                  <select name="member_role_id" 
+                          class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-primary-500 focus:border-primary-500 dark:focus:ring-primary-400 dark:focus:border-primary-400 sm:text-sm rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                    <option value="">No Discord role</option>
+                    <!-- TODO: Add Discord roles here -->
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Manual sync button -->
+            <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div>
+                <p class="text-sm text-gray-700 dark:text-gray-300">Manual Synchronization</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Sync all member roles with Discord immediately</p>
+              </div>
+              <button type="button"
+                      hx-post="{% url 'clubs:sync_discord_roles' club.slug %}"
+                      class="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+                Sync Now
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 dark:focus:ring-offset-gray-800">
+              Save Role Mapping
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Test Notifications -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Test Notifications</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Send a test notification to verify your Discord integration is working.</p>
+      </div>
+      
+      <div class="p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-gray-700 dark:text-gray-300">Send Test Message</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">This will send a test notification to your configured channels</p>
+          </div>
+          <button type="button"
+                  hx-post="{% url 'clubs:test_discord_notifications' club.slug %}"
+                  class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800">
+            Send Test
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disconnect Discord -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white">Disconnect Discord</h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Remove Discord integration from your club.</p>
+      </div>
+      
+      <div class="p-6">
+        <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-orange-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <h4 class="text-sm font-medium text-orange-800 dark:text-orange-200">Warning</h4>
+              <p class="mt-1 text-sm text-orange-700 dark:text-orange-300">
+                Disconnecting Discord will disable all automated notifications and role synchronization. This action cannot be undone.
+              </p>
+              <div class="mt-4">
+                <button type="button"
+                        hx-post="{% url 'clubs:disconnect_discord' club.slug %}"
+                        hx-confirm="Are you sure you want to disconnect Discord? This will disable all Discord features for your club."
+                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 dark:focus:ring-offset-gray-800">
+                  Disconnect Discord
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %} 
