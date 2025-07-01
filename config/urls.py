@@ -65,6 +65,8 @@ urlpatterns = [
     # Media files
     *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT),
     path("discord/", include("simlane.discord.urls")),
+    # New club dashboard URLs (revamped CBV structure)
+    path("clubs/", include("simlane.teams.dashboard_urls", namespace="clubs")),
 ]
 if settings.DEBUG:
     # Static file serving when using Gunicorn + Uvicorn for local web socket development

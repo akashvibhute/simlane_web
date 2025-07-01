@@ -93,6 +93,31 @@
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.logo.help_text }}</p>
               {% endif %}
             </div>
+            <!-- Banner Image Upload -->
+            <div class="md:col-span-2">
+              <label for="{{ form.banner_image.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.banner_image.label }}
+              </label>
+              <div class="mt-1">
+                {{ form.banner_image }}
+                {% if form.banner_image.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.banner_image.errors|first }}</div>
+                {% endif %}
+                {% if form.banner_image.help_text %}
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.banner_image.help_text }}</p>
+                {% endif %}
+                <!-- Banner Preview -->
+                <div class="mt-2">
+                  <div id="banner-preview-container" class="hidden">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Preview:</p>
+                    <div class="relative w-full max-w-2xl mx-auto overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                      <img id="banner-preview" src="" alt="Banner preview" class="w-full h-32 object-cover">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
             <!-- Website -->
             <div>
               <label for="{{ form.website.id_for_label }}"
@@ -257,4 +282,24 @@
       </div>
     </div>
   </div>
+  
+  <script>
+    // Banner image preview functionality
+    document.getElementById('{{ form.banner_image.id_for_label }}').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const previewContainer = document.getElementById('banner-preview-container');
+      const preview = document.getElementById('banner-preview');
+      
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          previewContainer.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewContainer.classList.add('hidden');
+      }
+    });
+  </script>
 {% endblock %}

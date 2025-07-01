@@ -5,7 +5,7 @@ from datetime import timedelta
 
 import pytz
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -37,6 +37,12 @@ class Club(models.Model):
         blank=True,
         null=True,
         help_text="Club logo image",
+    )
+    banner_image = models.ImageField(
+        upload_to="club_banners/",
+        blank=True,
+        null=True,
+        help_text="Banner image for the club",
     )
 
     website = models.URLField(blank=True)
@@ -1695,17 +1701,16 @@ class ClubInvitation(models.Model):
         unique_together = ["club", "email"]
         indexes = [
             models.Index(fields=["token"]),
+            models.Index(fields=["club"]),
             models.Index(fields=["expires_at"]),
-            models.Index(fields=["club", "email"]),
         ]
 
     def __str__(self):
-        return f"Invitation to {self.email} for {self.club.name}"
+        return f"Invitation to {self.club.name} for {self.email}"
 
     @staticmethod
     def generate_token() -> str:
-        """Generate a secure unique token"""
-
+        """Generate a secure random token for invitation links"""
         return secrets.token_urlsafe(32)
 
     def is_expired(self):
@@ -1713,10 +1718,11 @@ class ClubInvitation(models.Model):
 
     def can_send_reminder(self):
         """Check if reminder can be sent (max 2 reminders, 24h apart)"""
+        from django.utils import timezone
         if self.reminder_count >= 2:
             return False
         if self.reminder_sent_at:
-            return timezone.now() - self.reminder_sent_at > timedelta(hours=24)
+            return timezone.now() - self.reminder_sent_at > timezone.timedelta(hours=24)
         return True
 
     def accept(self, user):
@@ -1728,17 +1734,14 @@ class ClubInvitation(models.Model):
         club_member, created = ClubMember.objects.get_or_create(
             user=user,
             club=self.club,
-            defaults={"role": self.role},
+            defaults={'role': self.role}
         )
 
         if not created:
             # User was already a member, update their role if invitation role is higher
             if self.role == ClubRole.ADMIN:
                 club_member.role = ClubRole.ADMIN
-            elif (
-                self.role == ClubRole.TEAMS_MANAGER
-                and club_member.role == ClubRole.MEMBER
-            ):
+            elif self.role == ClubRole.TEAMS_MANAGER and club_member.role == ClubRole.MEMBER:
                 club_member.role = ClubRole.TEAMS_MANAGER
             club_member.save()
 
@@ -1749,9 +1752,113 @@ class ClubInvitation(models.Model):
         return club_member
 
     def decline(self):
-        """Decline the invitation"""
+        """Decline invitation"""
         self.declined_at = timezone.now()
         self.save()
+
+
+class ClubJoinRequest(models.Model):
+    """Track user requests to join clubs"""
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="join_requests")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="club_join_requests")
+    
+    # Request details
+    description = models.TextField(
+        max_length=1000,
+        help_text="User's explanation for wanting to join the club"
+    )
+    
+    # Status tracking
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('approved', 'Approved'),
+            ('rejected', 'Rejected'),
+            ('cancelled', 'Cancelled'),
+        ],
+        default='pending'
+    )
+    
+    # Response from admin
+    admin_response = models.TextField(
+        blank=True,
+        max_length=500,
+        help_text="Admin's message when approving/rejecting the request"
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_join_requests",
+        help_text="Admin who reviewed this request"
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Discord message tracking
+    discord_message_id = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Discord message ID for the join request notification"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ["club", "user"]
+        indexes = [
+            models.Index(fields=["club", "status"]),
+            models.Index(fields=["user"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["created_at"]),
+        ]
+        
+    def __str__(self):
+        return f"{self.user.username} request to join {self.club.name}"
+    
+    def approve(self, admin_user, response_message="", role=ClubRole.MEMBER):
+        """Approve the join request and add user to club"""
+        with transaction.atomic():
+            # Create club membership
+            club_member, created = ClubMember.objects.get_or_create(
+                user=self.user,
+                club=self.club,
+                defaults={'role': role}
+            )
+            
+            # Update request status
+            self.status = 'approved'
+            self.admin_response = response_message
+            self.reviewed_by = admin_user
+            self.reviewed_at = timezone.now()
+            self.save()
+            
+            return club_member
+    
+    def reject(self, admin_user, response_message=""):
+        """Reject the join request"""
+        self.status = 'rejected'
+        self.admin_response = response_message
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        self.save()
+        
+    def cancel(self):
+        """Cancel the join request (by user)"""
+        self.status = 'cancelled'
+        self.save()
+        
+    @property
+    def is_pending(self):
+        return self.status == 'pending'
+        
+    @property 
+    def is_reviewed(self):
+        return self.status in ['approved', 'rejected']
 
 
 class ClubEventSignupSheet(models.Model):

@@ -53,6 +53,12 @@ class IRacingAPIError(Exception):
         return base_msg
 
 
+class IRacingMaintenanceError(IRacingAPIError):
+    """Exception raised when the iRacing API is unavailable due to maintenance (HTTP 503)."""
+
+    pass
+
+
 class IRacingClient:
     """
     Custom iRacing Data API client with Django integration.
@@ -77,7 +83,7 @@ class IRacingClient:
     MAX_RETRIES = 3
     RETRY_DELAY = 2.0  # 2 seconds between retries
     
-    def __init__(self, username: str = None, password: str = None):
+    def __init__(self, username: Optional[str] = None, password: Optional[str] = None):
         """
         Initialize the iRacing client.
         
@@ -148,7 +154,7 @@ class IRacingClient:
         headers = {"Content-Type": "application/json"}
         data = {
             "email": self.username,
-            "password": self._encode_password(self.username, self.password)
+            "password": self._encode_password(self.username or "", self.password or "")
         }
         
         try:
@@ -249,6 +255,24 @@ class IRacingClient:
             elif "message" in response_data:
                 message += f" - {response_data['message']}"
         
+        if response.status_code == 503:
+            # Detect maintenance mode specifically
+            is_maintenance = False
+            if isinstance(response_data, dict):
+                error_val = str(response_data.get("error", "")).lower()
+                # Typical maintenance payload example: {"error": "Site Maintenance", ...}
+                if "maintenance" in error_val:
+                    is_maintenance = True
+            if is_maintenance:
+                message = "Service Unavailable: iRacing API is undergoing maintenance. Please try again later."
+                raise IRacingMaintenanceError(
+                    message=message,
+                    status_code=response.status_code,
+                    response_data=response_data,
+                    endpoint=endpoint,
+                    response_headers=dict(response.headers),
+                )
+        
         raise IRacingAPIError(
             message=message,
             status_code=response.status_code,
@@ -283,7 +307,7 @@ class IRacingClient:
         endpoint: str,
         params: Optional[Dict] = None,
         use_cache: bool = True,
-        cache_timeout: int = None
+        cache_timeout: Optional[int] = None
     ) -> Union[Dict, List]:
         """
         Make an authenticated request to the iRacing API.
@@ -467,6 +491,47 @@ class IRacingClient:
         if not isinstance(result, list):
             raise IRacingAPIError("Invalid response format for car classes", endpoint="/data/carclass/get")
         return result  # type: ignore
+
+    # Stats API Methods
+    def stats_member_summary(self, cust_id: int = None) -> Dict[str, Any]:
+        """Get member summary statistics."""
+        params = {}
+        if cust_id is not None:
+            params["cust_id"] = cust_id
+        result = self._make_request("/data/stats/member_summary", params=params)
+        if not isinstance(result, dict):
+            raise IRacingAPIError("Invalid response format for member summary", endpoint="/data/stats/member_summary")
+        return result
+
+    def stats_member_recent_races(self, cust_id: int = None) -> Dict[str, Any]:
+        """Get member's recent race results."""
+        params = {}
+        if cust_id is not None:
+            params["cust_id"] = cust_id
+        result = self._make_request("/data/stats/member_recent_races", params=params)
+        if not isinstance(result, dict):
+            raise IRacingAPIError("Invalid response format for member recent races", endpoint="/data/stats/member_recent_races")
+        return result
+
+    def stats_member_yearly(self, cust_id: int = None) -> Dict[str, Any]:
+        """Get member's yearly statistics."""
+        params = {}
+        if cust_id is not None:
+            params["cust_id"] = cust_id
+        result = self._make_request("/data/stats/member_yearly", params=params)
+        if not isinstance(result, dict):
+            raise IRacingAPIError("Invalid response format for member yearly stats", endpoint="/data/stats/member_yearly")
+        return result
+
+    def member_profile(self, cust_id: int = None) -> Dict[str, Any]:
+        """Get member profile information."""
+        params = {}
+        if cust_id is not None:
+            params["cust_id"] = cust_id
+        result = self._make_request("/data/member/profile", params=params)
+        if not isinstance(result, dict):
+            raise IRacingAPIError("Invalid response format for member profile", endpoint="/data/member/profile")
+        return result
 
 
 # Global instance for easy access

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ club.name }} Dashboard{% endblock %}
+
+{% block content %}
+{% include "teams/club_dashboard/_header.html" %}
+
+<div class="bg-gray-50 dark:bg-gray-900 min-h-screen flex">
+  {% include "teams/club_dashboard/_sidebar.html" %}
+
+  <main class="flex-1 py-6 px-4 sm:px-6 lg:px-8">
+    {% block page_content %}{% endblock %}
+  </main>
+</div>
+{% endblock %} 

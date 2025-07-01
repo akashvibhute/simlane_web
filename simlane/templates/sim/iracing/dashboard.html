@@ -82,7 +82,7 @@
                       </button>
                     {% endfor %}
                     <div class="border-t border-gray-100 dark:border-gray-700">
-                      <a href="{% url 'users:sim_profiles' %}"
+                      <a href="{% url 'users:profile_sim_profiles' %}"
                          class="flex items-center w-full px-4 py-2 text-sm text-primary-600 dark:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
                         <svg class="w-4 h-4 mr-3"
                              fill="none"
@@ -104,7 +104,7 @@
                   </path>
                 </svg>
                 <span>No sim profiles configured</span>
-                <a href="{% url 'users:sim_profiles' %}"
+                                  <a href="{% url 'users:profile_sim_profiles' %}"
                    class="text-primary-600 dark:text-primary-400 hover:text-primary-500 cursor-pointer">Set up now</a>
               </div>
             {% endif %}

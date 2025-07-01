@@ -1,0 +1,29 @@
+{% extends "teams/club_dashboard/_base.html" %}
+
+{% block page_content %}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Members count -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Members</h2>
+      <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{{ member_count }}</p>
+    </div>
+    <!-- Teams count -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <h2 class="text-sm font-medium text-gray-500 dark:text-gray-400">Teams</h2>
+      <p class="mt-2 text-3xl font-semibold text-gray-900 dark:text-white">{{ club_team_count }}</p>
+    </div>
+  </div>
+
+  <h2 class="text-lg font-medium text-gray-900 dark:text-white mt-8 mb-4">Recent Activity</h2>
+  {% if recent_entries %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+      {% for entry in recent_entries %}
+        <li class="py-4 text-sm text-gray-700 dark:text-gray-300">
+          {{ entry.user.username }} – {{ entry.event.name }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-sm text-gray-500 dark:text-gray-400">No recent activity.</p>
+  {% endif %}
+{% endblock %} 

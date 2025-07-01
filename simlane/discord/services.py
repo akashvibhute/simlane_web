@@ -159,14 +159,21 @@ class DiscordBotService:
             await client.login(settings.DISCORD_BOT_TOKEN)
             guild = await client.fetch_guild(int(guild_id))
 
-            channels_info = []
-            for channel in guild.channels:
-                channels_info.append({
-                    'channel_id': str(channel.id),
-                    'name': channel.name,
-                    'type': str(channel.type),
-                    'category_id': str(channel.category_id) if getattr(channel, 'category_id', None) else None
-                })
+            # Fetch channels via HTTP – fetch_guild does not populate channel cache
+            channels = await guild.fetch_channels()
+
+            channels_info = [
+                {
+                    'channel_id': str(ch.id),
+                    'name': ch.name,
+                    'type': str(ch.type),
+                    'category_id': str(getattr(ch, 'category_id', '')) if getattr(ch, 'category_id', None) else None,
+                }
+                for ch in channels
+            ]
+
+            # Sort by channel name for convenience
+            channels_info.sort(key=lambda c: c['name'])
 
             await client.close()
             return channels_info
@@ -187,6 +194,40 @@ class DiscordBotService:
 
         except Exception as e:
             logger.error(f"Error posting message to channel {channel_id}: {e}")
+            raise
+
+    async def edit_message(
+        self,
+        channel_id: str,
+        message_id: int,
+        *,
+        content: Optional[str] = None,
+        embed: Optional[discord.Embed] = None,
+    ) -> None:
+        """Edit an existing Discord message.
+
+        Parameters
+        ----------
+        channel_id : str
+            The ID of the channel containing the message.
+        message_id : int
+            The ID of the message to edit.
+        content : str | None
+            New text content (optional).
+        embed : discord.Embed | None
+            Replacement embed (optional).
+        """
+        try:
+            client = discord.Client(intents=self.intents)
+            await client.login(settings.DISCORD_BOT_TOKEN)
+            channel = await client.fetch_channel(int(channel_id))
+            message = await channel.fetch_message(int(message_id))
+            await message.edit(content=content, embed=embed)
+            await client.close()
+        except Exception as e:
+            logger.error(
+                "Error editing message %s in channel %s: %s", message_id, channel_id, e
+            )
             raise
 
     async def create_embed(

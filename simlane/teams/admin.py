@@ -7,6 +7,7 @@ from .models import AvailabilityWindow
 from .models import Club
 from .models import ClubEventSignupSheet
 from .models import ClubInvitation
+from .models import ClubJoinRequest
 from .models import ClubMember
 from .models import EventParticipation
 from .models import EventSignupInvitation
@@ -614,3 +615,66 @@ class ClubEventSignupSheetAdmin(ModelAdmin):
     def cancel_signups(self, request, queryset):
         count = queryset.update(status="cancelled")
         self.message_user(request, f"Cancelled {count} signup sheet(s)")
+
+
+@admin.register(ClubJoinRequest)
+class ClubJoinRequestAdmin(ModelAdmin):
+    list_display = [
+        "user",
+        "club", 
+        "status",
+        "created_at",
+        "reviewed_by",
+        "reviewed_at"
+    ]
+    list_filter = ["status", "club", "created_at", "reviewed_at"]
+    search_fields = ["user__username", "user__email", "club__name", "description"]
+    readonly_fields = ["created_at", "updated_at", "reviewed_at", "discord_message_id"]
+    raw_id_fields = ["user", "club", "reviewed_by"]
+    
+    fieldsets = (
+        ("Request Information", {
+            "fields": ("user", "club", "description", "status")
+        }),
+        ("Admin Response", {
+            "fields": ("reviewed_by", "admin_response", "reviewed_at"),
+            "classes": ("collapse",)
+        }),
+        ("Discord Integration", {
+            "fields": ("discord_message_id",),
+            "classes": ("collapse",)
+        }),
+        ("Timestamps", {
+            "fields": ("created_at", "updated_at"),
+            "classes": ("collapse",)
+        })
+    )
+    
+    actions = ["approve_requests", "reject_requests"]
+    
+    @admin.action(description="Approve selected join requests")
+    def approve_requests(self, request, queryset):
+        approved_count = 0
+        for join_request in queryset.filter(status='pending'):
+            join_request.approve(reviewed_by=request.user)
+            approved_count += 1
+        
+        self.message_user(
+            request,
+            f"Successfully approved {approved_count} join request(s).",
+        )
+    
+    @admin.action(description="Reject selected join requests")  
+    def reject_requests(self, request, queryset):
+        rejected_count = 0
+        for join_request in queryset.filter(status='pending'):
+            join_request.reject(
+                reviewed_by=request.user,
+                admin_response="Rejected from admin panel"
+            )
+            rejected_count += 1
+            
+        self.message_user(
+            request,
+            f"Successfully rejected {rejected_count} join request(s).",
+        )

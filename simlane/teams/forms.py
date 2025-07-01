@@ -13,6 +13,7 @@ from .models import Club
 from .models import ClubInvitation
 from .models import ClubMember
 from .models import ClubRole
+from .models import ClubJoinRequest
 
 User = get_user_model()
 
@@ -26,6 +27,7 @@ class ClubCreateForm(forms.ModelForm):
             "name",
             "description",
             "logo",
+            "banner_image",
             "website",
             "discord_url",
             "twitter_url",
@@ -50,6 +52,12 @@ class ClubCreateForm(forms.ModelForm):
                 },
             ),
             "logo": forms.ClearableFileInput(
+                attrs={
+                    "class": "form-input",
+                    "accept": "image/*",
+                },
+            ),
+            "banner_image": forms.ClearableFileInput(
                 attrs={
                     "class": "form-input",
                     "accept": "image/*",
@@ -102,6 +110,7 @@ class ClubCreateForm(forms.ModelForm):
             "name": "Choose a unique name for your club",
             "description": "Tell potential members what your club is about",
             "logo": "Upload your club logo (JPG, PNG, or GIF)",
+            "banner_image": "Upload a banner image (recommended size: 1248x128 pixels)",
             "website": "Your club website (optional)",
             "discord_url": "Discord server invite link (optional)",
             "twitter_url": "Twitter/X profile URL (optional)",
@@ -130,6 +139,26 @@ class ClubCreateForm(forms.ModelForm):
                 raise ValidationError("Logo must be a JPEG, PNG, GIF, or WebP image.")
 
         return logo
+
+    def clean_banner_image(self):
+        banner = self.cleaned_data.get("banner_image")
+        if banner:
+            # Validate file size (max 10MB for banners)
+            if banner.size > 10 * 1024 * 1024:
+                raise ValidationError("Banner image file size must be less than 10MB.")
+
+            # Validate file type
+            valid_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+            if banner.content_type not in valid_types:
+                raise ValidationError("Banner must be a JPEG, PNG, GIF, or WebP image.")
+
+            # Note: We could add dimension validation here if needed
+            # from PIL import Image
+            # img = Image.open(banner)
+            # if img.width > 1248 or img.height > 128:
+            #     raise ValidationError("Banner dimensions should not exceed 1248x128 pixels.")
+
+        return banner
 
 
 class ClubUpdateForm(ClubCreateForm):
@@ -983,4 +1012,65 @@ class TeamFormationSettingsForm(forms.Form):
         initial=True,
         widget=forms.CheckboxInput(attrs={"class": "rounded border-gray-300"}),
         help_text="Try to balance experience levels across teams",
+    )
+
+
+class ClubJoinRequestForm(forms.ModelForm):
+    """Form for users to request to join a club"""
+    
+    class Meta:
+        model = ClubJoinRequest
+        fields = ['description']
+        widgets = {
+            'description': forms.Textarea(
+                attrs={
+                    'class': 'mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                    'rows': 4,
+                    'placeholder': 'Tell us why you want to join this club...'
+                }
+            ),
+        }
+        labels = {
+            'description': 'Why do you want to join this club?'
+        }
+
+
+class ClubJoinRequestResponseForm(forms.Form):
+    """Form for admins to respond to join requests"""
+    
+    ACTION_CHOICES = [
+        ('approve', 'Approve'),
+        ('reject', 'Reject'),
+    ]
+    
+    action = forms.ChoiceField(
+        choices=ACTION_CHOICES,
+        widget=forms.RadioSelect(
+            attrs={
+                'class': 'text-primary-600 dark:text-primary-400 focus:ring-primary-500'
+            }
+        )
+    )
+    
+    role = forms.ChoiceField(
+        choices=ClubRole.choices,
+        initial=ClubRole.MEMBER,
+        widget=forms.Select(
+            attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500'
+            }
+        ),
+        help_text="Role to assign if approving the request"
+    )
+    
+    message = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'rows': 3,
+                'placeholder': 'Optional message to the user...'
+            }
+        ),
+        required=False,
+        help_text="Message to send to the user with your decision"
     )

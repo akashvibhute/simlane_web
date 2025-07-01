@@ -6,63 +6,99 @@
   <div class="border-b border-gray-200 dark:border-gray-700 pb-6 mb-6">
     <h2 class="text-lg font-medium text-gray-900 dark:text-white">{% trans "General Settings" %}</h2>
     <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-      {% trans "Update your personal information and account settings" %}
+      {% trans "Update your profile picture and view account information" %}
     </p>
   </div>
   <form hx-post="{% url 'users:profile_general' %}"
         hx-target="#profile-content"
         hx-swap="innerHTML"
+        enctype="multipart/form-data"
         class="space-y-6">
     {% csrf_token %}
+    
     <!-- Profile Picture Section -->
-    <div class="flex items-center space-x-6">
-      <div class="flex-shrink-0">
-        <div class="h-20 w-20 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-          <svg class="h-10 w-10 text-gray-400 dark:text-gray-500"
-               fill="currentColor"
-               viewBox="0 0 24 24">
-            <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        </div>
-      </div>
-      <div>
-        <p class="text-sm font-medium text-gray-900 dark:text-white">{% trans "Profile Picture" %}</p>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          {% trans "Coming soon - profile picture upload functionality" %}
-        </p>
-        <button type="button"
-                disabled
-                class="mt-2 inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 cursor-not-allowed">
-          {% trans "Upload Photo" %}
-        </button>
-      </div>
-    </div>
-    <!-- Username Field -->
     <div>
-      <label for="{{ form.username.id_for_label }}"
-             class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ form.username.label }}</label>
-      <div class="mt-1">
-        {% render_field form.username class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-primary-500 dark:focus:ring-primary-400 focus:border-primary-500 dark:focus:border-primary-400 sm:text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100" %}
-      </div>
-      {% if form.username.errors %}
-        <div class="mt-1">
-          {% for error in form.username.errors %}<p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>{% endfor %}
+      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        {{ form.profile_image.label }}
+      </label>
+      <div class="flex items-center space-x-6">
+        <div class="flex-shrink-0">
+          <div class="h-24 w-24 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+            {% if user.profile_image %}
+              <img id="profile-preview" 
+                   src="{{ user.profile_image.url }}" 
+                   alt="{{ user.username }}"
+                   class="h-full w-full object-cover">
+            {% else %}
+              <div id="profile-placeholder" class="h-full w-full flex items-center justify-center">
+                <svg class="h-12 w-12 text-gray-400 dark:text-gray-500"
+                     fill="currentColor"
+                     viewBox="0 0 24 24">
+                  <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
+              <img id="profile-preview" 
+                   src="" 
+                   alt="Profile preview"
+                   class="h-full w-full object-cover hidden">
+            {% endif %}
+          </div>
         </div>
-      {% endif %}
+        <div class="flex-1">
+          {% render_field form.profile_image %}
+          {% if form.profile_image.help_text %}
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.profile_image.help_text }}</p>
+          {% endif %}
+          {% if form.profile_image.errors %}
+            <div class="mt-1">
+              {% for error in form.profile_image.errors %}
+                <p class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if user.profile_image %}
+            <div class="mt-2">
+              <label class="inline-flex items-center text-sm text-red-600 dark:text-red-400 cursor-pointer">
+                <input type="checkbox" name="profile_image-clear" id="profile_image-clear_id" class="mr-2">
+                {% trans "Remove current image" %}
+              </label>
+            </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
+
     <!-- Account Information -->
     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
       <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-4">{% trans "Account Information" %}</h3>
-      <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+      <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+        <div>
+          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{% trans "Username" %}</dt>
+          <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ user.username }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{% trans "Email" %}</dt>
+          <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ user.email }}</dd>
+        </div>
+        <div>
+          <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{% trans "Full Name" %}</dt>
+          <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+            {% if user.name %}
+              {{ user.name }}
+            {% else %}
+              <span class="text-gray-400 dark:text-gray-500">{% trans "Not set" %}</span>
+            {% endif %}
+          </dd>
+        </div>
         <div>
           <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{% trans "Member since" %}</dt>
-          <dd class="text-sm text-gray-900 dark:text-gray-100">
+          <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
             {{ user.date_joined|date:"F j, Y" }}
           </dd>
         </div>
         <div>
           <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{% trans "Last login" %}</dt>
-          <dd class="text-sm text-gray-900 dark:text-gray-100">
+          <dd class="mt-1 text-sm text-gray-900 dark:text-gray-100">
             {% if user.last_login %}
               {{ user.last_login|date:"F j, Y g:i A" }}
             {% else %}
@@ -72,6 +108,7 @@
         </div>
       </dl>
     </div>
+
     <!-- Form Errors -->
     {% if form.non_field_errors %}
       <div class="rounded-md bg-red-50 dark:bg-red-900/20 p-4 mt-6">
@@ -83,11 +120,14 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
           <div class="ml-3">
-            {% for error in form.non_field_errors %}<p class="text-sm text-red-800 dark:text-red-300">{{ error }}</p>{% endfor %}
+            {% for error in form.non_field_errors %}
+              <p class="text-sm text-red-800 dark:text-red-300">{{ error }}</p>
+            {% endfor %}
           </div>
         </div>
       </div>
     {% endif %}
+
     <!-- Submit Button -->
     <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
       <div class="flex justify-end">
@@ -98,14 +138,42 @@
       </div>
     </div>
   </form>
-  <!-- Account Deletion -->
-  {% comment %} <div class="mt-10 pt-10 border-t border-gray-200 dark:border-gray-700">
-    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-3">{% trans "Delete Account" %}</h3>
-    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-      {% trans "Once you delete your account, there is no going back. Please be certain." %}
-    </p>
-    <button type="button" class="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-700 shadow-sm text-sm font-medium rounded-md text-red-700 dark:text-red-300 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 dark:focus:ring-red-400 dark:focus:ring-offset-gray-900">
-      {% trans "Delete Account" %}
-    </button>
-  </div> {% endcomment %}
 </div>
+
+<script>
+  // Image preview functionality
+  document.getElementById('{{ form.profile_image.id_for_label }}').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const preview = document.getElementById('profile-preview');
+        const placeholder = document.getElementById('profile-placeholder');
+        preview.src = e.target.result;
+        preview.classList.remove('hidden');
+        if (placeholder) {
+          placeholder.classList.add('hidden');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Handle clear checkbox
+  const clearCheckbox = document.getElementById('profile_image-clear_id');
+  if (clearCheckbox) {
+    clearCheckbox.addEventListener('change', function(e) {
+      const preview = document.getElementById('profile-preview');
+      const placeholder = document.getElementById('profile-placeholder');
+      const fileInput = document.getElementById('{{ form.profile_image.id_for_label }}');
+      
+      if (e.target.checked) {
+        preview.classList.add('hidden');
+        if (placeholder) {
+          placeholder.classList.remove('hidden');
+        }
+        fileInput.value = '';
+      }
+    });
+  }
+</script>

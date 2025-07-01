@@ -447,6 +447,21 @@ class ClubSubscription(models.Model):
         
         self.save()
 
+    # -------------------------------------------------------------
+    # Feature helpers (used by decorators and permissions checks)
+    # -------------------------------------------------------------
+
+    def has_feature(self, feature_name: str) -> bool:
+        """Compatibility shim.
+
+        Some legacy code (decorators, older views) expects
+        `subscription.has_feature(name)` to exist.  The main
+        implementation lives in :py:meth:`has_feature_access`, so
+        this wrapper simply proxies to that to avoid AttributeErrors
+        without changing existing call-sites.
+        """
+        return self.has_feature_access(feature_name)
+
 
 class BillingEventLog(models.Model):
     """

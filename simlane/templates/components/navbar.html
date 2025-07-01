@@ -59,7 +59,13 @@
                     id="user-dropdown-button">
               <div class="flex items-center space-x-2">
                 <div class="h-8 w-8 rounded-full bg-primary-100 dark:bg-primary-800 flex items-center justify-center">
-                  <span class="text-sm font-medium text-primary-600 dark:text-primary-300">{{ request.user.username|first|upper }}</span>
+                  {% if request.user.profile_image %}
+                    <img src="{{ request.user.profile_image.url }}"
+                         alt="{{ request.user.username }}"
+                         class="h-8 w-8 rounded-full">
+                  {% else %}
+                    <span class="text-sm font-medium text-primary-600 dark:text-primary-300">{{ request.user.username|first|upper }}</span>
+                  {% endif %}
                 </div>
                 <span>{{ request.user.username }}</span>
                 <svg class="h-4 w-4 transition-transform"
@@ -92,19 +98,6 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 {% translate "My Profile" %}
-              </a>
-              <a href="{% url 'users:sim_profiles' %}"
-                 hx-get="{% url 'users:sim_profiles' %}"
-                 hx-target="#main-content"
-                 hx-push-url="true"
-                 class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                <svg class="h-4 w-4 mr-3"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
-                Sim Profiles
               </a>
               <a href="{% url 'users:profile' %}"
                  hx-get="{% url 'users:profile' %}"
@@ -218,12 +211,6 @@
              onclick="toggleMobileMenu()">{% translate "Dashboard" %}</a>
           <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
              href="{% url 'users:detail' request.user.username %}">{% translate "My Profile" %}</a>
-          <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
-             href="{% url 'users:sim_profiles' %}"
-             hx-get="{% url 'users:sim_profiles' %}"
-             hx-target="#main-content"
-             hx-push-url="true"
-             onclick="toggleMobileMenu()">Sim Profiles</a>
           <a class="block px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md font-medium"
              href="{% url 'users:profile_general' %}"
              hx-get="{% url 'users:profile_general' %}"

@@ -29,6 +29,15 @@ urlpatterns = [
     path(
         "<slug:club_slug>/invite/", views.club_invite_member, name="club_invite_member"
     ),
+    # Club Join Requests Management
+    path(
+        "<slug:club_slug>/requests/", views.club_join_requests, name="club_join_requests"
+    ),
+    path(
+        "<slug:club_slug>/requests/<uuid:request_id>/handle/",
+        views.handle_join_request,
+        name="handle_join_request",
+    ),
     # Club Event Signups
     path(
         "<slug:club_slug>/signups/", views.club_event_signups, name="club_event_signups"

@@ -1,0 +1,56 @@
+{% extends "teams/club_dashboard/_base.html" %}
+{% block page_content %}
+<div class="space-y-6">
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <h2 class="text-lg font-medium">Join Requests</h2>
+      {% if pending_requests_count %}
+        <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">{{ pending_requests_count }} pending</span>
+      {% endif %}
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="px-6 py-3 border-b border-gray-200 dark:border-gray-700">
+      <nav class="flex space-x-6 text-sm">
+        {% for code,label in [('all','All'),('pending','Pending'),('approved','Approved'),('rejected','Rejected')] %}
+          <a href="{% url 'clubs:requests' club.slug %}{% if code != 'all' %}?status={{ code }}{% endif %}"
+             class="{% if status_filter == code or (code == 'all' and status_filter=='all') %}text-primary-600 border-b-2 border-primary-600{% else %}text-gray-500 hover:text-gray-700{% endif %} py-2 px-1">
+            {{ label }}
+          </a>
+        {% endfor %}
+      </nav>
+    </div>
+
+    <div class="p-6 space-y-4">
+      {% for request in join_requests %}
+        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+          <div>
+            <p class="font-medium">{{ request.user.get_full_name|default:request.user.username }}</p>
+            <p class="text-xs text-gray-500">{{ request.created_at|timesince }} ago &middot; {{ request.status|title }}</p>
+          </div>
+          {% if request.status == 'pending' %}
+            <div class="space-x-2">
+              <a href="{% url 'teams:handle_join_request' club.slug request.id %}?action=approve" class="text-green-600 text-xs">Approve</a>
+              <a href="{% url 'teams:handle_join_request' club.slug request.id %}?action=reject" class="text-red-600 text-xs">Reject</a>
+            </div>
+          {% endif %}
+        </div>
+      {% empty %}
+        <p class="text-sm text-gray-500">No requests found.</p>
+      {% endfor %}
+
+      {% if is_paginated %}
+        <div class="pt-4 text-sm flex justify-between">
+          {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if status_filter!='all' %}&status={{ status_filter }}{% endif %}" class="hover:underline">Previous</a>
+          {% endif %}
+          <span>Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+          {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if status_filter!='all' %}&status={{ status_filter }}{% endif %}" class="hover:underline">Next</a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,165 @@
+{% load static %}
+
+<div class="max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+    <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Link iRacing Profile</h2>
+        <div class="flex items-center text-green-600 dark:text-green-400">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <span class="text-sm font-medium">Profile verified</span>
+        </div>
+    </div>
+
+    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    {% if profile_exists %}
+                        iRacing profile found in our system
+                    {% else %}
+                        iRacing profile verified and created
+                    {% endif %}
+                </h3>
+                <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                    {% if profile_exists %}
+                        <p>This profile already exists in our system{% if data_freshness == "recent" %} with recent data{% endif %}. Would you like to link it to your account?</p>
+                    {% else %}
+                        <p>We've verified your iRacing profile and added it to our system. Would you like to link it to your account?</p>
+                    {% endif %}
+                    {% if data_freshness == "fresh" %}
+                        <p class="mt-1 text-xs">Data updated with latest information from iRacing.</p>
+                    {% elif data_freshness == "recent" %}
+                        <p class="mt-1 text-xs">Using recently cached data (updated within 24 hours).</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Information -->
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">iRacing Profile Information</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Display Name
+                </label>
+                <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                    {{ iracing_data.display_name|default:"Unknown" }}
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Customer ID
+                </label>
+                <div class="text-lg text-gray-900 dark:text-white">
+                    {{ iracing_data.cust_id|default:form_data.sim_api_id }}
+                </div>
+            </div>
+            
+            {% if iracing_data.member_since %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Member Since
+                </label>
+                <div class="text-sm text-gray-900 dark:text-white">
+                    {{ iracing_data.member_since }}
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if iracing_data.country %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Country
+                </label>
+                <div class="text-sm text-gray-900 dark:text-white">
+                    {{ iracing_data.country }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if iracing_data.licenses %}
+        <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                License Information
+            </label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {% for license in iracing_data.licenses %}
+                <div class="p-3 bg-white dark:bg-gray-600 rounded border">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="font-semibold text-sm">{{ license.category_name }}</div>
+                        <div class="text-xs px-2 py-1 rounded" style="background-color: #{{ license.color }}20; color: #{{ license.color }};">
+                            {{ license.group_name }}
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <div>Safety Rating: {{ license.safety_rating|floatformat:2 }}</div>
+                        <div>iRating: {{ license.irating }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Link confirmation form -->
+    <form hx-post="{% url 'users:sim_profile_add' %}" 
+          hx-target="#main-content" 
+          hx-indicator="#loading-indicator"
+          class="space-y-4">
+        {% csrf_token %}
+        
+        <!-- Hidden fields to pass data -->
+        <input type="hidden" name="confirm_profile" value="1">
+        <input type="hidden" name="profile_id" value="{{ sim_profile.id }}">
+
+        <div class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-green-800 dark:text-green-200">
+                        Ready to link
+                    </h3>
+                    <div class="mt-2 text-sm text-green-700 dark:text-green-300">
+                        <p>This iRacing profile will be linked to your SimLane account. You can manage it from your profile page and use it to participate in events.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-600">
+            <button type="button" 
+                    hx-get="{% url 'users:sim_profile_add' %}" 
+                    hx-target="#main-content"
+                    class="btn-secondary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Form
+            </button>
+            
+            <button type="submit" class="btn-primary">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                </svg>
+                Link iRacing Profile to My Account
+            </button>
+        </div>
+    </form>
+</div> 

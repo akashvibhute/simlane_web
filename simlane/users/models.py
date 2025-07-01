@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db.models import CharField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django.db import models
 
 
 class User(AbstractUser):
@@ -15,6 +16,13 @@ class User(AbstractUser):
     name = CharField(_("Name of User"), blank=True, max_length=255)
     first_name = None  # type: ignore[assignment]
     last_name = None  # type: ignore[assignment]
+
+    profile_image = models.ImageField(
+        upload_to="user_profiles/",
+        blank=True,
+        null=True,
+        help_text="Profile image for the user account"
+    )
 
     def get_absolute_url(self) -> str:
         """Get URL for user's detail view.

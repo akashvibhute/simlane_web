@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from .models import DiscordGuild, EventDiscordChannel, ClubDiscordSettings
 from .services import DiscordMemberSyncService, DiscordChannelService, DiscordNotificationService
-from simlane.teams.models import ClubEventSignupSheet
+from simlane.teams.models import ClubEventSignupSheet, ClubJoinRequest
 
 logger = logging.getLogger(__name__)
 
@@ -409,6 +409,172 @@ def send_stint_alert(self, stint_plan_id: int, driver_id: int, minutes_before: i
         }
 
 
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_join_request_notification(self, join_request_id: int):
+    """Send a Discord notification when a new club join request is submitted."""
+    try:
+        from simlane.teams.models import ClubJoinRequest
+        join_request = ClubJoinRequest.objects.select_related('club', 'user').get(id=join_request_id)
+        club = join_request.club
+
+        # Ensure club has Discord integration and notifications are enabled
+        if not hasattr(club, 'discord_guild'):
+            logger.info("Club %s has no Discord guild linked", club.name)
+            return {'success': False, 'reason': 'No Discord guild', 'timestamp': timezone.now().isoformat()}
+
+        try:
+            settings = ClubDiscordSettings.objects.get(club=club)
+        except ClubDiscordSettings.DoesNotExist:
+            logger.info("Discord settings not configured for club %s", club.name)
+            return {'success': False, 'reason': 'No Discord settings', 'timestamp': timezone.now().isoformat()}
+
+        if not settings.enable_join_request_notifications or not settings.join_requests_channel_id:
+            logger.info("Join request notifications disabled or channel not set for club %s", club.name)
+            return {'success': False, 'reason': 'Notifications disabled', 'timestamp': timezone.now().isoformat()}
+
+        notification_service = DiscordNotificationService(club.discord_guild)
+
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        # Create embed
+        embed = loop.run_until_complete(
+            notification_service.bot_service.create_embed(
+                title="🚀 New Join Request",
+                description=f"**{join_request.user.username}** wants to join **{club.name}**",
+                color=0x3498db,
+                fields=[
+                    {"name": "User", "value": join_request.user.get_full_name() or join_request.user.username, "inline": True},
+                    {"name": "Submitted", "value": join_request.created_at.strftime('%Y-%m-%d %H:%M'), "inline": True},
+                ] + (
+                    [{"name": "Reason", "value": join_request.description, "inline": False}] if join_request.description else []
+                ),
+            )
+        )
+        message_id = loop.run_until_complete(
+            notification_service.bot_service.post_message(settings.join_requests_channel_id, embed=embed)
+        )
+
+        # Store Discord message ID
+        join_request.discord_message_id = str(message_id)
+        join_request.save(update_fields=['discord_message_id'])
+
+        logger.info("Join request notification sent for request %s", join_request_id)
+        return {
+            'success': True,
+            'message_id': str(message_id),
+            'join_request_id': join_request_id,
+            'timestamp': timezone.now().isoformat(),
+        }
+
+    except ClubJoinRequest.DoesNotExist:
+        logger.error("Join request %s not found", join_request_id)
+        raise
+    except Exception as exc:
+        logger.exception("Failed to send join request notification %s", join_request_id)
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=exc)
+        return {
+            'success': False,
+            'error': str(exc),
+            'join_request_id': join_request_id,
+            'timestamp': timezone.now().isoformat(),
+        }
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def update_join_request_notification(self, join_request_id: int):
+    """Update the Discord message when a join request is approved or rejected."""
+    try:
+        from simlane.teams.models import ClubJoinRequest
+        join_request = ClubJoinRequest.objects.select_related('club', 'reviewed_by').get(id=join_request_id)
+        club = join_request.club
+
+        if not join_request.discord_message_id:
+            logger.info("Join request %s has no Discord message", join_request_id)
+            return {'success': False, 'reason': 'No Discord message', 'timestamp': timezone.now().isoformat()}
+
+        if not hasattr(club, 'discord_guild'):
+            logger.info("Club %s has no Discord guild", club.name)
+            return {'success': False, 'reason': 'No Discord guild', 'timestamp': timezone.now().isoformat()}
+
+        try:
+            settings = ClubDiscordSettings.objects.get(club=club)
+        except ClubDiscordSettings.DoesNotExist:
+            logger.info("Discord settings not configured for club %s", club.name)
+            return {'success': False, 'reason': 'No Discord settings', 'timestamp': timezone.now().isoformat()}
+
+        notification_service = DiscordNotificationService(club.discord_guild)
+        bot_service = notification_service.bot_service
+
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        status_emoji = {
+            'approved': '✅',
+            'rejected': '❌',
+            'cancelled': '🚫',
+            'pending': '🕐',
+        }.get(join_request.status, 'ℹ️')
+
+        color_map = {
+            'approved': 0x2ecc71,
+            'rejected': 0xe74c3c,
+            'cancelled': 0x95a5a6,
+            'pending': 0xf1c40f,
+        }
+
+        embed = loop.run_until_complete(
+            bot_service.create_embed(
+                title=f"{status_emoji} Join Request {join_request.status.capitalize()}",
+                description=f"**{join_request.user.username}** → **{club.name}**",
+                color=color_map.get(join_request.status, 0x95a5a6),
+                fields=[
+                    {"name": "Status", "value": join_request.status.capitalize(), "inline": True},
+                    {"name": "Reviewed By", "value": join_request.reviewed_by.get_full_name() if join_request.reviewed_by else 'N/A', "inline": True},
+                    {"name": "Admin Message", "value": join_request.admin_response or '—', "inline": False},
+                ],
+            )
+        )
+        loop.run_until_complete(
+            bot_service.edit_message(
+                channel_id=settings.join_requests_channel_id,
+                message_id=int(join_request.discord_message_id),
+                embed=embed,
+            )
+        )
+
+        logger.info("Updated join request notification for request %s", join_request_id)
+        return {
+            'success': True,
+            'message_id': join_request.discord_message_id,
+            'join_request_id': join_request_id,
+            'timestamp': timezone.now().isoformat(),
+        }
+
+    except ClubJoinRequest.DoesNotExist:
+        logger.error("Join request %s not found", join_request_id)
+        raise
+    except Exception as exc:
+        logger.exception("Failed to update join request notification %s", join_request_id)
+        if self.request.retries < self.max_retries:
+            raise self.retry(exc=exc)
+        return {
+            'success': False,
+            'error': str(exc),
+            'join_request_id': join_request_id,
+            'timestamp': timezone.now().isoformat(),
+        }
+
+
 # Helper functions
 def _calculate_time_remaining(target_time):
     """Calculate human-readable time remaining until target time"""
@@ -428,3 +594,41 @@ def _calculate_time_remaining(target_time):
         return f"{minutes} minutes"
     else:
         return "Less than 1 minute"
+
+
+# -------------------------------------------------------------
+# Lightweight wrappers so views can call more specific tasks
+# -------------------------------------------------------------
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_join_request_approved_notification(self, join_request_id: int, club_member_id: int):
+    """Shortcut task used by handle_join_request view when a request is approved."""
+    # We simply update the original Discord message to reflect new status
+    from simlane.teams.models import ClubJoinRequest
+    try:
+        join_request = ClubJoinRequest.objects.get(id=join_request_id)
+        if join_request.status != 'approved':
+            join_request.status = 'approved'
+            join_request.save(update_fields=['status'])
+    except ClubJoinRequest.DoesNotExist:
+        logger.error("Join request %s not found for approved notification", join_request_id)
+        return {'success': False, 'reason': 'join_request_missing'}
+
+    # Re-use existing updater
+    return update_join_request_notification.delay(join_request_id)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def send_join_request_rejected_notification(self, join_request_id: int):
+    """Shortcut task used by handle_join_request when a request is rejected."""
+    from simlane.teams.models import ClubJoinRequest
+    try:
+        join_request = ClubJoinRequest.objects.get(id=join_request_id)
+        if join_request.status != 'rejected':
+            join_request.status = 'rejected'
+            join_request.save(update_fields=['status'])
+    except ClubJoinRequest.DoesNotExist:
+        logger.error("Join request %s not found for rejected notification", join_request_id)
+        return {'success': False, 'reason': 'join_request_missing'}
+
+    return update_join_request_notification.delay(join_request_id)

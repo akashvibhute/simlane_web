@@ -1,47 +1,9 @@
 {% load static billing_tags %}
 
-<div class="p-6">
+<div id="club-dashboard-content" class="p-6">
   {% if active_section == 'overview' %}
     <!-- Overview Section -->
     <div class="space-y-6">
-      <!-- Subscription Status Widget -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6" 
-           hx-trigger="load, club:subscription_updated from:body" 
-           hx-get="{% url 'billing:subscription_status_widget' club.slug %}" 
-           hx-swap="outerHTML">
-        {% get_club_subscription club as subscription %}
-        <div class="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
-          <div class="flex-1">
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Plan: <span class="font-semibold text-gray-900 dark:text-white">
-                {% if subscription %}{{ subscription.plan.name }}{% else %}Free{% endif %}
-              </span>
-            </p>
-            <div class="mt-2">
-              {% subscription_usage_bar club %}
-            </div>
-          </div>
-          <div class="flex items-center space-x-4">
-            {% subscription_feature_enabled club 'race_planning' as race_planning %}
-            {% if race_planning %}
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
-                Race Planning Enabled
-              </span>
-            {% else %}
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">
-                Race Planning Locked
-              </span>
-            {% endif %}
-            {% if subscription and subscription.plan.max_members and subscription.seats_used >= subscription.plan.max_members %}
-              {% upgrade_prompt club %}
-            {% elif subscription and subscription.plan.max_members and subscription.seats_used >= subscription.plan.max_members|add:'-1' %}
-              <a href="{% url 'billing:subscription_dashboard' club.slug %}" class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">
-                Upgrade Plan
-              </a>
-            {% endif %}
-          </div>
-        </div>
-      </div>
       <!-- Stats Grid -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
@@ -419,18 +381,21 @@
         </div>
       </div>
     </div>
+  {% elif active_section == 'requests' %}
+    {% include "teams/club_dashboard_requests_section.html" %}
+  {% elif active_section == 'discord' %}
+    {% include "teams/discord/club_discord_settings_section.html" %}
   {% elif active_section == 'settings' %}
     <!-- Settings Section -->
     <div class="space-y-6">
-      <!-- Club Management -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 class="text-lg font-medium text-gray-900 dark:text-white">Club Management</h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage club settings and configuration</p>
+          <h2 class="text-lg font-medium text-gray-900 dark:text-white">Club Settings</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage your club preferences and configurations</p>
         </div>
         <div class="p-6">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Update Club Settings -->
+          <div class="space-y-4">
+            <!-- Club Settings -->
             <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
               <div class="flex items-center space-x-3">
                 <div class="flex-shrink-0">
@@ -448,7 +413,10 @@
                   <h3 class="text-sm font-medium text-gray-900 dark:text-white">Club Settings</h3>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Update club name, description, and general settings</p>
                   <div class="mt-3">
-                    <a href="{% url 'teams:club_update' club.slug %}"
+                    <a href="{% url 'teams:club_dashboard_section' club.slug 'update' %}"
+                       hx-get="{% url 'teams:club_dashboard_section' club.slug 'update' %}"
+                       hx-target="#club-dashboard-content"
+                       hx-swap="innerHTML"
                        class="inline-flex items-center px-3 py-1 border border-blue-300 dark:border-blue-600 text-xs font-medium rounded text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/30">
                       <svg class="w-3 h-3 mr-1"
                            fill="none"
@@ -649,6 +617,230 @@
       {% endif %}
       
     </div>
+    
+  {% elif active_section == "update" %}
+    <!-- Update Club Section -->
+    <div class="space-y-6">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-lg font-medium text-gray-900 dark:text-white">Update Club</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Update your club information and settings</p>
+        </div>
+        <div class="p-6">
+          <form hx-post="{% url 'teams:club_update' club.slug %}"
+                hx-target="#club-dashboard-content"
+                hx-swap="innerHTML"
+                enctype="multipart/form-data"
+                class="space-y-6">
+            {% csrf_token %}
+            {% load widget_tweaks %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <!-- Club Name -->
+              <div>
+                <label for="{{ form.name.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ form.name.label }}
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.name.errors|first }}</div>
+                {% endif %}
+              </div>
+              
+              <!-- Website -->
+              <div>
+                <label for="{{ form.website.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ form.website.label }}
+                </label>
+                {{ form.website }}
+                {% if form.website.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.website.errors|first }}</div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <!-- Description -->
+            <div>
+              <label for="{{ form.description.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.description.label }}
+              </label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.description.errors|first }}</div>
+              {% endif %}
+            </div>
+            
+            <!-- Logo Upload -->
+            <div>
+              <label for="{{ form.logo.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.logo.label }}
+              </label>
+              {% if club.logo %}
+                <div class="mb-2">
+                  <img src="{{ club.logo.url }}"
+                       alt="{{ club.name }} logo"
+                       class="w-16 h-16 rounded-lg object-cover" />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Current logo</p>
+                </div>
+              {% endif %}
+              {{ form.logo }}
+              {% if form.logo.errors %}
+                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.logo.errors|first }}</div>
+              {% endif %}
+              {% if form.logo.help_text %}
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.logo.help_text }}</p>
+              {% endif %}
+            </div>
+            
+            <!-- Banner Image Upload -->
+            <div class="md:col-span-2">
+              <label for="{{ form.banner_image.id_for_label }}"
+                     class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.banner_image.label }}
+              </label>
+              {% if club.banner_image %}
+                <div class="mb-2">
+                  <img src="{{ club.banner_image.url }}"
+                       alt="{{ club.name }} banner"
+                       class="w-full max-w-2xl h-32 rounded-lg object-cover" />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Current banner</p>
+                </div>
+              {% endif %}
+              {{ form.banner_image }}
+              <div id="banner-preview-container" class="hidden mt-2">
+                <img id="banner-preview" 
+                     src="" 
+                     alt="Banner preview" 
+                     class="w-full max-w-2xl h-32 rounded-lg object-cover" />
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Preview</p>
+              </div>
+              {% if form.banner_image.errors %}
+                <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.banner_image.errors|first }}</div>
+              {% endif %}
+              {% if form.banner_image.help_text %}
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ form.banner_image.help_text }}</p>
+              {% endif %}
+            </div>
+            
+            <!-- Social Media Links -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label for="{{ form.discord_url.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ form.discord_url.label }}
+                </label>
+                {{ form.discord_url }}
+                {% if form.discord_url.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.discord_url.errors|first }}</div>
+                {% endif %}
+              </div>
+              
+              <div>
+                <label for="{{ form.twitter_url.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ form.twitter_url.label }}
+                </label>
+                {{ form.twitter_url }}
+                {% if form.twitter_url.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.twitter_url.errors|first }}</div>
+                {% endif %}
+              </div>
+              
+              <div>
+                <label for="{{ form.youtube_url.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ form.youtube_url.label }}
+                </label>
+                {{ form.youtube_url }}
+                {% if form.youtube_url.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.youtube_url.errors|first }}</div>
+                {% endif %}
+              </div>
+              
+              <div>
+                <label for="{{ form.twitch_url.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ form.twitch_url.label }}
+                </label>
+                {{ form.twitch_url }}
+                {% if form.twitch_url.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.twitch_url.errors|first }}</div>
+                {% endif %}
+              </div>
+              
+              <div>
+                <label for="{{ form.facebook_url.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ form.facebook_url.label }}
+                </label>
+                {{ form.facebook_url }}
+                {% if form.facebook_url.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.facebook_url.errors|first }}</div>
+                {% endif %}
+              </div>
+              
+              <div>
+                <label for="{{ form.instagram_url.id_for_label }}"
+                       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {{ form.instagram_url.label }}
+                </label>
+                {{ form.instagram_url }}
+                {% if form.instagram_url.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ form.instagram_url.errors|first }}</div>
+                {% endif %}
+              </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+              <a href="{% url 'teams:club_dashboard_section' club.slug 'settings' %}"
+                 hx-get="{% url 'teams:club_dashboard_section' club.slug 'settings' %}"
+                 hx-target="#club-dashboard-content"
+                 hx-swap="innerHTML"
+                 class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Settings
+              </a>
+              <div class="flex space-x-3">
+                <button type="submit"
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Update Club
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      // Banner image preview functionality
+      document.getElementById('{{ form.banner_image.id_for_label }}').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const previewContainer = document.getElementById('banner-preview-container');
+        const preview = document.getElementById('banner-preview');
+        
+        if (file && file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            preview.src = e.target.result;
+            previewContainer.classList.remove('hidden');
+          };
+          reader.readAsDataURL(file);
+        } else {
+          previewContainer.classList.add('hidden');
+        }
+      });
+    </script>
   {% else %}
     <!-- Default/Unknown Section -->
     <div class="space-y-6">

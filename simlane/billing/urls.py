@@ -13,13 +13,6 @@ urlpatterns = [
         name="subscription_dashboard",
     ),
     
-    # HTMX subscription status widget
-    path(
-        "<slug:club_slug>/status-widget/",
-        views.subscription_status_widget,
-        name="subscription_status_widget",
-    ),
-    
     # Checkout initiation for club subscriptions
     path(
         "<slug:club_slug>/checkout/",

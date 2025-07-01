@@ -61,48 +61,82 @@
           </div>
           <!-- Join Request Form -->
           <div class="border-t border-gray-200 dark:border-gray-600 pt-8">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Request to Join</h3>
-            <p class="text-gray-600 dark:text-gray-300 mb-6">
-              Submit a request to join {{ club.name }}. Club administrators will review your request and get back to you.
-            </p>
-            <form method="post" class="space-y-6">
-              {% csrf_token %}
-              <!-- Confirmation -->
-              <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+            {% if existing_request %}
+              <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4 mb-6">
                 <div class="flex">
                   <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-blue-400"
-                         fill="none"
-                         stroke="currentColor"
-                         viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                      </path>
+                    <svg class="h-5 w-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                     </svg>
                   </div>
                   <div class="ml-3">
-                    <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">Before you submit your request</h4>
-                    <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                      <ul class="list-disc pl-5 space-y-1">
-                        <li>Make sure you're interested in joining this specific club</li>
-                        <li>You'll receive a notification when your request is reviewed</li>
-                        <li>Club administrators may contact you for additional information</li>
-                      </ul>
+                    <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">Request Already Submitted</h3>
+                    <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                      <p>You have already submitted a request to join {{ club.name }}. Your request is currently <strong>{{ existing_request.status }}</strong>.</p>
+                      <p class="mt-1">Submitted on {{ existing_request.created_at|date:"F j, Y" }}</p>
                     </div>
                   </div>
                 </div>
               </div>
-              <!-- Action Buttons -->
-              <div class="flex justify-end space-x-4">
-                <a href="{% url 'teams:browse_clubs' %}"
-                   class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  Cancel
-                </a>
-                <button type="submit"
-                        class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
-                  Submit Request
-                </button>
-              </div>
-            </form>
+            {% else %}
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Request to Join</h3>
+              <p class="text-gray-600 dark:text-gray-300 mb-6">
+                Submit a request to join {{ club.name }}. Club administrators will review your request and get back to you.
+              </p>
+              <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Description Field -->
+                <div>
+                  {{ form.description.label_tag }}
+                  {{ form.description }}
+                  {% if form.description.help_text %}
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ form.description.help_text }}</p>
+                  {% endif %}
+                  {% if form.description.errors %}
+                    <div class="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {{ form.description.errors }}
+                    </div>
+                  {% endif %}
+                </div>
+                
+                <!-- Confirmation -->
+                <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+                  <div class="flex">
+                    <div class="flex-shrink-0">
+                      <svg class="h-5 w-5 text-blue-400"
+                           fill="none"
+                           stroke="currentColor"
+                           viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                      </svg>
+                    </div>
+                    <div class="ml-3">
+                      <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">Before you submit your request</h4>
+                      <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                        <ul class="list-disc pl-5 space-y-1">
+                          <li>Make sure you're interested in joining this specific club</li>
+                          <li>You'll receive a notification when your request is reviewed</li>
+                          <li>Club administrators may contact you for additional information</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Action Buttons -->
+                <div class="flex justify-end space-x-4">
+                  <a href="{% url 'teams:browse_clubs' %}"
+                     class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                    Cancel
+                  </a>
+                  <button type="submit"
+                          class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
+                    Submit Request
+                  </button>
+                </div>
+              </form>
+            {% endif %}
           </div>
         </div>
       </div>

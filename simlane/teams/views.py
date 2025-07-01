@@ -18,10 +18,13 @@ from .forms import ClubCreateForm
 from .forms import ClubEventSignupBulkCreateForm
 from .forms import ClubEventSignupSheetForm
 from .forms import ClubInvitationForm
+from .forms import ClubJoinRequestForm
+from .forms import ClubJoinRequestResponseForm
 from .forms import ClubUpdateForm
 from .models import Club
 from .models import ClubEventSignupSheet
 from .models import ClubInvitation
+from .models import ClubJoinRequest
 from .models import ClubMember
 from .models import ClubRole
 from .models import EventParticipation
@@ -38,6 +41,10 @@ from simlane.billing.decorators import race_planning_required
 from simlane.billing.decorators import member_limit_enforced
 from simlane.billing.decorators import subscription_required
 from simlane.billing.decorators import check_member_limit
+
+# Standard library imports
+import asyncio
+import logging
 
 User = get_user_model()
 
@@ -111,14 +118,46 @@ def browse_clubs(request):
         .order_by("name")
     )
 
-    # Get user's current club memberships to exclude from browsing
-    user_club_ids = ClubMember.objects.filter(user=request.user).values_list(
-        "club_id", flat=True
+    # Get user's current club memberships
+    user_club_ids = set(
+        ClubMember.objects.filter(user=request.user).values_list("club_id", flat=True)
     )
-    available_clubs = all_clubs.exclude(id__in=user_club_ids)
+
+    # We'll present *all* clubs; membership status will influence the action button
+    available_clubs = all_clubs  # no exclusion
+
+    # Get user's join requests (pending / historical) to show appropriate button states
+    user_join_requests = {}
+    if request.user.is_authenticated:
+        join_requests = (
+            ClubJoinRequest.objects.filter(
+                user=request.user,
+                club__in=available_clubs,
+                status__in=["pending", "approved", "rejected"],
+            ).select_related("club")
+        )
+        user_join_requests = {req.club.id: req for req in join_requests}
+
+    # Add join request status to each club
+    clubs_with_status = []
+    for club in available_clubs:
+        join_request = user_join_requests.get(club.id)
+        is_member = club.id in user_club_ids
+
+        clubs_with_status.append(
+            {
+                "club": club,
+                "join_request": join_request,
+                "is_member": is_member,
+                # Only allow new request if not already member and either no prior request or previous rejected
+                "can_request": not is_member
+                and (join_request is None or join_request.status == "rejected"),
+                "request_status": join_request.status if join_request else None,
+            }
+        )
 
     context = {
-        "available_clubs": available_clubs,
+        "clubs_with_status": clubs_with_status,
         "total_available_clubs": available_clubs.count(),
     }
 
@@ -139,6 +178,19 @@ def request_join_club(request, club_slug):
         messages.info(request, f"You are already a member of {club.name}.")
         return redirect("teams:club_dashboard", club_slug=club.slug)
 
+    # Check if there's already a pending join request
+    existing_request = ClubJoinRequest.objects.filter(
+        club=club,
+        user=request.user,
+        status='pending'
+    ).first()
+
+    if existing_request:
+        messages.info(
+            request, f"You already have a pending request to join {club.name}."
+        )
+        return redirect("teams:browse_clubs")
+
     # Check if there's already a pending invitation
     existing_invitation = ClubInvitation.objects.filter(
         club=club,
@@ -154,27 +206,41 @@ def request_join_club(request, club_slug):
         )
         return redirect("teams:browse_clubs")
 
+    if request.method == "POST":
+        form = ClubJoinRequestForm(request.POST)
+        if form.is_valid():
+            join_request = form.save(commit=False)
+            join_request.club = club
+            join_request.user = request.user
+            join_request.save()
+            
+            # Send Discord notification if configured
+            if hasattr(club, 'discord_settings') and club.discord_settings.enable_join_request_notifications:
+                from simlane.discord.tasks import send_join_request_notification
+                send_join_request_notification.delay(join_request.id)
+            
+            messages.success(
+                request,
+                f"Your request to join {club.name} has been submitted. "
+                f"Club administrators will review it and get back to you."
+            )
+            return redirect("teams:browse_clubs")
+    else:
+        form = ClubJoinRequestForm()
+
     context = {
         "club": club,
+        "form": form,
+        "existing_request": existing_request,
     }
-
-    if request.method == "POST":
-        # For now, show a message that request was noted
-        # In a full implementation, this could notify club admins
-        messages.success(
-            request,
-            f"Your interest in joining {club.name} has been noted. "
-            f"A club administrator may contact you.",
-        )
-        return redirect("teams:browse_clubs")
 
     return render(request, "teams/request_join_club.html", context)
 
 
 @login_required
 def club_dashboard(request, club_slug):
-    """Individual club dashboard - defaults to overview section."""
-    return club_dashboard_section(request, club_slug, "overview")
+    """Legacy endpoint – redirect to new CBV dashboard root (/clubs/)."""
+    return redirect("clubs:dashboard_root", club_slug=club_slug)
 
 
 @login_required
@@ -336,6 +402,87 @@ def club_dashboard_section(request, club_slug, section="overview"):
                 },
             )
 
+    # === Requests section specific context ===
+    join_requests = []
+    pending_requests_count = 0
+    total_requests_count = 0
+    status_filter = 'all'
+    if section == "requests":
+        if user_role not in ['admin', 'teams_manager']:
+            return HttpResponseForbidden("Only club admins can view join requests.")
+        
+        join_requests = ClubJoinRequest.objects.filter(club=club).select_related('user', 'reviewed_by').order_by('-created_at')
+        pending_requests_count = ClubJoinRequest.objects.filter(club=club, status='pending').count()
+        total_requests_count = ClubJoinRequest.objects.filter(club=club).count()
+        
+        status_filter = request.GET.get('status', 'all')
+        if status_filter != 'all':
+            join_requests = join_requests.filter(status=status_filter)
+        
+        # For HTMX status filter: if this is an HTMX request for requests section, 
+        # return only the requests section to update properly
+        if request.headers.get("HX-Request") and section == "requests":
+            # Check if this is a status filter request by looking at the referer
+            referer = request.META.get('HTTP_REFERER', '')
+            if 'requests' in referer or request.GET.get("status") is not None:
+                # Re-render the entire requests section so status tabs update correctly
+                return render(
+                    request,
+                    "teams/club_dashboard_requests_section.html",
+                    {
+                        "club": club,
+                        "join_requests": join_requests,
+                        "pending_requests_count": pending_requests_count,
+                        "total_requests_count": total_requests_count,
+                        "status_filter": status_filter,
+                        "user_role": user_role,
+                    },
+                )
+
+    # === Discord section specific context ===
+    discord_settings = None
+    if section == "discord":
+        if user_role not in ['admin', 'teams_manager']:
+            return HttpResponseForbidden("Only club admins can manage Discord settings.")
+        
+        # Get or create Discord settings for this club
+        from simlane.discord.models import ClubDiscordSettings
+        discord_settings, created = ClubDiscordSettings.objects.get_or_create(club=club)
+
+    # === Update section specific context ===
+    form = None
+    if section == "update":
+        # Check if user is admin
+        if user_role != 'admin':
+            return HttpResponseForbidden("Only club admins can update club settings.")
+        
+        # Import here to avoid circular imports
+        from .forms import ClubUpdateForm
+        form = ClubUpdateForm(instance=club)
+
+    # Fetch available text channels from the connected Discord guild for dropdowns
+    available_channels = []
+    if hasattr(club, 'discord_guild') and club.discord_guild is not None:
+        bot_service = DiscordBotService()
+        try:
+            channels_data = asyncio.run(
+                bot_service.list_channels(club.discord_guild.guild_id)
+            )
+            # Keep only text channels and sort alphabetically by name
+            available_channels = sorted(
+                (
+                    c for c in channels_data
+                    if 'text' in c.get('type', '')  # ChannelType.text or guild_text
+                ),
+                key=lambda c: c['name']
+            )
+        except Exception as fetch_err:
+            logging.getLogger(__name__).warning(
+                "Unable to fetch Discord channels for guild %s: %s",
+                club.discord_guild.guild_id if hasattr(club, 'discord_guild') else 'unknown',
+                fetch_err,
+            )
+
     context = {
         "club": club,
         "user_role": user_role,
@@ -363,6 +510,13 @@ def club_dashboard_section(request, club_slug, section="overview"):
         "member_usage_info": member_usage_info,
         "subscription_features": subscription_features,
         "race_planning_available": 'race_planning' in subscription_features,
+        "form": form,
+        "join_requests": join_requests,
+        "pending_requests_count": pending_requests_count,
+        "total_requests_count": total_requests_count,
+        "status_filter": status_filter,
+        "discord_settings": discord_settings,
+        "available_channels": available_channels,
     }
 
     # HTMX requests return partial content
@@ -431,7 +585,14 @@ def club_update(request, club_slug):
             messages.success(request, "Club details updated successfully!")
 
             if request.headers.get("HX-Request"):
-                return HttpResponse(status=204, headers={"HX-Refresh": "true"})
+                # Check if this came from the dashboard
+                if request.headers.get("HX-Target") == "#club-dashboard-content":
+                    # Redirect to settings section in dashboard
+                    response = HttpResponse(status=204)
+                    response["HX-Redirect"] = f"/teams/{club.slug}/dashboard/settings/"
+                    return response
+                else:
+                    return HttpResponse(status=204, headers={"HX-Refresh": "true"})
             return redirect("teams:club_update", club_slug=club.slug)
     else:
         form = ClubUpdateForm(instance=club)
@@ -978,57 +1139,85 @@ def club_event_signup_edit(request, club_slug, sheet_id):
 
 @club_admin_required  
 def club_discord_settings(request, club_slug):
-    """Discord settings management for club admins"""
-    club = request.club
+    """Discord settings configuration for club"""
+    club = get_object_or_404(Club, slug=club_slug)
     
-    # Get or create Discord settings
-    settings, created = ClubDiscordSettings.objects.get_or_create(
+    # Get or create discord settings
+    discord_settings, created = ClubDiscordSettings.objects.get_or_create(
         club=club,
         defaults={
             'auto_create_channels': True,
             'enable_voice_channels': True,
             'enable_stint_alerts': True,
-            'channel_naming_pattern': '{series_name}-{event_name}'
         }
     )
     
-    # Get Discord guild info if connected
-    discord_guild = getattr(club, 'discord_guild', None)
-    
-    # Get recent Discord channels
-    recent_channels = []
-    if discord_guild:
-        recent_channels = EventDiscordChannel.objects.filter(
-            guild=discord_guild
-        ).select_related('event_signup_sheet__event').order_by('-created_at')[:5]
-    
-    # Get Discord status info
+    # Get discord connection status
     discord_status = {
-        'connected': bool(discord_guild),
-        'guild_name': discord_guild.name if discord_guild else None,
-        'guild_id': discord_guild.guild_id if discord_guild else None,
-        'is_active': discord_guild.is_active if discord_guild else False,
-        'channels_count': len(recent_channels),
-        'last_sync': None
+        'connected': hasattr(club, 'discord_guild') and club.discord_guild is not None,
+        'guild_name': club.discord_guild.name if hasattr(club, 'discord_guild') and club.discord_guild else None,
+        'member_count': club.discord_guild.member_count if hasattr(club, 'discord_guild') and club.discord_guild else 0,
     }
     
-    if discord_guild:
-        latest_sync = discord_guild.discordmembersync_set.first()
-        if latest_sync:
-            discord_status['last_sync'] = latest_sync.sync_timestamp
+    # Fetch available text channels from the connected Discord guild for dropdowns
+    available_channels = []
+    if discord_status['connected']:
+        bot_service = DiscordBotService()
+        try:
+            channels_data = asyncio.run(
+                bot_service.list_channels(club.discord_guild.guild_id)
+            )
+            # Keep only text channels and sort alphabetically by name
+            available_channels = sorted(
+                (
+                    c for c in channels_data
+                    if 'text' in c.get('type', '')  # ChannelType.text or guild_text
+                ),
+                key=lambda c: c['name']
+            )
+        except Exception as fetch_err:
+            logging.getLogger(__name__).warning(
+                "Unable to fetch Discord channels for guild %s: %s",
+                club.discord_guild.guild_id if hasattr(club, 'discord_guild') else 'unknown',
+                fetch_err,
+            )
+
+    if request.method == 'POST':
+        # Handle form submission
+        discord_settings.auto_create_channels = request.POST.get('auto_create_channels') == 'on'
+        discord_settings.enable_voice_channels = request.POST.get('enable_voice_channels') == 'on'
+        discord_settings.enable_practice_voice = request.POST.get('enable_practice_voice') == 'on'
+        discord_settings.enable_stint_alerts = request.POST.get('enable_stint_alerts') == 'on'
+        discord_settings.auto_sync_members = request.POST.get('auto_sync_members') == 'on'
+        discord_settings.enable_join_request_notifications = request.POST.get('enable_join_request_notifications') == 'on'
+        
+        # Channel settings
+        if request.POST.get('join_requests_channel_id'):
+            discord_settings.join_requests_channel_id = request.POST.get('join_requests_channel_id')
+        
+        discord_settings.save()
+        
+        messages.success(request, "Discord settings updated successfully.")
+        
+        if request.headers.get('HX-Request'):
+            return render(request, 'teams/discord/discord_settings_partial.html', {
+                'club': club,
+                'discord_settings': discord_settings,
+                'discord_status': discord_status,
+                'available_channels': available_channels,
+            })
     
     context = {
         'club': club,
-        'discord_settings': settings,
+        'discord_settings': discord_settings,
         'discord_status': discord_status,
-        'recent_channels': recent_channels,
-        'settings_created': created
+        'available_channels': available_channels,
     }
     
-    if request.headers.get("HX-Request"):
-        return render(request, "teams/discord/discord_settings.html", context)
+    if request.headers.get('HX-Request'):
+        return render(request, 'teams/discord/discord_settings_partial.html', context)
     
-    return render(request, "teams/discord/discord_settings.html", context)
+    return render(request, 'teams/discord/discord_settings.html', context)
 
 
 @club_manager_required
@@ -1137,3 +1326,85 @@ def club_discord_status(request, club_slug):
         return render(request, "teams/discord/member_sync_status.html", context)
     
     return render(request, "teams/discord/member_sync_status.html", context)
+
+
+@club_admin_required
+def club_join_requests(request, club_slug):
+    """View and manage join requests for the club"""
+    club = get_object_or_404(Club, slug=club_slug)
+    
+    # Get all join requests for this club
+    join_requests = ClubJoinRequest.objects.filter(club=club).select_related('user', 'reviewed_by').order_by('-created_at')
+    
+    # Filter by status if requested
+    status_filter = request.GET.get('status', 'all')
+    if status_filter != 'all':
+        join_requests = join_requests.filter(status=status_filter)
+    
+    context = {
+        'club': club,
+        'join_requests': join_requests,
+        'status_filter': status_filter,
+        'pending_count': ClubJoinRequest.objects.filter(club=club, status='pending').count(),
+    }
+    
+    if request.headers.get('HX-Request'):
+        return render(request, 'teams/club_dashboard_requests_partial.html', context)
+    
+    return render(request, 'teams/club_dashboard_requests_section.html', context)
+
+
+@club_admin_required
+def handle_join_request(request, club_slug, request_id):
+    """Handle approval/rejection of a join request"""
+    club = get_object_or_404(Club, slug=club_slug)
+    join_request = get_object_or_404(ClubJoinRequest, id=request_id, club=club)
+    
+    if request.method == 'POST':
+        form = ClubJoinRequestResponseForm(request.POST)
+        if form.is_valid():
+            action = form.cleaned_data['action']
+            message = form.cleaned_data['message']
+            role = form.cleaned_data['role']
+            
+            if action == 'approve':
+                club_member = join_request.approve(request.user, message, role)
+                
+                # Send Discord notification if configured
+                if hasattr(club, 'discord_settings') and club.discord_settings.enable_join_request_notifications:
+                    from simlane.discord.tasks import send_join_request_approved_notification
+                    send_join_request_approved_notification.delay(join_request.id, club_member.id)
+                
+                messages.success(request, f"Approved {join_request.user.username}'s request to join the club.")
+                
+            elif action == 'reject':
+                join_request.reject(request.user, message)
+                
+                # Send Discord notification if configured  
+                if hasattr(club, 'discord_settings') and club.discord_settings.enable_join_request_notifications:
+                    from simlane.discord.tasks import send_join_request_rejected_notification
+                    send_join_request_rejected_notification.delay(join_request.id)
+                
+                messages.info(request, f"Rejected {join_request.user.username}'s request to join the club.")
+            
+            if request.headers.get('HX-Request'):
+                # Return updated requests list
+                join_requests = ClubJoinRequest.objects.filter(club=club).select_related('user', 'reviewed_by').order_by('-created_at')
+                return render(request, 'teams/club_dashboard_requests_partial.html', {
+                    'club': club,
+                    'join_requests': join_requests,
+                    'status_filter': 'all',
+                    'pending_count': ClubJoinRequest.objects.filter(club=club, status='pending').count(),
+                })
+            
+            return redirect('teams:club_join_requests', club_slug=club.slug)
+    else:
+        form = ClubJoinRequestResponseForm()
+    
+    context = {
+        'club': club,
+        'join_request': join_request,
+        'form': form,
+    }
+    
+    return render(request, 'teams/handle_join_request.html', context)

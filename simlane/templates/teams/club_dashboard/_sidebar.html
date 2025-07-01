@@ -1,0 +1,31 @@
+<nav class="w-64 flex-shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 min-h-screen p-4">
+  <div class="space-y-1 text-sm">
+    <a href="{% url 'clubs:overview' club.slug %}" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.resolver_match.url_name == 'overview' %}bg-primary-100 dark:bg-primary-900/30 font-semibold{% endif %}">
+      <span class="mr-3">🏠</span>Overview
+    </a>
+    <a href="{% url 'clubs:members' club.slug %}" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.resolver_match.url_name == 'members' %}bg-primary-100 dark:bg-primary-900/30 font-semibold{% endif %}">
+      <span class="mr-3">👥</span>Members
+    </a>
+    <a href="{% url 'clubs:teams' club.slug %}" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.resolver_match.url_name == 'teams' %}bg-primary-100 dark:bg-primary-900/30 font-semibold{% endif %}">
+      <span class="mr-3">🏎️</span>Teams
+    </a>
+    <a href="{% url 'clubs:events' club.slug %}" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.resolver_match.url_name == 'events' %}bg-primary-100 dark:bg-primary-900/30 font-semibold{% endif %}">
+      <span class="mr-3">📅</span>Events
+    </a>
+  </div>
+  {% if user_role == 'admin' or user_role == 'teams_manager' %}
+  <div class="space-y-1 text-sm mt-6">
+    <a href="{% url 'clubs:requests' club.slug %}" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.resolver_match.url_name == 'requests' %}bg-primary-100 dark:bg-primary-900/30 font-semibold{% endif %}">
+      <span class="mr-3">📥</span>Join Requests
+    </a>
+    {% if club.discord_guild %}
+    <a href="{% url 'clubs:discord' club.slug %}" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.resolver_match.url_name == 'discord' %}bg-primary-100 dark:bg-primary-900/30 font-semibold{% endif %}">
+      <span class="mr-3">💬</span>Discord Settings
+    </a>
+    {% endif %}
+    <a href="{% url 'clubs:settings' club.slug %}" class="flex items-center px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 {% if request.resolver_match.url_name == 'settings' %}bg-primary-100 dark:bg-primary-900/30 font-semibold{% endif %}">
+      <span class="mr-3">⚙️</span>Settings
+    </a>
+  </div>
+  {% endif %}
+</nav> 

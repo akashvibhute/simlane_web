@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from .views import profile_emails_view
 from .views import profile_general_view
@@ -10,7 +11,6 @@ from .views import profile_view
 from .views import sim_profile_add_view
 from .views import sim_profile_disconnect_view
 from .views import sim_profile_edit_view
-from .views import sim_profiles_view
 from .views import user_detail_view
 from .views import user_redirect_view
 from .views import user_update_view
@@ -27,6 +27,18 @@ urlpatterns = [
         view=profile_sim_profiles_view,
         name="profile_sim_profiles",
     ),
+    # Moved sim profile management routes under profile section
+    path("profile/sim-profiles/add/", view=sim_profile_add_view, name="sim_profile_add"),
+    path(
+        "profile/sim-profiles/<uuid:profile_id>/edit/",
+        view=sim_profile_edit_view,
+        name="sim_profile_edit",
+    ),
+    path(
+        "profile/sim-profiles/<uuid:profile_id>/disconnect/",
+        view=sim_profile_disconnect_view,
+        name="sim_profile_disconnect",
+    ),
     path("profile/emails/", view=profile_emails_view, name="profile_emails"),
     path(
         "profile/social-accounts/",
@@ -35,18 +47,26 @@ urlpatterns = [
     ),
     path("profile/password/", view=profile_password_view, name="profile_password"),
     path("profile/sessions/", view=profile_sessions_view, name="profile_sessions"),
-    # Legacy sim profile routes (keeping for backward compatibility)
-    path("sim-profiles/", view=sim_profiles_view, name="sim_profiles"),
-    path("sim-profiles/add/", view=sim_profile_add_view, name="sim_profile_add"),
+    # Legacy routes - redirect to new profile section for backward compatibility
+    path(
+        "sim-profiles/",
+        RedirectView.as_view(url="/users/profile/sim-profiles/", permanent=True),
+        name="sim_profiles",
+    ),
+    path(
+        "sim-profiles/add/",
+        RedirectView.as_view(url="/users/profile/sim-profiles/add/", permanent=True),
+        name="legacy_sim_profile_add",
+    ),
     path(
         "sim-profiles/<uuid:profile_id>/edit/",
-        view=sim_profile_edit_view,
-        name="sim_profile_edit",
+        RedirectView.as_view(url="/users/profile/sim-profiles/%(profile_id)s/edit/", permanent=True),
+        name="legacy_sim_profile_edit",
     ),
     path(
         "sim-profiles/<uuid:profile_id>/disconnect/",
-        view=sim_profile_disconnect_view,
-        name="sim_profile_disconnect",
+        RedirectView.as_view(url="/users/profile/sim-profiles/%(profile_id)s/disconnect/", permanent=True),
+        name="legacy_sim_profile_disconnect",
     ),
     path("<str:username>/", view=user_detail_view, name="detail"),
 ]

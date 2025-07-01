@@ -472,6 +472,17 @@ class ClubDiscordSettings(models.Model):
         help_text="Discord role ID for teams managers"
     )
     
+    # Join request settings
+    join_requests_channel_id = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Discord channel ID for member join requests"
+    )
+    enable_join_request_notifications = models.BooleanField(
+        default=True,
+        help_text="Send notifications when users request to join"
+    )
+    
     # Advanced notification preferences
     notification_preferences = models.JSONField(
         default=dict,
@@ -484,7 +495,8 @@ class ClubDiscordSettings(models.Model):
     #     "teams_formed": {"enabled": True, "mention_role": "member"},
     #     "event_starting": {"enabled": True, "mention_role": "participant"},
     #     "stint_change": {"enabled": True, "mention_role": None},
-    #     "event_completed": {"enabled": True, "mention_role": None}
+    #     "event_completed": {"enabled": True, "mention_role": None},
+    #     "join_request": {"enabled": True, "mention_role": "admin"}
     # }
     
     # Channel cleanup settings

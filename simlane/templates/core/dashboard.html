@@ -21,7 +21,7 @@
       <div class="px-4 py-5 sm:p-6">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">Your Sim Profiles</h3>
-          <a href="{% url 'users:sim_profiles' %}"
+          <a href="{% url 'users:profile_sim_profiles' %}"
              class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-500 cursor-pointer">
             Manage Profiles
           </a>
@@ -78,7 +78,7 @@
             <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No sim profiles</h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Get started by setting up your first sim racing profile.</p>
             <div class="mt-6">
-              <a href="{% url 'users:sim_profiles' %}"
+              <a href="{% url 'users:profile_sim_profiles' %}"
                  class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
                 <c-icon-plus class="w-4 h-4 mr-2"></c-icon-plus>
                 Add Sim Profile

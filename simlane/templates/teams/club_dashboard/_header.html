@@ -1,0 +1,33 @@
+{% load static %}
+<div class="{% if club.banner_image %}relative h-32 overflow-hidden{% else %}bg-white dark:bg-gray-800{% endif %} border-b border-gray-200 dark:border-gray-700">
+  {% if club.banner_image %}
+    <img src="{{ club.banner_image.url }}" alt="{{ club.name }} banner" class="absolute inset-0 w-full h-full object-cover" />
+  {% endif %}
+  <div class="absolute inset-x-0 bottom-0 h-16 flex justify-between items-center px-4 sm:px-6 lg:px-8 {{ club.banner_image|yesno:'text-white bg-black/40 backdrop-blur-md,text-gray-900 dark:text-white' }}">
+    <!-- Club selector (simplified) -->
+    <div class="flex items-center space-x-3">
+      {% if club.logo_url %}
+        <img src="{{ club.logo_url }}" alt="{{ club.name }}" class="w-8 h-8 rounded" />
+      {% else %}
+        <div class="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+          <span class="text-sm font-bold text-white">{{ club.name|first }}</span>
+        </div>
+      {% endif %}
+      <div>
+        <h1 class="text-lg font-semibold">{{ club.name }}</h1>
+        <p class="text-xs opacity-80">{% if user_role %}{{ user_role|title }}{% else %}Public View{% endif %}</p>
+      </div>
+    </div>
+    <div class="flex items-center space-x-4">
+      {% if not club.discord_guild %}
+        {% if user_role == 'admin' or user_role == 'teams_manager' %}
+          <a href="{% url 'teams:club_discord_invite_bot' club.slug %}" class="inline-flex items-center px-3 py-2 text-xs font-medium rounded-md bg-indigo-600 hover:bg-indigo-700 text-white">
+            Connect Discord
+          </a>
+        {% endif %}
+      {% elif club.discord_guild %}
+        <span class="inline-flex items-center px-2 py-1 text-xs rounded-md bg-green-600 text-white">Discord Connected</span>
+      {% endif %}
+    </div>
+  </div>
+</div> 

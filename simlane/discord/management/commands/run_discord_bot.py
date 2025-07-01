@@ -139,9 +139,20 @@ class SimlaneBot(commands.Bot):
         for guild in self.guilds:
             await self.create_or_update_guild(guild)
 
+    async def setup_hook(self):
+        """Load dynamic cogs before the bot logs in completely."""
+        try:
+            from simlane.discord.bot.cogs.join_requests import JoinRequestCog
+            await self.add_cog(JoinRequestCog(self))
+            logger.info("JoinRequestCog loaded via setup_hook")
+        except Exception as exc:
+            logger.error("Failed to load JoinRequestCog in setup_hook: %s", exc)
+
 
 # Bot instance
 bot = SimlaneBot()
+
+# Additional static cogs can be loaded here if needed (setup_hook already handles join-requests)
 
 
 @bot.command(name="ping")

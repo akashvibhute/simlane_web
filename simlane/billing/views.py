@@ -88,33 +88,33 @@ def subscription_dashboard(request, club_slug):
     return render(request, 'billing/subscription_dashboard.html', context)
 
 
-@club_member_required
-def subscription_status_widget(request, club_slug):
-    """
-    HTMX endpoint for subscription status widget updates.
-    Returns just the subscription status component.
-    """
-    club = request.club
+# @club_member_required
+# def subscription_status_widget(request, club_slug):
+#     """
+#     HTMX endpoint for subscription status widget updates.
+#     Returns just the subscription status component.
+#     """
+#     club = request.club
     
-    try:
-        subscription = ClubSubscription.objects.get(club=club)
-    except ClubSubscription.DoesNotExist:
-        subscription = None
+#     try:
+#         subscription = ClubSubscription.objects.get(club=club)
+#     except ClubSubscription.DoesNotExist:
+#         subscription = None
 
-    # Calculate usage
-    current_member_count = club.members.count()
-    usage_percentage = 0
-    if subscription and subscription.plan.max_members > 0:
-        usage_percentage = min(100, (current_member_count / subscription.plan.max_members) * 100)
+#     # Calculate usage
+#     current_member_count = club.members.count()
+#     usage_percentage = 0
+#     if subscription and subscription.plan.max_members > 0:
+#         usage_percentage = min(100, (current_member_count / subscription.plan.max_members) * 100)
 
-    context = {
-        'club': club,
-        'subscription': subscription,
-        'current_member_count': current_member_count,
-        'usage_percentage': usage_percentage,
-    }
+#     context = {
+#         'club': club,
+#         'subscription': subscription,
+#         'current_member_count': current_member_count,
+#         'usage_percentage': usage_percentage,
+#     }
 
-    return render(request, 'billing/components/subscription_status_widget.html', context)
+#     return render(request, 'billing/components/subscription_status_widget.html', context)
 
 
 def billing_error(request):

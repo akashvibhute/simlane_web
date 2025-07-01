@@ -7,21 +7,83 @@
   {{ club.name }} Dashboard - SimLane
 {% endblock title %}
 {% block content %}
-  <div class="bg-gray-50 dark:bg-gray-900">
+  <div class="bg-gray-50 dark:bg-gray-900 -mt-4">
     <!-- Dashboard Header -->
-    <header class="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-      <div class="px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <!-- Left section with club switcher dropdown -->
-          <div class="flex items-center">
-            {% if user_clubs|length > 1 %}
-              <!-- Club Selector Dropdown -->
-              <div class="relative">
-                <button type="button"
-                        class="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
-                        id="club-selector-button"
-                        aria-haspopup="true"
-                        onclick="document.getElementById('club-selector-menu').classList.toggle('hidden')">
+    <header class="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 {% if club.banner_image %}relative h-32 overflow-hidden{% else %}bg-white dark:bg-gray-800{% endif %}">
+      {% if club.banner_image %}
+        <!-- Banner background -->
+        <img src="{{ club.banner_image.url }}" alt="{{ club.name }} banner" class="absolute inset-0 w-full h-full object-cover" />
+        
+        <!-- Bottom overlay bar holding the header content -->
+        <div class="absolute inset-x-0 bottom-0 h-16">
+          <div class="h-full flex justify-between items-center text-white">
+            <!-- Left section with club switcher dropdown -->
+            <div class="flex items-center bg-black/30 backdrop-blur-sm p-4">
+              {% if user_clubs|length > 1 %}
+                <!-- Club Selector Dropdown -->
+                <div class="relative">
+                  <button type="button"
+                          class="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                          id="club-selector-button"
+                          aria-haspopup="true"
+                          onclick="document.getElementById('club-selector-menu').classList.toggle('hidden')">
+                    {% if club.logo_url %}
+                      <img src="{{ club.logo_url }}"
+                           alt="{{ club.name }}"
+                           class="w-8 h-8 rounded" />
+                    {% else %}
+                      <div class="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+                        <span class="text-sm font-bold text-white">{{ club.name|first }}</span>
+                      </div>
+                    {% endif %}
+                    <div>
+                      <div class="text-left">
+                        <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ club.name }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                          {% if user_role %}{{ user_role|title }}{% else %}Public View{% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  <!-- Dropdown menu -->
+                  <div class="hidden absolute left-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20"
+                       id="club-selector-menu">
+                    <div class="py-1">
+                      {% for user_club in user_clubs %}
+                        <a href="{% url 'teams:club_dashboard' user_club.club.slug %}"
+                           class="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if user_club.club.slug == club.slug %}bg-gray-50 dark:bg-gray-700{% endif %}">
+                          {% if user_club.club.logo_url %}
+                            <img src="{{ user_club.club.logo_url }}"
+                                 alt="{{ user_club.club.name }}"
+                                 class="w-8 h-8 rounded mr-3" />
+                          {% else %}
+                            <div class="w-8 h-8 bg-primary-500 rounded flex items-center justify-center mr-3">
+                              <span class="text-sm font-bold text-white">{{ user_club.club.name|first }}</span>
+                            </div>
+                          {% endif %}
+                          <div class="flex-1 text-left">
+                            <div class="font-medium">{{ user_club.club.name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ user_club.role|title }}</div>
+                          </div>
+                          {% if user_club.club.slug == club.slug %}
+                            <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                          {% endif %}
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              {% else %}
+                <!-- Single club display -->
+                <div class="flex items-center space-x-3">
                   {% if club.logo_url %}
                     <img src="{{ club.logo_url }}"
                          alt="{{ club.name }}"
@@ -32,100 +94,162 @@
                     </div>
                   {% endif %}
                   <div>
-                    <div class="text-left">
-                      <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ club.name }}</div>
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
-                        {% if user_role %}{{ user_role|title }}{% else %}Public View{% endif %}
-                      </div>
-                    </div>
-                  </div>
-                  <svg class="w-4 h-4 text-gray-400"
-                       fill="none"
-                       stroke="currentColor"
-                       viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <!-- Dropdown menu -->
-                <div class="hidden absolute left-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20"
-                     id="club-selector-menu">
-                  <div class="py-1">
-                    {% for user_club in user_clubs %}
-                      <a href="{% url 'teams:club_dashboard' user_club.club.slug %}"
-                         class="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if user_club.club.slug == club.slug %}bg-gray-50 dark:bg-gray-700{% endif %}">
-                        {% if user_club.club.logo_url %}
-                          <img src="{{ user_club.club.logo_url }}"
-                               alt="{{ user_club.club.name }}"
-                               class="w-8 h-8 rounded mr-3" />
-                        {% else %}
-                          <div class="w-8 h-8 bg-primary-500 rounded flex items-center justify-center mr-3">
-                            <span class="text-sm font-bold text-white">{{ user_club.club.name|first }}</span>
-                          </div>
-                        {% endif %}
-                        <div class="flex-1 text-left">
-                          <div class="font-medium">{{ user_club.club.name }}</div>
-                          <div class="text-xs text-gray-500 dark:text-gray-400">{{ user_club.role|title }}</div>
-                        </div>
-                        {% if user_club.club.slug == club.slug %}
-                          <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                          </svg>
-                        {% endif %}
-                      </a>
-                    {% endfor %}
+                    <h1 class="text-lg font-semibold text-gray-900 dark:text-white">{{ club.name }}</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {% if user_role %}{{ user_role|title }}{% else %}Public View{% endif %}
+                    </p>
                   </div>
                 </div>
-              </div>
-            {% else %}
-              <!-- Single club display -->
-              <div class="flex items-center space-x-3">
-                {% if club.logo_url %}
-                  <img src="{{ club.logo_url }}"
-                       alt="{{ club.name }}"
-                       class="w-8 h-8 rounded" />
-                {% else %}
-                  <div class="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
-                    <span class="text-sm font-bold text-white">{{ club.name|first }}</span>
-                  </div>
-                {% endif %}
-                <div>
-                  <h1 class="text-lg font-semibold text-gray-900 dark:text-white">{{ club.name }}</h1>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">
-                    {% if user_role %}{{ user_role|title }}{% else %}Public View{% endif %}
-                  </p>
-                </div>
-              </div>
-            {% endif %}
-          </div>
-          
-          <!-- Right section -->
-          <div class="flex items-center space-x-4">
-            {% if user_role == 'admin' or user_role == 'teams_manager' %}
-              {% if not club.discord_guild %}
-                <!-- Discord Server Connection Button (not yet connected) -->
-                <button 
-                  id="discord-invite-btn"
-                  hx-post="{% url 'teams:club_discord_invite_bot' club.slug %}"
-                  hx-target="#discord-invite-result"
-                  class="inline-flex items-center px-3 py-2 border border-indigo-300 dark:border-indigo-600 text-sm leading-4 font-medium rounded-md text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
-                  <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
-                  </svg>
-                  Connect Your Discord Server
-                </button>
-              {% else %}
-                <!-- Already connected indicator -->
-                <span class="inline-flex items-center px-3 py-2 border border-green-300 dark:border-green-700 text-sm leading-4 font-medium rounded-md text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20">
-                  <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                  </svg>
-                  Discord Connected
-                </span>
               {% endif %}
-            {% endif %}
+            </div>
+            
+            <!-- Right section -->
+            <div class="flex items-center space-x-4 bg-black/70 p-4">
+              {% if user_role == 'admin' or user_role == 'teams_manager' %}
+                {% if not club.discord_guild %}
+                  <!-- Discord Server Connection Button (not yet connected) -->
+                  <button 
+                    id="discord-invite-btn"
+                    hx-post="{% url 'teams:club_discord_invite_bot' club.slug %}"
+                    hx-target="#discord-invite-result"
+                    class="inline-flex items-center px-3 py-2 border border-indigo-300 dark:border-indigo-600 text-sm leading-4 font-medium rounded-md text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+                    </svg>
+                    Connect Your Discord Server
+                  </button>
+                {% else %}
+                  <!-- Already connected indicator -->
+                  <span class="inline-flex items-center px-3 py-2 border border-green-300 dark:border-green-700 text-sm leading-4 font-medium rounded-md text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Discord Connected
+                  </span>
+                {% endif %}
+              {% endif %}
+            </div>
           </div>
         </div>
-      </div>
+      {% else %}
+        <!-- No banner: keep original white header -->
+        <div class="px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16">
+            <!-- Left section with club switcher dropdown -->
+            <div class="flex items-center">
+              {% if user_clubs|length > 1 %}
+                <!-- Club Selector Dropdown -->
+                <div class="relative">
+                  <button type="button"
+                          class="flex items-center space-x-3 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer"
+                          id="club-selector-button"
+                          aria-haspopup="true"
+                          onclick="document.getElementById('club-selector-menu').classList.toggle('hidden')">
+                    {% if club.logo_url %}
+                      <img src="{{ club.logo_url }}"
+                           alt="{{ club.name }}"
+                           class="w-8 h-8 rounded" />
+                    {% else %}
+                      <div class="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+                        <span class="text-sm font-bold text-white">{{ club.name|first }}</span>
+                      </div>
+                    {% endif %}
+                    <div>
+                      <div class="text-left">
+                        <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ club.name }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                          {% if user_role %}{{ user_role|title }}{% else %}Public View{% endif %}
+                        </div>
+                      </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  <!-- Dropdown menu -->
+                  <div class="hidden absolute left-0 mt-2 w-80 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-20"
+                       id="club-selector-menu">
+                    <div class="py-1">
+                      {% for user_club in user_clubs %}
+                        <a href="{% url 'teams:club_dashboard' user_club.club.slug %}"
+                           class="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if user_club.club.slug == club.slug %}bg-gray-50 dark:bg-gray-700{% endif %}">
+                          {% if user_club.club.logo_url %}
+                            <img src="{{ user_club.club.logo_url }}"
+                                 alt="{{ user_club.club.name }}"
+                                 class="w-8 h-8 rounded mr-3" />
+                          {% else %}
+                            <div class="w-8 h-8 bg-primary-500 rounded flex items-center justify-center mr-3">
+                              <span class="text-sm font-bold text-white">{{ user_club.club.name|first }}</span>
+                            </div>
+                          {% endif %}
+                          <div class="flex-1 text-left">
+                            <div class="font-medium">{{ user_club.club.name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">{{ user_club.role|title }}</div>
+                          </div>
+                          {% if user_club.club.slug == club.slug %}
+                            <svg class="w-4 h-4 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+                              <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                          {% endif %}
+                        </a>
+                      {% endfor %}
+                    </div>
+                  </div>
+                </div>
+              {% else %}
+                <!-- Single club display -->
+                <div class="flex items-center space-x-3">
+                  {% if club.logo_url %}
+                    <img src="{{ club.logo_url }}"
+                         alt="{{ club.name }}"
+                         class="w-8 h-8 rounded" />
+                  {% else %}
+                    <div class="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+                      <span class="text-sm font-bold text-white">{{ club.name|first }}</span>
+                    </div>
+                  {% endif %}
+                  <div>
+                    <h1 class="text-lg font-semibold text-gray-900 dark:text-white">{{ club.name }}</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                      {% if user_role %}{{ user_role|title }}{% else %}Public View{% endif %}
+                    </p>
+                  </div>
+                </div>
+              {% endif %}
+            </div>
+            
+            <!-- Right section -->
+            <div class="flex items-center space-x-4 ">
+              {% if user_role == 'admin' or user_role == 'teams_manager' %}
+                {% if not club.discord_guild %}
+                  <!-- Discord Server Connection Button (not yet connected) -->
+                  <button 
+                    id="discord-invite-btn"
+                    hx-post="{% url 'teams:club_discord_invite_bot' club.slug %}"
+                    hx-target="#discord-invite-result"
+                    class="inline-flex items-center px-3 py-2 border border-indigo-300 dark:border-indigo-600 text-sm leading-4 font-medium rounded-md text-indigo-700 dark:text-indigo-300 bg-indigo-500 dark:bg-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 cursor-pointer">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+                    </svg>
+                    Connect Your Discord Server
+                  </button>
+                {% else %}
+                  <!-- Already connected indicator -->
+                  <span class="inline-flex items-center px-3 py-2 border border-green-300 dark:border-green-700 text-sm leading-4 font-medium rounded-md text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Discord Connected
+                  </span>
+                {% endif %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
     </header>
 
     <!-- Discord Invite Result Modal/Toast Container -->
@@ -162,8 +286,8 @@
                    fill="none"
                    stroke="currentColor"
                    viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
-                </path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7M17 20v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11a4 4 0 100-8 4 4 0 000 8z" />
               </svg>
               Members
             </a>
@@ -213,6 +337,45 @@
                 </svg>
                 Billing & Plan
               </a>
+            {% endif %}
+
+            <!-- Join Requests (if admin/teams_manager) -->
+            {% if user_role == 'admin' or user_role == 'teams_manager' %}
+              <a href="{% url 'teams:club_dashboard_section' club.slug 'requests' %}"
+                 hx-get="{% url 'teams:club_dashboard_section' club.slug 'requests' %}"
+                 hx-target="#dashboard-content"
+                 hx-push-url="{% url 'teams:club_dashboard_section' club.slug 'requests' %}"
+                 class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'requests' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+                <svg class="w-5 h-5 mr-3"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11a4 4 0 100-8 4 4 0 000 8z" />
+                </svg>
+                Join Requests
+                {% if pending_requests_count > 0 %}
+                  <span class="ml-auto inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+                    {{ pending_requests_count }}
+                  </span>
+                {% endif %}
+              </a>
+            {% endif %}
+
+            <!-- Discord Settings (if admin/teams_manager and Discord connected) -->
+            {% if user_role == 'admin' or user_role == 'teams_manager' %}
+              {% if club.discord_guild %}
+                <a href="{% url 'teams:club_dashboard_section' club.slug 'discord' %}"
+                   hx-get="{% url 'teams:club_dashboard_section' club.slug 'discord' %}"
+                   hx-target="#dashboard-content"
+                   hx-push-url="{% url 'teams:club_dashboard_section' club.slug 'discord' %}"
+                   class="flex items-center px-3 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer {% if active_section == 'discord' %}bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300{% endif %}">
+                  <svg class="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+                  </svg>
+                  Discord Settings
+                </a>
+              {% endif %}
             {% endif %}
 
             <!-- Settings (if admin/teams_manager) -->

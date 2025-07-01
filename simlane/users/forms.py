@@ -34,30 +34,26 @@ class UserUpdateForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["name", "email"]
+        fields = ["profile_image"]
         widgets = {
-            "name": forms.TextInput(
+            "profile_image": forms.FileInput(
                 attrs={
                     "class": (
-                        "mt-1 block w-full rounded-md border-gray-300 shadow-sm "
-                        "focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                        "mt-1 block w-full text-sm text-gray-900 dark:text-gray-300 "
+                        "file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 "
+                        "file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 "
+                        "hover:file:bg-primary-100 dark:file:bg-primary-900 dark:file:text-primary-300 "
+                        "dark:hover:file:bg-primary-800"
                     ),
-                    "placeholder": "Enter your full name",
-                },
-            ),
-            "email": forms.EmailInput(
-                attrs={
-                    "class": (
-                        "mt-1 block w-full rounded-md border-gray-300 shadow-sm "
-                        "focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                    ),
-                    "placeholder": "Enter your email address",
+                    "accept": "image/*",
                 },
             ),
         }
         labels = {
-            "name": "Full Name",
-            "email": "Email Address",
+            "profile_image": "Profile Picture",
+        }
+        help_texts = {
+            "profile_image": "Upload a square image for best results (max 2MB)",
         }
 
 
@@ -82,7 +78,7 @@ class SimProfileForm(forms.ModelForm):
 
     class Meta:
         model = SimProfile
-        fields = ["simulator", "profile_name", "sim_api_id"]
+        fields = ["simulator", "sim_api_id"]
         widgets = {
             "simulator": forms.Select(
                 attrs={
@@ -92,59 +88,64 @@ class SimProfileForm(forms.ModelForm):
                     ),
                 },
             ),
-            "profile_name": forms.TextInput(
-                attrs={
-                    "class": (
-                        "mt-1 block w-full rounded-md border-gray-300 shadow-sm "
-                        "focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                    ),
-                    "placeholder": "Enter your profile name",
-                },
-            ),
             "sim_api_id": forms.TextInput(
                 attrs={
                     "class": (
                         "mt-1 block w-full rounded-md border-gray-300 shadow-sm "
                         "focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
                     ),
-                    "placeholder": "External ID (optional)",
+                    "placeholder": "Enter your iRacing customer ID",
+                    "required": True,
                 },
             ),
         }
         labels = {
             "simulator": "Simulator",
-            "profile_name": "Profile Name",
-            "sim_api_id": "External Data ID",
+            "sim_api_id": "iRacing Customer ID",
         }
         help_texts = {
-            "profile_name": "Your username or display name in the simulator",
             "sim_api_id": (
-                "Optional: Your customer/user ID in the simulator "
-                "(e.g., iRacing customer ID)"
+                "Your iRacing customer ID (required) - we'll fetch your profile data automatically"
             ),
         }
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        # Only show active simulators
+        # Only show iRacing for now
         self.fields["simulator"].queryset = Simulator.objects.filter(
+            name="iRacing",
             is_active=True,
-        ).order_by("name")
+        )
+        # Make sim_api_id required
+        self.fields["sim_api_id"].required = True
+
+    def clean_sim_api_id(self):
+        """Validate iRacing customer ID format."""
+        sim_api_id = self.cleaned_data.get("sim_api_id")
+        if sim_api_id:
+            # Remove any whitespace
+            sim_api_id = sim_api_id.strip()
+            # Check if it's a valid number
+            try:
+                int(sim_api_id)
+            except ValueError:
+                raise forms.ValidationError(
+                    "iRacing customer ID must be a number (e.g., 123456)"
+                )
+        return sim_api_id
 
     def clean(self):
         cleaned_data = super().clean()
         simulator = cleaned_data.get("simulator")
-        profile_name = cleaned_data.get("profile_name")
+        sim_api_id = cleaned_data.get("sim_api_id")
 
-        if simulator and profile_name and self.user:
-            # Check for duplicate profile names for the same user and simulator
-            # This is handled by the model's unique_together constraint,
-            # but we can provide a better error message
+        if simulator and sim_api_id and self.user:
+            # Check if user already has this profile linked
             existing_profile = SimProfile.objects.filter(
-                user=self.user,
+                linked_user=self.user,
                 simulator=simulator,
-                profile_name=profile_name,
+                sim_api_id=sim_api_id,
             )
 
             # Exclude the current instance if we're editing
@@ -153,9 +154,39 @@ class SimProfileForm(forms.ModelForm):
 
             if existing_profile.exists():
                 error_msg = (
-                    f'You already have a profile named "{profile_name}" '
-                    f"for {simulator.name}."
+                    f"You already have an iRacing profile with customer ID {sim_api_id}."
                 )
                 raise forms.ValidationError(error_msg)
 
+            # Check if profile exists and is linked to another user
+            existing_any_profile = SimProfile.objects.filter(
+                simulator=simulator,
+                sim_api_id=sim_api_id,
+            )
+            
+            if self.instance.pk:
+                existing_any_profile = existing_any_profile.exclude(pk=self.instance.pk)
+
+            if existing_any_profile.exists():
+                existing_profile = existing_any_profile.first()
+                if existing_profile.linked_user and existing_profile.linked_user != self.user:
+                    error_msg = (
+                        f"iRacing profile with customer ID {sim_api_id} is already "
+                        "linked to another user."
+                    )
+                    raise forms.ValidationError(error_msg)
+                # If profile exists but is unlinked, that's fine - we'll allow linking it
+                # We need to temporarily exclude this instance from model validation
+                # to avoid the unique_together constraint error
+                self._existing_unlinked_profile = existing_profile
+
         return cleaned_data
+
+    def validate_unique(self):
+        """Override to skip unique validation when we have an existing unlinked profile."""
+        # Check if we have an existing unlinked profile we want to link
+        if hasattr(self, '_existing_unlinked_profile') and self._existing_unlinked_profile:
+            # Skip model validation since we'll handle linking in the view
+            return
+        # Otherwise, run normal validation
+        super().validate_unique()
