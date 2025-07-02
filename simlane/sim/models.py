@@ -442,9 +442,8 @@ class CarModel(models.Model):
         """Get all car classes this car belongs to for a specific simulator."""
         if not hasattr(self, "_cached_car_classes"):
             self._cached_car_classes = {}
-
-        # Get all SimCars for this CarModel
-        sim_cars = self.sim_cars.filter(is_active=True)
+        # Assuming SimCar is a related model to CarModel through a ManyToManyField
+        sim_cars = SimCar.objects.filter(car_model=self, is_active=True)
         if simulator:
             sim_cars = sim_cars.filter(simulator=simulator)
 
@@ -670,6 +669,12 @@ class TrackModel(models.Model):
         max_length=50,
         blank=True,
         help_text="Track time zone (e.g., 'America/New_York')",
+    )
+
+    # New: Official information page URL (e.g., iRacing site link)
+    site_url = models.URLField(
+        blank=True,
+        help_text="Official simulator site URL for this track (from track assets API)",
     )
 
     class Meta:
@@ -953,52 +958,12 @@ class Series(models.Model):
     category = models.CharField(
         max_length=50, blank=True, help_text="Track category: 'oval', 'road', etc."
     )
-    license_group = models.IntegerField(
-        null=True, blank=True, help_text="Required license group"
-    )
+   
     is_official = models.BooleanField(default=True, help_text="Official series")
-    multiclass = models.BooleanField(default=False, help_text="Multi-class racing")
-    cross_license = models.BooleanField(
-        default=False, help_text="Cross-license allowed"
-    )
 
-    # Series-wide settings
-    car_switching = models.BooleanField(
-        default=False, help_text="Car switching allowed"
-    )
-    fixed_setup = models.BooleanField(default=False, help_text="Fixed setup series")
-    incident_limit = models.IntegerField(
-        null=True, blank=True, help_text="Incident limit per race"
-    )
-    max_team_drivers = models.IntegerField(
-        default=1, help_text="Maximum drivers per team"
-    )
-    region_competition = models.BooleanField(
-        default=True, help_text="Region-based competition"
-    )
-
-    # Car class restrictions (simplified approach)
-    allowed_car_class_ids = ArrayField(
-        models.CharField(max_length=50),
-        blank=True,
-        default=list,
-        help_text="Array of car class sim_api_ids allowed in this series (from car_class_ids API field)",
-    )
-
-    # Existing fields
-    is_team_event = models.BooleanField(default=False)
-    min_drivers_per_entry = models.IntegerField(null=True, blank=True)
-    max_drivers_per_entry = models.IntegerField(null=True, blank=True)
-    fair_share_pct = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # New field for allowed licenses
-    allowed_licenses = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Allowed license groups as returned by iRacing API (raw list).",
-    )
 
     class Meta:
         verbose_name = "Series"
@@ -1010,13 +975,14 @@ class Series(models.Model):
             models.Index(fields=["category"]),
             models.Index(fields=["is_official"]),
         ]
+        unique_together = ["simulator", "external_series_id"]
 
     def __str__(self):
         return self.name
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            self.slug = slugify(self.simulator.slug + "-" + self.name + ("-" + str(self.external_series_id) if self.external_series_id else ""))
             # Ensure uniqueness
             counter = 1
             original_slug = self.slug
@@ -1038,8 +1004,8 @@ class Season(models.Model):
     slug = models.SlugField(max_length=300, blank=True)
 
     # Season timing
-    start_date = models.DateField(null=True, blank=True)
-    end_date = models.DateField(null=True, blank=True)
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
     # Removed: current_race_week, max_weeks (legacy RaceWeek fields)
 
     # Season status

@@ -30,36 +30,7 @@ class SeriesAsset(TypedDict):
     series_copy: str
 
 
-class Series(TypedDict):
-    """Series information from /data/series/get endpoint."""
-    series_id: int
-    series_name: str
-    series_short_name: str
-    active: bool
-    official: bool
-    fixed_setup: bool
-    multiclass: bool
-    car_types: List[str]
-    car_classes: List[int]
-    category: str
-    category_id: int
-    eligible: bool
-    is_heat_racing: bool
-    license_group: int
-    license_group_type: int
-    min_license_level: int
-    max_license_level: int
-    min_sr: int
-    max_sr: int
-    rookie_season: str
-    race_week: int
-    search_filters: str
-    series_lic: int
-    tag: bool
-    cars_in_class: List[int]
-    complete: bool
-    oval_caution_type: int
-    parent_season_id: int
+
 
 
 # Season Types
@@ -111,10 +82,6 @@ class SeriesSeasons(TypedDict):
     category_id: int
     seasons: List[SeasonInfo]
 
-
-class PastSeasonsResponse(TypedDict):
-    """Response type for /data/series/past_seasons endpoint."""
-    series: dict  # Contains series info and seasons list
 
 
 class SeasonScheduleResponse(TypedDict):
@@ -243,14 +210,70 @@ class TrackAsset(TypedDict):
     track_map: str
     track_map_layers: dict
 
+class CarInCarClass(TypedDict):
+    """Car in car class information."""
+    car_dirpath: str
+    car_id: int
+    rain_enabled: bool
+    retired: bool
 
 # Car Class Types
 class CarClass(TypedDict):
     """Car class information from /data/carclass/get endpoint."""
     car_class_id: int
-    cars_in_class: List[int]
+    cars_in_class: List[CarInCarClass]
     cust_id: int
     name: str
     relative_speed: int
     short_name: str
     rain_enabled: bool 
+    
+    
+# Season Types
+class Season(TypedDict):
+    """Season information."""
+    season_id: int
+    season_name: str
+    season_year: int
+    season_quarter: int
+    series_id: int
+    series_name: str
+    official: bool
+    
+class Series(TypedDict):
+    """Series information from /data/series/get endpoint."""
+    series_id: int
+    series_name: str
+    series_short_name: str
+    active: bool
+    official: bool
+    fixed_setup: bool
+    multiclass: bool
+    car_types: List[str]
+    car_classes: List[int]
+    category: str
+    category_id: int
+    eligible: bool
+    is_heat_racing: bool
+    license_group: int
+    license_group_type: int
+    min_license_level: int
+    max_license_level: int
+    min_sr: int
+    max_sr: int
+    rookie_season: str
+    race_week: int
+    search_filters: str
+    series_lic: int
+    tag: bool
+    cars_in_class: List[int]
+    complete: bool
+    oval_caution_type: int
+    parent_season_id: int
+    seasons: List[Season]
+
+
+class PastSeasonsResponse(TypedDict):
+    """Response type for /data/series/past_seasons endpoint."""
+    series: Series
+    series_id: int

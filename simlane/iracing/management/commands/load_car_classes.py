@@ -10,8 +10,8 @@ from django.utils.text import slugify
 
 from simlane.iracing.services import IRacingServiceError
 from simlane.iracing.services import iracing_service
-from simlane.sim.models import CarClass
-from simlane.sim.models import Simulator
+from simlane.iracing.types import CarClass as CarClassType
+from simlane.sim.models import CarClass, Simulator
 
 logger = logging.getLogger(__name__)
 
@@ -25,23 +25,17 @@ class Command(BaseCommand):
             action="store_true",
             help="Force update existing car classes from API",
         )
-        parser.add_argument(
-            "--simulator",
-            type=str,
-            default="iracing",
-            help="Simulator slug to load data for (default: iracing)",
-        )
 
     def handle(self, *args, **options):
         self.stdout.write("Loading car classes from iRacing API...")
 
         # Get simulator
         try:
-            simulator = Simulator.objects.get(slug=options["simulator"])
+            simulator = Simulator.objects.get(slug="iracing")
         except Simulator.DoesNotExist:
             self.stdout.write(
                 self.style.ERROR(
-                    f"Simulator '{options['simulator']}' not found. Please create it first.",
+                    f"Simulator 'iracing' not found. Please create it first.",
                 ),
             )
             return
@@ -81,7 +75,7 @@ class Command(BaseCommand):
     def process_car_classes(
         self,
         simulator: Simulator,
-        car_classes_data: list[dict[str, Any]],
+        car_classes_data: list[CarClassType],
         force_update: bool,
     ):
         """Process car classes data from iRacing API"""

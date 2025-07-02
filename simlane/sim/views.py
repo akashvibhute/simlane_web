@@ -899,6 +899,62 @@ def refresh_iracing_owned_content(request):
     return render(request, "sim/components/refresh_status.html", {"status": "syncing"})
 
 
+def event_search_dropdown(request):
+    """Lightweight dropdown search for events - optimized for autocomplete"""
+    search_query = request.GET.get("q", "").strip()
+    simulator_slug = request.GET.get("simulator", "")
+    
+    # Return empty if search query is too short
+    if len(search_query) < 4:
+        context = {
+            "events": [],
+            "search_query": search_query,
+        }
+        return render(request, "sim/events/dropdown_results_partial.html", context)
+    
+    # Build optimized query for dropdown
+    events = (
+        Event.objects.select_related(
+            "simulator",
+            "series",
+            "sim_layout__sim_track__track_model",
+        )
+        .prefetch_related(
+            "time_slots",
+        )
+        .filter(
+            visibility__in=["PUBLIC", "UNLISTED"],
+            time_slots__start_time__gt=timezone.now(),
+        )
+        .distinct()
+    )
+    
+    # Apply search filter
+    events = events.filter(
+        Q(name__icontains=search_query)
+        | Q(description__icontains=search_query)
+        | Q(sim_layout__sim_track__track_model__name__icontains=search_query)
+        | Q(sim_layout__name__icontains=search_query)
+        | Q(series__name__icontains=search_query)
+        | Q(organizing_club__name__icontains=search_query)
+        | Q(organizing_user__username__icontains=search_query),
+    )
+    
+    # Apply simulator filter if provided
+    if simulator_slug:
+        events = events.filter(simulator__slug=simulator_slug)
+    
+    # Order by upcoming time slots and limit results for dropdown
+    events = events.order_by("time_slots__start_time")[:15]
+    
+    context = {
+        "events": events,
+        "search_query": search_query,
+    }
+    
+    return render(request, "sim/events/dropdown_results_partial.html", context)
+
+
 @cache_for_anonymous(timeout=900)  # 15 minutes
 def events_list(request):
     """Public listing of all events"""
@@ -959,7 +1015,7 @@ def events_list(request):
     return render(request, "sim/events/list.html", context)
 
 
-@cache_for_anonymous(timeout=900)  # 15 minutes
+# @cache_for_anonymous(timeout=900)  # 15 minutes
 def upcoming_events_list(request):
     """Public listing of upcoming events only"""
     from django.utils import timezone
@@ -1025,6 +1081,7 @@ def upcoming_events_list(request):
             "events": events,
             "search_query": search_query,
         }
+        print(events.count())
         return render(request, "sim/events/dropdown_results_partial.html", context)
 
     # Normal page mode - with pagination

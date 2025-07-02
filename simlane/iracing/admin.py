@@ -1,1 +1,1 @@
-# Register your models here.
+# Admin module for iRacing app. No custom admin functionality at this time. 

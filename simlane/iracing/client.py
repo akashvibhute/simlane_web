@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Union
 from .types import (
     Car, CarAsset, CarClass, MemberInfo, PastSeasonsResponse,
     SeasonScheduleResponse, Series, SeriesAsset, SeriesSeasons,
-    Track, TrackAsset
+    Track, TrackAsset, Season
 )
 
 import requests
@@ -457,6 +457,14 @@ class IRacingClient:
             raise IRacingAPIError("Invalid response format for season schedule", endpoint="/data/series/season_schedule")
         return result  # type: ignore
     
+    def get_season_list(self, season_year: int, season_quarter: int) -> List[Season]:
+        """Get all available seasons."""
+        params = {"season_year": season_year, "season_quarter": season_quarter}
+        result = self._make_request("/data/season/list", params=params)
+        if not isinstance(result, list):
+            raise IRacingAPIError("Invalid response format for season list", endpoint="/data/season/list")
+        return result  # type: ignore
+    
     def get_cars(self) -> List[Car]:
         """Get all available cars."""
         result = self._make_request("/data/car/get")
@@ -493,7 +501,7 @@ class IRacingClient:
         return result  # type: ignore
 
     # Stats API Methods
-    def stats_member_summary(self, cust_id: int = None) -> Dict[str, Any]:
+    def stats_member_summary(self, cust_id: int|None = None) -> Dict[str, Any]:
         """Get member summary statistics."""
         params = {}
         if cust_id is not None:
@@ -503,7 +511,7 @@ class IRacingClient:
             raise IRacingAPIError("Invalid response format for member summary", endpoint="/data/stats/member_summary")
         return result
 
-    def stats_member_recent_races(self, cust_id: int = None) -> Dict[str, Any]:
+    def stats_member_recent_races(self, cust_id: int|None = None) -> Dict[str, Any]:
         """Get member's recent race results."""
         params = {}
         if cust_id is not None:
@@ -513,7 +521,7 @@ class IRacingClient:
             raise IRacingAPIError("Invalid response format for member recent races", endpoint="/data/stats/member_recent_races")
         return result
 
-    def stats_member_yearly(self, cust_id: int = None) -> Dict[str, Any]:
+    def stats_member_yearly(self, cust_id: int|None = None) -> Dict[str, Any]:
         """Get member's yearly statistics."""
         params = {}
         if cust_id is not None:
@@ -523,7 +531,7 @@ class IRacingClient:
             raise IRacingAPIError("Invalid response format for member yearly stats", endpoint="/data/stats/member_yearly")
         return result
 
-    def member_profile(self, cust_id: int = None) -> Dict[str, Any]:
+    def member_profile(self, cust_id: int|None = None) -> Dict[str, Any]:
         """Get member profile information."""
         params = {}
         if cust_id is not None:

@@ -155,11 +155,8 @@ class SeriesAdmin(ModelAdmin):
     list_display = [
         "name",
         "seasons_count",
-        "is_team_event",
-        "min_drivers_per_entry",
-        "max_drivers_per_entry",
     ]
-    list_filter = ["is_team_event", "created_at"]
+    list_filter = ["created_at"]
     search_fields = ["name", "description"]
     readonly_fields = ["created_at", "updated_at"]
     inlines = [SeasonInline]

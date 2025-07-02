@@ -440,6 +440,7 @@ class Command(BaseCommand):
                     "description": f"Track from iRacing: {track_name}",
                     "category": track_category,
                     "time_zone": base_track.get("time_zone", ""),
+                    "site_url": base_track.get("site_url", ""),
                 }
 
                 track_model, model_created = TrackModel.objects.get_or_create(
