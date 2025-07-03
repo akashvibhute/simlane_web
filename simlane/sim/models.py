@@ -1095,7 +1095,7 @@ class Event(models.Model):
         related_name="events",
     )
     season = models.ForeignKey(
-        "Season",
+        Season,
         on_delete=models.CASCADE,
         related_name="events",
         null=True,
@@ -1178,11 +1178,10 @@ class Event(models.Model):
         help_text="Maximum number of entries allowed",
     )
 
-    # Enhanced: Custom entry requirements
-    entry_requirements = models.JSONField(
+    additional_details = models.JSONField(
         null=True,
         blank=True,
-        help_text="Custom requirements like specific licenses, achievements, etc.",
+        help_text="Additional details like specific licenses, achievements, etc.",
     )
 
     # Car class restrictions (simplified approach - can override series)
@@ -1200,6 +1199,8 @@ class Event(models.Model):
         help_text="Round number in series (was week_number in legacy model)",
     )
     schedule_name = models.CharField(max_length=255, blank=True)
+
+    multiclass = models.BooleanField(default=False)
 
     # Event timing
     start_date = models.DateField(null=True, blank=True)
@@ -1264,7 +1265,6 @@ class Event(models.Model):
     )
 
     # Existing fields
-    event_date = models.DateTimeField(null=True, blank=True)
     registration_deadline = models.DateTimeField(null=True, blank=True)
     is_team_event = models.BooleanField(null=True, blank=True)
     min_drivers_per_entry = models.IntegerField(null=True, blank=True)
@@ -1272,7 +1272,6 @@ class Event(models.Model):
     fair_share_pct = models.FloatField(null=True, blank=True)
     min_pit_stops = models.IntegerField(null=True, blank=True)
     required_compounds = models.JSONField(null=True, blank=True)
-    weather = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -1281,7 +1280,6 @@ class Event(models.Model):
             models.Index(fields=["series"]),
             models.Index(fields=["simulator"]),
             models.Index(fields=["sim_layout"]),
-            models.Index(fields=["event_date"]),
             models.Index(fields=["status"]),
             models.Index(fields=["slug"]),
             # Enhanced indexes for new fields

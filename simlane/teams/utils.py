@@ -406,8 +406,8 @@ def format_event_details(event) -> str:
     if hasattr(event, "sim_layout"):
         details += f"Track: {event.sim_layout.name}\n"
 
-    if event.event_date:
-        details += f"Date: {event.event_date.strftime('%B %d, %Y at %I:%M %p')}\n"
+    if event.start_date:
+        details += f"Date: {event.start_date.strftime('%B %d, %Y at %I:%M %p')}\n"
 
     if hasattr(event, "simulator"):
         details += f"Simulator: {event.simulator.name}\n"

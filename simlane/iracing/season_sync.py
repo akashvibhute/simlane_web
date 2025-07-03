@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 from django.utils import timezone
 from django.utils.text import slugify
 
+from simlane.iracing.types import Schedule, SeriesSeasons
 from simlane.sim.models import (
     CarClass,
     CarRestriction,
@@ -43,7 +44,7 @@ class ScheduleProcessor:
     def process_season_schedule(
         self, 
         season: Season, 
-        schedules: List[Union[Dict[str, Any], Any]]
+        season_data: SeriesSeasons
     ) -> Tuple[int, int, int, List[str]]:
         """
         Process a season's schedule data and create events.
@@ -55,9 +56,9 @@ class ScheduleProcessor:
         Returns:
             Tuple of (events_created, events_updated, time_slots_created, errors)
         """
-        logger.info(f"Processing schedule for season {season.name} with {len(schedules)} weeks")
+        logger.info(f"Processing schedule for season {season.name} with {len(season_data['schedules'])} weeks")
         
-        for schedule_data in schedules:
+        for schedule_data in season_data['schedules']:
             try:
                 self._process_week_schedule(season, schedule_data)
             except Exception as e:
@@ -67,7 +68,7 @@ class ScheduleProcessor:
         
         return self.events_created, self.events_updated, self.time_slots_created, self.errors
     
-    def _process_week_schedule(self, season: Season, schedule_data: Dict[str, Any]) -> None:
+    def _process_week_schedule(self, season: Season, schedule_data: Schedule) -> None:
         """Process a single week's schedule data."""
         round_num = schedule_data.get("race_week_num")
         track_id = schedule_data.get("track", {}).get("track_id")
@@ -83,8 +84,32 @@ class ScheduleProcessor:
         if not sim_layout:
             return
         
+        # Get team event data
+        is_team_event = schedule_data.get("driver_changes", False)
+        min_team_drivers = schedule_data.get("min_team_drivers", 1)
+        max_team_drivers = schedule_data.get("max_team_drivers", 1)
+        fair_share_pct = schedule_data.get("fair_share_pct", 25)
+        multiclass = schedule_data.get("multiclass", False)
+        required_compounds = {
+            "must_use_diff_tire_types_in_race": schedule_data.get("must_use_diff_tire_types_in_race", False),
+        }
+        additional_details = {
+            "num_fast_tows": schedule_data.get("num_fast_tows", 0),
+            "qualifier_must_start_race": schedule_data.get("qualifier_must_start_race", False),
+            "lucky_dog": schedule_data.get("lucky_dog", False),
+            "incident_limit": schedule_data.get("incident_limit", 0),
+            "incident_warn_mode": schedule_data.get("incident_warn_mode", 0),
+            "incident_warn_param1": schedule_data.get("incident_warn_param1", 0),
+            "incident_warn_param2": schedule_data.get("incident_warn_param2", 0),
+            "grid_by_class": schedule_data.get("grid_by_class", False),
+            "drops": schedule_data.get("drops", 0),
+            "ignore_license_for_practice": schedule_data.get("ignore_license_for_practice", False),
+            "incident_limit": schedule_data.get("incident_limit", 0),
+            "license_group_types": schedule_data.get("license_group_types", []),
+        }
+        
         # Create or update event
-        event = self._create_or_update_event(season, schedule_data, sim_layout, round_num)
+        event = self._create_or_update_event(season, schedule_data, sim_layout, round_num, is_team_event, min_team_drivers, max_team_drivers, fair_share_pct, multiclass, required_compounds, additional_details)
         
         # Process car restrictions (BOP)
         self._process_car_restrictions(event, schedule_data.get("car_restrictions", []))
@@ -116,9 +141,16 @@ class ScheduleProcessor:
     def _create_or_update_event(
         self, 
         season: Season, 
-        schedule_data: Dict[str, Any], 
+        schedule_data: Schedule, 
         sim_layout: SimLayout,
-        round_num: int
+        round_num: int,
+        is_team_event: bool,
+        min_team_drivers: int,
+        max_team_drivers: int,
+        fair_share_pct: int,
+        multiclass: bool,
+        required_compounds: dict,
+        additional_details: dict,
     ) -> Event:
         """Create or update an event from schedule data."""
         series = season.series
@@ -140,6 +172,14 @@ class ScheduleProcessor:
         max_temp = weather_summary.get("temp_high")
         max_precip = weather_summary.get("precip_chance", 0)
         
+        # event status if it's in the past, is ongoing, or is in the future
+        if datetime.fromisoformat(schedule_data.get("week_end_time")) < timezone.now():
+            event_status = EventStatus.COMPLETED
+        elif datetime.fromisoformat(schedule_data.get("start_date")) < timezone.now() and datetime.fromisoformat(schedule_data.get("week_end_time")) > timezone.now():
+            event_status = EventStatus.ONGOING
+        else:
+            event_status = EventStatus.SCHEDULED
+        
         # Prepare event data
         event_defaults = {
             "series": series,
@@ -147,7 +187,7 @@ class ScheduleProcessor:
             "simulator": self.simulator,
             "sim_layout": sim_layout,
             "event_source": EventSource.SERIES,
-            "status": EventStatus.SCHEDULED,
+            "status": event_status,
             "start_date": schedule_data.get("start_date"),
             "end_date": schedule_data.get("week_end_time"),
             "name": event_name,
@@ -166,17 +206,18 @@ class ScheduleProcessor:
             # Time pattern (store for dynamic time slot generation)
             "time_pattern": {"race_time_descriptors": race_time_descriptors},
             
-            # Entry requirements
-            "entry_requirements": {
-                "round_number": round_num,
-                "track_id": schedule_data.get("track", {}).get("track_id"),
-                "layout_id": str(sim_layout.id),
-            },
-            
             # Track-specific settings
             "enable_pitlane_collisions": schedule_data.get("enable_pitlane_collisions", False),
             "full_course_cautions": schedule_data.get("full_course_cautions", True),
             "schedule_name": schedule_data.get("schedule_name", ""),
+            "is_team_event": is_team_event,
+            "min_drivers_per_entry": min_team_drivers,
+            "max_drivers_per_entry": max_team_drivers,
+            "fair_share_pct": fair_share_pct,
+            "multiclass": multiclass,
+            "created_at": schedule_data.get("created_at", timezone.now()),
+            "required_compounds": required_compounds,
+            "additional_details": additional_details,
         }
         
         # Create lookup criteria

@@ -292,7 +292,7 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
                 season, created = Season.objects.get_or_create(
                     external_season_id=season_id,
                     defaults={
-                        "name": season_data.get("name", ""),
+                        "name": season_data.get("season_name", ""),
                         "start_date": season_data.get("start_date"),
                         "end_date": season_data.get("end_date"),
                         "active": season_data.get("active", False),
@@ -301,13 +301,12 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
                     }
                 )
                 
-                # Process schedules
                 schedules = season_data.get("schedules", [])
-                if schedules:
-                    processor = ScheduleProcessor(iracing_simulator)
-                    events_created, events_updated, time_slots_created, errors = (
-                        processor.process_season_schedule(season, schedules)
-                            )
+                
+                processor = ScheduleProcessor(iracing_simulator)
+                events_created, events_updated, time_slots_created, errors = (
+                    processor.process_season_schedule(season, season_data)
+                        )
                             
                 total_events_created += events_created
                 total_events_updated += events_updated  

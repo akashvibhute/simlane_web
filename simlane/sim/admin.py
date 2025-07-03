@@ -49,12 +49,12 @@ class EventInline(TabularInline):
     extra = 0
     readonly_fields = ["created_at", "updated_at"]
     fields = [
-        "name", "simulator", "type", "status", "event_date",
+        "name", "simulator", "type", "status",
         "start_date", "end_date", "round_number"
     ]
     show_change_link = True
     raw_id_fields = ["simulator", "sim_layout"]
-    ordering = ["event_date", "round_number"]
+    ordering = ["start_date", "round_number"]
 
 
 @admin.register(Simulator)
@@ -176,12 +176,12 @@ class SeriesAdmin(ModelAdmin):
 
 @admin.register(Event)
 class EventAdmin(ModelAdmin):
-    list_display = ["name", "series", "simulator", "type", "status", "event_date"]
+    list_display = ["name", "series", "simulator", "type", "status", "start_date"]
     list_filter = ["type", "status", "simulator", "is_team_event", "created_at"]
     search_fields = ["name", "description"]
     readonly_fields = ["created_at", "updated_at"]
     raw_id_fields = ["series", "simulator", "sim_layout"]
-    date_hierarchy = "event_date"
+    date_hierarchy = "start_date"
 
 
 @admin.register(EventSession)

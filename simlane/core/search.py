@@ -170,9 +170,6 @@ class SearchDocumentBuilder:
                 "event_type": event.type,
                 "event_source": event.event_source,
                 "visibility": event.visibility,
-                "event_date": event.event_date.isoformat()
-                if event.event_date
-                else None,
                 "track": event.sim_layout.sim_track.display_name,
                 "track_country": event.sim_layout.sim_track.track_model.country,
                 "organizer": event.effective_organizer,

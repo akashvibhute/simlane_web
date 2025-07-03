@@ -57,6 +57,8 @@ class Schedule(TypedDict):
     simulated_start_utc: str
     race_time_descriptors: List[dict]
     car_restrictions: List[dict]
+    start_date: str
+    week_end_time: str
 
 
 class SeasonInfo(TypedDict):
@@ -80,7 +82,7 @@ class SeriesSeasons(TypedDict):
     series_name: str
     category: str
     category_id: int
-    seasons: List[SeasonInfo]
+    schedules: List[Schedule]
 
 
 
