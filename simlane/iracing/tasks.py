@@ -17,10 +17,12 @@ from django.core.files.base import ContentFile
 from django.contrib.contenttypes.models import ContentType
 import requests
 
+from simlane.iracing.auto_create import create_weather_forecasts_from_iracing_data
 from simlane.iracing.services import IRacingServiceError, iracing_service
+from simlane.iracing.api_cache_service import cached_iracing_service
 from simlane.iracing.season_sync import ScheduleProcessor, create_season_from_schedule_data
 from simlane.iracing.types import PastSeasonsResponse, Series as SeriesType
-from simlane.sim.models import CarClass, Season, Series, Simulator, SimLayout
+from simlane.sim.models import CarClass, Event, Season, Series, Simulator, SimLayout, TimeSlot, WeatherForecast
 from simlane.core.models import MediaGallery
 from django.conf import settings
 
@@ -68,12 +70,12 @@ def _get_or_create_iracing_series(
     if not cleaned_name.strip():
         cleaned_name = series_name
 
-    series, created = Series.objects.get_or_create(
+    series, created = Series.objects.update_or_create(
         external_series_id=series_id,
+        simulator=iracing_simulator,
         defaults={
             "name": cleaned_name,
-            "simulator": iracing_simulator,
-            "is_active": True,
+            "website": series_info.get("forum_url", ""),
         },
     )
 
@@ -108,8 +110,8 @@ def sync_series_task(self, refresh: bool = False) -> Dict[str, Any]:
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
         
-        # Fetch series data
-        series_response = iracing_service.get_series()
+        # Fetch series data (with S3 caching)
+        series_response = cached_iracing_service.get_series(refresh=refresh)
         
         series_created = 0
         series_updated = 0
@@ -169,6 +171,8 @@ def sync_season_task(self, season_id: int, refresh: bool = False) -> Dict[str, A
     Returns:
         Dict containing sync results
     """
+    # TODO: This is a temporary fix to allow the season sync to work. 
+    # The responses of season schedule are different from the responses of series seasons.
     try:
         logger.info(f"Syncing season {season_id}")
         _ensure_service_available()
@@ -181,8 +185,8 @@ def sync_season_task(self, season_id: int, refresh: bool = False) -> Dict[str, A
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
         
-        # Fetch season schedule
-        schedule_data = iracing_service.get_series_season_schedule(season_id)
+        # Fetch season schedule (with S3 caching)
+        schedule_data = cached_iracing_service.get_series_season_schedule(season_id, refresh=refresh)
         
         if not schedule_data or "schedules" not in schedule_data:
             error_msg = f"No schedule data found for season {season_id}"
@@ -209,7 +213,7 @@ def sync_season_task(self, season_id: int, refresh: bool = False) -> Dict[str, A
         # Process schedule
         processor = ScheduleProcessor(iracing_simulator)
         events_created, events_updated, time_slots_created, errors = processor.process_season_schedule(
-            season, schedule_data["schedules"]
+            season, schedule_data
         )
         
         result = {
@@ -262,14 +266,19 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
         
-        # Fetch current seasons data (includes schedules)
-        seasons_data = iracing_service.get_series_seasons(include_series=True)
+        # Fetch current seasons data (includes schedules) with S3 caching
+        seasons_data = cached_iracing_service.get_series_seasons(include_series=True, refresh=refresh)
         
         total_seasons_processed = 0
         total_events_created = 0
         total_events_updated = 0
         total_time_slots_created = 0
         all_errors = []
+        total_weather_sync_queued = 0
+        total_event_sessions_created = 0
+        total_event_sessions_updated = 0
+        total_event_classes_created = 0
+        total_event_classes_updated = 0
         
         for season_data in seasons_data:
             try:
@@ -289,28 +298,45 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
                 if not season_id:
                     continue
                 
-                season, created = Season.objects.get_or_create(
+                schedules = season_data.get("schedules", [])
+                
+                season, created = Season.objects.update_or_create(
                     external_season_id=season_id,
+                    series=series,
                     defaults={
                         "name": season_data.get("season_name", ""),
                         "start_date": season_data.get("start_date"),
-                        "end_date": season_data.get("end_date"),
+                        "end_date": schedules[-1].get("week_end_time") if schedules else None,
                         "active": season_data.get("active", False),
                         "complete": season_data.get("complete", False),
                         "series": series,
+                        "schedule_description": season_data.get("schedule_description", ""),
+                        "season_settings": {
+                            "week_count": season_data.get("week_count", 1),
+                            "season_year": season_data.get("season_year"),
+                            "season_quarter": season_data.get("season_quarter"),
+                            "season_short_name": season_data.get("season_short_name"),
+                            "start_on_qual_tire": season_data.get("start_on_qual_tire", False),
+                            "start_zone": season_data.get("start_zone", False),
+                            "short_parade_lap": season_data.get("short_parade_lap", False),
+                        }
                     }
                 )
                 
-                schedules = season_data.get("schedules", [])
-                
                 processor = ScheduleProcessor(iracing_simulator)
-                events_created, events_updated, time_slots_created, errors = (
+                events_created, events_updated, time_slots_created, weather_sync_queued, event_sessions_created, event_sessions_updated, event_classes_created, event_classes_updated, errors = (
                     processor.process_season_schedule(season, season_data)
                         )
                             
                 total_events_created += events_created
                 total_events_updated += events_updated  
                 total_time_slots_created += time_slots_created
+                total_weather_sync_queued += weather_sync_queued
+                total_event_sessions_created += event_sessions_created
+                total_event_sessions_updated += event_sessions_updated
+                total_event_classes_created += event_classes_created
+                total_event_classes_updated += event_classes_updated
+                
                 all_errors.extend(errors)
                 
                 total_seasons_processed += 1
@@ -327,6 +353,12 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
             "events_created": total_events_created,
             "events_updated": total_events_updated,
             "time_slots_created": total_time_slots_created,
+            "weather_sync_queued": total_weather_sync_queued,
+            "event_sessions_created": total_event_sessions_created,
+            "event_sessions_updated": total_event_sessions_updated,
+            "event_classes_created": total_event_classes_created,
+            "event_classes_updated": total_event_classes_updated,
+            "event_classes_created": total_event_classes_created,
             "errors": all_errors,
             "completed_at": timezone.now().isoformat(),
         }
@@ -334,7 +366,10 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
         logger.info(
             f"Current seasons sync completed: {total_seasons_processed} seasons processed, "
             f"{total_events_created} events created, {total_events_updated} events updated, "
-            f"{total_time_slots_created} time slots created, {len(all_errors)} errors"
+            f"{total_time_slots_created} time slots created, {total_weather_sync_queued} weather sync queued, "
+            f"{total_event_sessions_created} event sessions created, {total_event_sessions_updated} event sessions updated, "
+            f"{total_event_classes_created} event classes created, {total_event_classes_updated} event classes updated, "
+            f"{len(all_errors)} errors"
         )
         
         return result
@@ -370,8 +405,8 @@ def sync_past_seasons_for_series_task(
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
         
-        # Get past seasons for this series
-        past_seasons_data: PastSeasonsResponse = iracing_service.get_series_past_seasons(series_id)
+        # Get past seasons for this series (with S3 caching)
+        past_seasons_data: PastSeasonsResponse = cached_iracing_service.get_series_past_seasons(series_id, refresh=refresh)
         
         if not past_seasons_data:
             logger.info(f"No past seasons found for series {series_id}")
@@ -644,6 +679,49 @@ def sync_iracing_owned_content(self, sim_profile_id: int) -> Dict[str, Any]:
         
     except Exception as e:
         logger.exception(f"Failed to sync owned content for profile {sim_profile_id}")
+        return {"success": False, "error": str(e)}
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=60)
+def sync_iracing_weather_task(self, event_id: int) -> Dict[str, Any]:
+    """
+    Sync weather data for an event.
+    """
+    try:
+        logger.info(f"Syncing weather for event {event_id}")
+        _ensure_service_available()
+        
+        event = Event.objects.get(id=event_id)
+        weather_forecast_version = event.weather_forecast_version
+        if not event.weather_forecast_url:
+            logger.info(f"Event {event_id} has no weather forecast url")
+            return {"success": False, "error": "No weather forecast url"}
+        
+        response = requests.get(event.weather_forecast_url, timeout=10)
+        response.raise_for_status()
+        weather_data: list[dict[str, Any]] = response.json()
+        
+        event.weather_forecast_data = weather_data
+        event.save()
+        
+        if not weather_data:
+            logger.info(f"No weather data found for event {event_id}")
+            return {"success": False, "error": "No weather data", "weather_data": weather_data}
+        
+        # Create weather forecast
+        time_slots = list(TimeSlot.objects.filter(event=event))
+        for time_slot in time_slots:
+            logger.info(f"Syncing weather for time slot {time_slot.id}")
+            created  = create_weather_forecasts_from_iracing_data(event=event, weather_forecast_data=weather_data, time_slot=time_slot, forecast_version=weather_forecast_version)
+            if created:
+                logger.info(f"Created weather forecast for time slot {time_slot.id}")
+            else:
+                logger.info(f"Updated weather forecast for time slot {time_slot.id}")
+        
+        return {"success": True, "weather_data": weather_data}
+        
+    except Exception as e:
+        logger.exception(f"Failed to sync weather for event {event_id}")
         return {"success": False, "error": str(e)}
 
 

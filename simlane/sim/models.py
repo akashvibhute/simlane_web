@@ -7,14 +7,14 @@ from django.utils.text import slugify
 from simlane.users.models import User
 
 
-# Enums
-class UserRole(models.TextChoices):
-    CLUB_ADMIN = "CLUB_ADMIN", "Club Admin"
-    CLUB_MANAGER = "CLUB_MANAGER", "Club Manager"
-    CLUB_MEMBER = "CLUB_MEMBER", "Club Member"
-    ADMIN = "ADMIN", "Admin"
-    USER = "USER", "User"
-    SUBSCRIBER = "SUBSCRIBER", "Subscriber"
+# # Enums
+# class UserRole(models.TextChoices):
+#     CLUB_ADMIN = "CLUB_ADMIN", "Club Admin"
+#     CLUB_MANAGER = "CLUB_MANAGER", "Club Manager"
+#     CLUB_MEMBER = "CLUB_MEMBER", "Club Member"
+#     ADMIN = "ADMIN", "Admin"
+#     USER = "USER", "User"
+#     SUBSCRIBER = "SUBSCRIBER", "Subscriber"
 
 
 class EventStatus(models.TextChoices):
@@ -74,8 +74,7 @@ class EventType(models.TextChoices):
 
 
 class EventSource(models.TextChoices):
-    SPECIAL = "SPECIAL", "Special Event - Official"
-    SERIES = "SERIES", "Series Event - Official"
+    OFFICIAL = "OFFICIAL", "Official Simulator Event"
     CLUB = "CLUB", "Club-Organized Event"
     USER = "USER", "User-Created Event"
 
@@ -1212,6 +1211,8 @@ class Event(models.Model):
     )
     enable_pitlane_collisions = models.BooleanField(default=False)
     full_course_cautions = models.BooleanField(default=True)
+    
+    simulated_start_time = models.DateTimeField(null=True, blank=True)
 
     # Store the recurring schedule pattern from iRacing API
     time_pattern = models.JSONField(
@@ -1348,7 +1349,7 @@ class Event(models.Model):
     @property
     def is_official(self):
         """Check if this is an official event"""
-        return self.event_source in [EventSource.SPECIAL, EventSource.SERIES]
+        return self.event_source == EventSource.OFFICIAL
 
     def can_user_view(self, user):
         """Check if a user can view this event"""
@@ -1502,7 +1503,8 @@ class EventSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="sessions")
     session_type = models.CharField(max_length=20, choices=SessionType)
-    duration = models.IntegerField()  # Duration in minutes
+    duration = models.IntegerField(null=True, blank=True)  # Duration in minutes
+    laps = models.IntegerField(null=True, blank=True)
     in_game_time = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -530,3 +530,35 @@ CACHES = {
 # ------------------------------------------------------------------------------
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "sessions"
+
+# API Response Storage Configuration
+# ------------------------------------------------------------------------------
+# Separate S3 storage backend for API response caching
+# This configuration is shared across all environments (dev, staging, production)
+# to ensure consistent API response storage and avoid duplicate API calls
+API_RESPONSE_STORAGE = {
+    "BACKEND": "storages.backends.s3.S3Storage",
+    "OPTIONS": {
+        "access_key": env("DJANGO_API_RESPONSE_AWS_ACCESS_KEY_ID", default=""),
+        "secret_key": env("DJANGO_API_RESPONSE_AWS_SECRET_ACCESS_KEY", default=""),
+        "bucket_name": env("DJANGO_API_RESPONSE_AWS_STORAGE_BUCKET_NAME", default="simlane-api-responses"),
+        "region_name": env("DJANGO_API_RESPONSE_AWS_S3_REGION_NAME", default="us-east-1"),
+        "location": "api_responses",
+        "file_overwrite": False,  # Keep historical responses
+        "default_acl": "private",  # API responses should be private
+        "querystring_auth": False,
+        "object_parameters": {
+            "CacheControl": "max-age=2592000",  # 30 days cache
+            "StorageClass": "STANDARD_IA",  # Infrequent Access for cost optimization
+        },
+    },
+}
+
+# API Response Cache Settings
+API_RESPONSE_CACHE_TTL = {
+    "series": 24 * 60 * 60,  # 24 hours (series data changes infrequently)
+    "seasons": 60 * 60,      # 1 hour (season data changes during active season)
+    "schedules": 30 * 60,    # 30 minutes (schedule data can change frequently)
+    "cars": 24 * 60 * 60,    # 24 hours (car data rarely changes)
+    "tracks": 24 * 60 * 60,  # 24 hours (track data rarely changes)
+}

@@ -8,6 +8,7 @@ from typing import Any
 from django.core.management.base import BaseCommand
 from django.utils.text import slugify
 
+
 from simlane.iracing.services import IRacingServiceError
 from simlane.iracing.services import iracing_service
 from simlane.iracing.types import CarClass as CarClassType

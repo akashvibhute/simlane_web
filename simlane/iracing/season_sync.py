@@ -18,10 +18,12 @@ from simlane.sim.models import (
     CarRestriction,
     Event,
     EventClass,
+    EventSession,
     EventSource,
     EventStatus,
     Season,
     Series,
+    SessionType,
     SimCar,
     SimLayout,
     Simulator,
@@ -40,12 +42,17 @@ class ScheduleProcessor:
         self.events_updated = 0
         self.time_slots_created = 0
         self.errors = []
+        self.weather_sync_queued = 0
+        self.event_sessions_created = 0
+        self.event_sessions_updated = 0
+        self.event_classes_created = 0
+        self.event_classes_updated = 0
     
     def process_season_schedule(
         self, 
         season: Season, 
         season_data: SeriesSeasons
-    ) -> Tuple[int, int, int, List[str]]:
+    ) -> Tuple[int, int, int, int, int, int, int, int, List[str]]:
         """
         Process a season's schedule data and create events.
         
@@ -58,17 +65,21 @@ class ScheduleProcessor:
         """
         logger.info(f"Processing schedule for season {season.name} with {len(season_data['schedules'])} weeks")
         
+        car_class_ids = []
+        fixed_setup = season_data.get("fixed_setup", False)
+        
         for schedule_data in season_data['schedules']:
             try:
-                self._process_week_schedule(season, schedule_data)
+                car_class_ids.extend(schedule_data.get("car_class_ids", []))
+                self._process_week_schedule(season, schedule_data, fixed_setup, car_class_ids)
             except Exception as e:
                 error_msg = f"Error processing week {schedule_data.get('race_week_num', 'unknown')}: {e}"
                 logger.exception(error_msg)
                 self.errors.append(error_msg)
         
-        return self.events_created, self.events_updated, self.time_slots_created, self.errors
+        return self.events_created, self.events_updated, self.time_slots_created, self.weather_sync_queued, self.event_sessions_created, self.event_sessions_updated, self.event_classes_created, self.event_classes_updated, self.errors
     
-    def _process_week_schedule(self, season: Season, schedule_data: Schedule) -> None:
+    def _process_week_schedule(self, season: Season, schedule_data: Schedule, fixed_setup: bool, car_class_ids: List[int]) -> None:
         """Process a single week's schedule data."""
         round_num = schedule_data.get("race_week_num")
         track_id = schedule_data.get("track", {}).get("track_id")
@@ -93,6 +104,7 @@ class ScheduleProcessor:
         required_compounds = {
             "must_use_diff_tire_types_in_race": schedule_data.get("must_use_diff_tire_types_in_race", False),
         }
+        simulated_start_time = schedule_data.get("weather", {}).get("simulated_start_time", None)
         additional_details = {
             "num_fast_tows": schedule_data.get("num_fast_tows", 0),
             "qualifier_must_start_race": schedule_data.get("qualifier_must_start_race", False),
@@ -106,20 +118,113 @@ class ScheduleProcessor:
             "ignore_license_for_practice": schedule_data.get("ignore_license_for_practice", False),
             "incident_limit": schedule_data.get("incident_limit", 0),
             "license_group_types": schedule_data.get("license_group_types", []),
+            "start_type": schedule_data.get("start_type", ""),
         }
         
         # Create or update event
-        event = self._create_or_update_event(season, schedule_data, sim_layout, round_num, is_team_event, min_team_drivers, max_team_drivers, fair_share_pct, multiclass, required_compounds, additional_details)
-        
-        # Process car restrictions (BOP)
-        self._process_car_restrictions(event, schedule_data.get("car_restrictions", []))
+        event = self._create_or_update_event(season, schedule_data, sim_layout, round_num, is_team_event, min_team_drivers, max_team_drivers, fair_share_pct, multiclass, required_compounds, additional_details, simulated_start_time)
         
         # Process car classes
-        self._process_car_classes(event, schedule_data.get("car_classes", []))
+        self._process_car_classes(event, car_class_ids)
+        
+        # Process car restrictions (BOP)
+        self._process_car_restrictions(event, schedule_data.get("car_restrictions", []), fixed_setup)
+        
+        # Process event sessions
+        if simulated_start_time:
+            self._process_event_sessions(event, schedule_data, simulated_start_time)
         
         # Process time patterns and create time slots if needed
         self._process_time_patterns(event, schedule_data.get("race_time_descriptors", []))
+        
+        # Process weather
+        if event.weather_forecast_url:
+            self._process_weather(event_id=event.id)
+        
+
+    def _process_weather(self, event_id: int) -> None:
+        """Process weather data for an event."""
+        # import here to avoid circular import
+        from simlane.iracing.tasks import sync_iracing_weather_task
+        
+        sync_iracing_weather_task.delay(event_id=event_id) # type: ignore
+        self.weather_sync_queued += 1
     
+    def _process_event_sessions(self, event: Event, schedule_data: Schedule, simulated_start_time: str) -> None:
+        qualify_length = schedule_data.get("qualify_length", 0)
+        qual_attached = schedule_data.get("qual_attached", False)
+        qualify_laps = schedule_data.get("quailfy_laps", None)
+        practice_length = schedule_data.get("practice_length", None)
+        warmup_length = schedule_data.get("warmup_length", None)
+        race_time_limit = schedule_data.get("race_time_limit", None)
+        race_lap_limit = schedule_data.get("race_lap_limit", None)
+        race_time_limit = schedule_data.get("race_time_limit", None)
+        race_lap_limit = schedule_data.get("race_lap_limit", None)
+        simulated_time_multiplier = schedule_data.get("weather", {}).get("simulated_time_multiplier", 1)
+        simulated_time_offsets = schedule_data.get("weather", {}).get("simulated_time_offsets", [])
+        
+        in_game_time = datetime.fromisoformat(simulated_start_time)
+        
+        # Process event sessions
+        if warmup_length:
+            _event_session, created = EventSession.objects.update_or_create(
+                event=event,
+                session_type=SessionType.WARMUP,
+                defaults={
+                    "duration": warmup_length,
+                    "in_game_time": in_game_time,
+                }
+            )
+            if created:
+                self.event_sessions_created += 1
+            else:
+                self.event_sessions_updated += 1
+            
+        elif practice_length:
+            _event_session, created = EventSession.objects.update_or_create(
+                event=event,
+                session_type=SessionType.PRACTICE,
+                defaults={
+                    "duration": practice_length,
+                    "in_game_time": in_game_time,
+                }
+            )
+            if created:
+                self.event_sessions_created += 1
+            else:
+                self.event_sessions_updated += 1
+        
+        if qual_attached:
+            _event_session, created = EventSession.objects.update_or_create(
+                event=event,
+                session_type=SessionType.QUALIFYING,
+                defaults={
+                    "duration": qualify_length,
+                    "laps": qualify_laps,
+                    "in_game_time": in_game_time + timedelta(minutes=simulated_time_offsets[0] * simulated_time_multiplier),
+                }
+            )
+            if created:
+                self.event_sessions_created += 1
+            else:
+                self.event_sessions_updated += 1
+        
+        if race_time_limit or race_lap_limit:
+            _event_session, created = EventSession.objects.update_or_create(
+                event=event,
+                session_type=SessionType.RACE,
+                defaults={
+                    "duration": race_time_limit,
+                    "laps": race_lap_limit,
+                    "in_game_time": in_game_time + timedelta(minutes=simulated_time_offsets[1] * simulated_time_multiplier if 
+                                                             len(simulated_time_offsets) > 1 else simulated_time_offsets[0] * simulated_time_multiplier),
+                }
+            )
+            if created:
+                self.event_sessions_created += 1
+            else:
+                self.event_sessions_updated += 1
+        
     def _find_sim_layout(self, track_id: int, track_name: str, layout_name: str) -> Optional[SimLayout]:
         """Find SimLayout by track_id or fallback to name matching."""
         try:
@@ -151,6 +256,7 @@ class ScheduleProcessor:
         multiclass: bool,
         required_compounds: dict,
         additional_details: dict,
+        simulated_start_time: datetime,
     ) -> Event:
         """Create or update an event from schedule data."""
         series = season.series
@@ -163,19 +269,22 @@ class ScheduleProcessor:
         event_slug = slugify(event_name)[:280]
         
         # Extract weather and timing data
-        weather_data = schedule_data.get("weather", {})
-        race_time_descriptors = schedule_data.get("race_time_descriptors", [])
-        
+        weather_data = schedule_data.get("weather", {})        
         # Parse weather summary for quick stats
         weather_summary = weather_data.get("weather_summary", {})
         min_temp = weather_summary.get("temp_low")
         max_temp = weather_summary.get("temp_high")
         max_precip = weather_summary.get("precip_chance", 0)
         
+        start_date = datetime.fromisoformat(schedule_data.get("start_date"))
+        week_end_time = datetime.fromisoformat(schedule_data.get("week_end_time"))
+        
+        time_pattern = schedule_data.get("race_time_descriptors", [])
+        
         # event status if it's in the past, is ongoing, or is in the future
-        if datetime.fromisoformat(schedule_data.get("week_end_time")) < timezone.now():
+        if week_end_time < timezone.now():
             event_status = EventStatus.COMPLETED
-        elif datetime.fromisoformat(schedule_data.get("start_date")) < timezone.now() and datetime.fromisoformat(schedule_data.get("week_end_time")) > timezone.now():
+        elif (timezone.make_aware(start_date, timezone.get_default_timezone()) < timezone.now() and week_end_time > timezone.now()):
             event_status = EventStatus.ONGOING
         else:
             event_status = EventStatus.SCHEDULED
@@ -186,7 +295,7 @@ class ScheduleProcessor:
             "season": season,
             "simulator": self.simulator,
             "sim_layout": sim_layout,
-            "event_source": EventSource.SERIES,
+            "event_source": EventSource.OFFICIAL,
             "status": event_status,
             "start_date": schedule_data.get("start_date"),
             "end_date": schedule_data.get("week_end_time"),
@@ -199,12 +308,13 @@ class ScheduleProcessor:
             # Weather configuration
             "weather_config": weather_data,
             "weather_forecast_url": weather_data.get("weather_url", ""),
+            "weather_forecast_version": weather_data.get("weather_forecast_version", 1),
             "min_air_temp": min_temp,
             "max_air_temp": max_temp,
             "max_precip_chance": max_precip,
             
             # Time pattern (store for dynamic time slot generation)
-            "time_pattern": {"race_time_descriptors": race_time_descriptors},
+            "time_pattern": time_pattern,
             
             # Track-specific settings
             "enable_pitlane_collisions": schedule_data.get("enable_pitlane_collisions", False),
@@ -218,6 +328,7 @@ class ScheduleProcessor:
             "created_at": schedule_data.get("created_at", timezone.now()),
             "required_compounds": required_compounds,
             "additional_details": additional_details,
+            "simulated_start_time": simulated_start_time,
         }
         
         # Create lookup criteria
@@ -264,7 +375,7 @@ class ScheduleProcessor:
         
         return event_name
     
-    def _process_car_restrictions(self, event: Event, car_restrictions: List[Dict[str, Any]]) -> None:
+    def _process_car_restrictions(self, event: Event, car_restrictions: List[Dict[str, Any]], fixed_setup: bool) -> None:
         """Process car restrictions (BOP) for an event."""
         for restriction_data in car_restrictions:
             try:
@@ -291,44 +402,36 @@ class ScheduleProcessor:
                         "max_pct_fuel_fill": restriction_data.get("max_pct_fuel_fill", 100),
                         "power_adjust_pct": restriction_data.get("power_adjust_pct", 0.0),
                         "weight_penalty_kg": restriction_data.get("weight_penalty_kg", 0),
-                        "is_fixed_setup": bool(
-                            restriction_data.get("race_setup_id") or 
-                            restriction_data.get("qual_setup_id")
-                        ),
+                        "is_fixed_setup": fixed_setup or False,
                     },
                 )
                 
             except Exception as e:
                 logger.warning(f"Error processing car restriction: {e}")
     
-    def _process_car_classes(self, event: Event, car_classes: List[Dict[str, Any]]) -> None:
+    def _process_car_classes(self, event: Event, car_class_ids: List[int]) -> None:
         """Process car classes for an event."""
-        for car_class_data in car_classes:
+        for car_class_id in car_class_ids:
             try:
-                car_class_id = car_class_data.get("car_class_id")
-                if not car_class_id:
-                    continue
-                
-                # Get or create car class
-                car_class, _ = CarClass.objects.get_or_create(
-                    sim_api_id=car_class_id,
-                    defaults={
-                        "name": car_class_data.get("car_class_name", ""),
-                        "simulator": self.simulator,
-                    },
-                )
+                car_class_order = car_class_ids.index(car_class_id) + 1
+                car_class = CarClass.objects.get(sim_api_id=car_class_id, simulator=self.simulator)
                 
                 # Create event class
-                EventClass.objects.get_or_create(
+                event_class, created = EventClass.objects.update_or_create(
                     event=event,
                     car_class=car_class,
                     defaults={
-                        "is_active": True,
+                        "name": car_class.name,
+                        "class_order": car_class_order
                     },
                 )
-                
+                if created:
+                    self.event_classes_created += 1
+                else:
+                    self.event_classes_updated += 1
+                    
             except Exception as e:
-                logger.warning(f"Error processing car class: {e}")
+                logger.warning(f"Error processing Event Class: {e}")
     
     def _process_time_patterns(self, event: Event, race_time_descriptors: List[Dict[str, Any]]) -> None:
         """

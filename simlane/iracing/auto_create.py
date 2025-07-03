@@ -115,6 +115,7 @@ def find_or_create_sim_layout_from_track_data(
 
 
 def create_weather_forecasts_from_iracing_data(
+    event: Event,
     weather_forecast_data: list,
     time_slot: TimeSlot,
     forecast_version: int = 1,
@@ -311,157 +312,157 @@ def fetch_and_cache_weather_forecast(event: "Event") -> bool:
         return False
 
 
-def auto_create_event_chain_from_results(
-    results_data: dict[str, Any], iracing_service: IRacingAPIService
-) -> tuple[Series, Season, Event, TimeSlot]:
-    """
-    Auto-create the full event chain from results data.
-    """
-    logger.info(
-        f"Starting auto-creation with results data: series_id={results_data.get('series_id')}, season_id={results_data.get('season_id')}, subsession_id={results_data.get('subsession_id')}"
-    )
+# def auto_create_event_chain_from_results(
+#     results_data: dict[str, Any], iracing_service: IRacingAPIService
+# ) -> tuple[Series, Season, Event, TimeSlot]:
+#     """
+#     Auto-create the full event chain from results data.
+#     """
+#     logger.info(
+#         f"Starting auto-creation with results data: series_id={results_data.get('series_id')}, season_id={results_data.get('season_id')}, subsession_id={results_data.get('subsession_id')}"
+#     )
 
-    # Extract data from results
-    series_data = results_data.get("series", {})
-    season_data = results_data.get("season", {})
+#     # Extract data from results
+#     series_data = results_data.get("series", {})
+#     season_data = results_data.get("season", {})
 
-    series_id = series_data.get("series_id") or results_data.get("series_id")
-    series_name = series_data.get("series_name") or results_data.get(
-        "series_name", "Unknown Series"
-    )
-    season_id = season_data.get("season_id") or results_data.get("season_id")
-    season_name = season_data.get("season_name", f"{series_name} Season")
-    race_week_num = results_data.get("race_week_num", 0)
+#     series_id = series_data.get("series_id") or results_data.get("series_id")
+#     series_name = series_data.get("series_name") or results_data.get(
+#         "series_name", "Unknown Series"
+#     )
+#     season_id = season_data.get("season_id") or results_data.get("season_id")
+#     season_name = season_data.get("season_name", f"{series_name} Season")
+#     race_week_num = results_data.get("race_week_num", 0)
 
-    logger.info(
-        f"Extracted data: series_id={series_id}, series_name={series_name}, season_id={season_id}, season_name={season_name}"
-    )
+#     logger.info(
+#         f"Extracted data: series_id={series_id}, series_name={series_name}, season_id={season_id}, season_name={season_name}"
+#     )
 
-    # If season_id is missing, try to fetch it using the utility
-    if not season_id and series_id:
-        season_year = results_data.get("season_year")
-        season_quarter = results_data.get("season_quarter")
-        logger.info(
-            f"Attempting to fetch season data for series_id={series_id}, year={season_year}, quarter={season_quarter}"
-        )
-        if season_year and season_quarter:
-            fetched_season = iracing_service.get_season_by_series_year_quarter(
-                series_id=series_id,
-                season_year=season_year,
-                season_quarter=season_quarter,
-            )
-            if fetched_season:
-                logger.info(f"Found season data: {fetched_season}")
-                season_id = fetched_season.get("season_id")
-                season_name = fetched_season.get("season_name", season_name)
-            else:
-                logger.error(
-                    f"Could not fetch season for series_id={series_id}, year={season_year}, quarter={season_quarter}"
-                )
-        else:
-            logger.error(
-                f"Missing year/quarter info to fetch season. year={season_year}, quarter={season_quarter}"
-            )
+#     # If season_id is missing, try to fetch it using the utility
+#     if not season_id and series_id:
+#         season_year = results_data.get("season_year")
+#         season_quarter = results_data.get("season_quarter")
+#         logger.info(
+#             f"Attempting to fetch season data for series_id={series_id}, year={season_year}, quarter={season_quarter}"
+#         )
+#         if season_year and season_quarter:
+#             fetched_season = iracing_service.get_season_by_series_year_quarter(
+#                 series_id=series_id,
+#                 season_year=season_year,
+#                 season_quarter=season_quarter,
+#             )
+#             if fetched_season:
+#                 logger.info(f"Found season data: {fetched_season}")
+#                 season_id = fetched_season.get("season_id")
+#                 season_name = fetched_season.get("season_name", season_name)
+#             else:
+#                 logger.error(
+#                     f"Could not fetch season for series_id={series_id}, year={season_year}, quarter={season_quarter}"
+#                 )
+#         else:
+#             logger.error(
+#                 f"Missing year/quarter info to fetch season. year={season_year}, quarter={season_quarter}"
+#             )
 
-    if not season_id:
-        msg = f"No season_id found or fetched for series_id={series_id} in results_data: {results_data}"
-        logger.error(msg)
-        raise ValueError(msg)
+#     if not season_id:
+#         msg = f"No season_id found or fetched for series_id={series_id} in results_data: {results_data}"
+#         logger.error(msg)
+#         raise ValueError(msg)
 
-    # Create Series
-    # Get iRacing simulator instance
-    iracing_simulator = Simulator.objects.get(name="iRacing")
+#     # Create Series
+#     # Get iRacing simulator instance
+#     iracing_simulator = Simulator.objects.get(name="iRacing")
 
-    series = Series.objects.get_or_create(
-        external_series_id=series_id,
-        defaults={
-            "name": series_name,
-            "simulator": iracing_simulator,
-        },
-    )[0]
-    logger.info("Created/found Series: %s", series)
+#     series = Series.objects.get_or_create(
+#         external_series_id=series_id,
+#         defaults={
+#             "name": series_name,
+#             "simulator": iracing_simulator,
+#         },
+#     )[0]
+#     logger.info("Created/found Series: %s", series)
 
-    # Create Season
-    season = Season.objects.get_or_create(
-        external_season_id=season_id,
-        series=series,
-        defaults={
-            "name": season_name,
-        },
-    )[0]
-    logger.info("Created/found Season: %s", season)
+#     # Create Season
+#     season = Season.objects.get_or_create(
+#         external_season_id=season_id,
+#         series=series,
+#         defaults={
+#             "name": season_name,
+#         },
+#     )[0]
+#     logger.info("Created/found Season: %s", season)
 
-    # 3. Find SimLayout for track
-    track_data = results_data.get("track", {})
-    sim_layout = find_or_create_sim_layout_from_track_data(track_data, "iracing")
-    if not sim_layout:
-        raise ValueError(f"Could not find/create SimLayout for track {track_data}")
+#     # 3. Find SimLayout for track
+#     track_data = results_data.get("track", {})
+#     sim_layout = find_or_create_sim_layout_from_track_data(track_data, "iracing")
+#     if not sim_layout:
+#         raise ValueError(f"Could not find/create SimLayout for track {track_data}")
 
-    # Parse start_time string to datetime object
-    start_time_str = results_data.get("start_time")
-    if not start_time_str:
-        raise ValueError("No start_time in results_data")
+#     # Parse start_time string to datetime object
+#     start_time_str = results_data.get("start_time")
+#     if not start_time_str:
+#         raise ValueError("No start_time in results_data")
 
-    # Parse the datetime string (assuming ISO format like '2025-06-07T12:00:00Z')
-    try:
-        start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
-        start_time = (
-            timezone.make_aware(start_time)
-            if timezone.is_naive(start_time)
-            else start_time
-        )
-    except ValueError as e:
-        logger.error(f"Failed to parse start_time '{start_time_str}': {e}")
-        raise ValueError(f"Invalid start_time format: {start_time_str}")
+#     # Parse the datetime string (assuming ISO format like '2025-06-07T12:00:00Z')
+#     try:
+#         start_time = datetime.fromisoformat(start_time_str.replace("Z", "+00:00"))
+#         start_time = (
+#             timezone.make_aware(start_time)
+#             if timezone.is_naive(start_time)
+#             else start_time
+#         )
+#     except ValueError as e:
+#         logger.error(f"Failed to parse start_time '{start_time_str}': {e}")
+#         raise ValueError(f"Invalid start_time format: {start_time_str}")
 
-    # 4. Get or create Event for this round
-    event, created = Event.objects.get_or_create(
-        season=season,
-        round_number=race_week_num,
-        defaults={
-            "sim_layout": sim_layout,
-            "start_date": start_time.date(),
-            "end_date": start_time.date() + timedelta(days=7),
-            "category": track_data.get("category", ""),
-            "weather_config": results_data.get("weather", {}),
-        },
-    )
-    if created:
-        logger.info("Created Event for round %s: %s", race_week_num, event)
+#     # 4. Get or create Event for this round
+#     event, created = Event.objects.get_or_create(
+#         season=season,
+#         round_number=race_week_num,
+#         defaults={
+#             "sim_layout": sim_layout,
+#             "start_date": start_time.date(),
+#             "end_date": start_time.date() + timedelta(days=7),
+#             "category": track_data.get("category", ""),
+#             "weather_config": results_data.get("weather", {}),
+#         },
+#     )
+#     if created:
+#         logger.info("Created Event for round %s: %s", race_week_num, event)
 
-    # 5. Update Event details if needed (already created above)
+#     # 5. Update Event details if needed (already created above)
 
-    # 6. Create TimeSlot
-    time_slot, created = TimeSlot.objects.get_or_create(
-        external_subsession_id=results_data["subsession_id"],
-        defaults={
-            "event": event,
-            "external_session_id": results_data.get("session_id"),
-            "start_time": start_time,
-            "end_time": start_time + timedelta(hours=2),  # Estimate
-            "registration_open": start_time - timedelta(minutes=30),
-            "registration_ends": start_time + timedelta(minutes=5),
-            "is_predicted": False,
-            "is_matched": True,
-        },
-    )
-    if created:
-        logger.info("Created TimeSlot: subsession %s", results_data["subsession_id"])
-        # Create weather forecasts if URL available in weather data
-        weather_url = None
-        if results_data.get("weather", {}) and isinstance(
-            results_data["weather"], dict
-        ):
-            weather_url = results_data["weather"].get("weather_url")
-        if weather_url:
-            weather_forecasts_created = create_weather_forecasts_from_url(
-                weather_url, time_slot
-            )
-            logger.info(
-                "Created %d weather forecast records for TimeSlot %s",
-                weather_forecasts_created,
-                time_slot.id,
-            )
+#     # 6. Create TimeSlot
+#     time_slot, created = TimeSlot.objects.get_or_create(
+#         external_subsession_id=results_data["subsession_id"],
+#         defaults={
+#             "event": event,
+#             "external_session_id": results_data.get("session_id"),
+#             "start_time": start_time,
+#             "end_time": start_time + timedelta(hours=2),  # Estimate
+#             "registration_open": start_time - timedelta(minutes=30),
+#             "registration_ends": start_time + timedelta(minutes=5),
+#             "is_predicted": False,
+#             "is_matched": True,
+#         },
+#     )
+#     if created:
+#         logger.info("Created TimeSlot: subsession %s", results_data["subsession_id"])
+#         # Create weather forecasts if URL available in weather data
+#         weather_url = None
+#         if results_data.get("weather", {}) and isinstance(
+#             results_data["weather"], dict
+#         ):
+#             weather_url = results_data["weather"].get("weather_url")
+#         if weather_url:
+#             weather_forecasts_created = create_weather_forecasts_from_url(
+#                 weather_url, time_slot
+#             )
+#             logger.info(
+#                 "Created %d weather forecast records for TimeSlot %s",
+#                 weather_forecasts_created,
+#                 time_slot.id,
+#             )
 
     return series, season, event, time_slot
 
