@@ -1155,20 +1155,18 @@ def event_detail(request, event_slug):
     # Get upcoming time slots
     upcoming_time_slots = event.time_slots.filter(
         start_time__gt=timezone.now(),
-    ).order_by("start_time")[:5]
+    ).order_by("start_time")[:6]
 
     # Get recent/completed time slots
     recent_time_slots = event.time_slots.filter(
         start_time__lte=timezone.now(),
-    ).order_by("-start_time")[:10]
+    ).order_by("-start_time")[:6]
 
     # Get weather data for next time slot if available
     next_time_slot = upcoming_time_slots.first()
     weather_forecasts = []
     if next_time_slot:
-        weather_forecasts = next_time_slot.weather_forecasts.order_by("timestamp")[
-            :24
-        ]  # Next 24 hours
+        weather_forecasts = next_time_slot.weather_forecasts.order_by("timestamp")
 
     # Check if current user can join this event
     can_join = False

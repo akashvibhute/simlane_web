@@ -718,7 +718,7 @@ def sync_iracing_weather_task(self, event_id: int) -> Dict[str, Any]:
             else:
                 logger.info(f"Updated weather forecast for time slot {time_slot.id}")
         
-        return {"success": True, "weather_data": weather_data}
+        return {"success": True, "event_id": event_id, "event_name": event.name}
         
     except Exception as e:
         logger.exception(f"Failed to sync weather for event {event_id}")

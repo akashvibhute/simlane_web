@@ -5,88 +5,132 @@
 {% block title %}{{ event.name }} - SimLane{% endblock %}
 {% block content %}
   <div class="container mx-auto px-4 py-8">
-    <!-- Breadcrumb -->
+    <!-- Event Header (restored) -->
+     <!-- Breadcrumb -->
     <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
       <a href="{% url 'events:events_list' %}" class="hover:text-blue-600">Events</a>
       <span>›</span>
+      {% if event.series %}
+        <a href="{% url 'events:events_list' %}?series={{ event.series.slug }}" class="hover:text-blue-600">{{ event.series.name }}</a>
+        <span>›</span>
+        <span class="text-gray-700">Season 1</span>
+        <span>›</span>
+        {% if event.round_number %}
+          <span class="text-gray-700">Round {{ event.round_number|add:1 }}</span>
+          <span>›</span>
+        {% endif %}
+      {% endif %}
       <span class="text-gray-900">{{ event.name|truncatewords:5 }}</span>
     </nav>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+      <div class="flex items-start justify-between mb-4">
+        <div class="flex-1">
+          {% if event.series and event.series.logo %}
+            <div class="mb-4"><img src="{{ event.series.logo.url }}" alt="{{ event.series.name }}" class="h-16 object-contain"/></div>
+          {% endif %}
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ event.name }}</h1>
+          <div class="flex items-center space-x-2 mb-4">
+            {% if event.event_source == 'SERIES' %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">Official Series</span>
+            {% elif event.event_source == 'SPECIAL' %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">Special Event</span>
+            {% elif event.event_source == 'CLUB' %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Club Event</span>
+            {% else %}
+              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">Community</span>
+            {% endif %}
+            {% if event.status %}<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">{{ event.get_status_display }}</span>{% endif %}
+          </div>
+        </div>
+        <div class="flex-shrink-0 ml-6 text-center">
+          {% if event.simulator.icon %}<img src="{{ event.simulator.icon.url }}" alt="{{ event.simulator.name }}" class="w-16 h-16 rounded-lg mx-auto mb-2"/>{% endif %}
+          <div class="text-sm font-medium text-gray-900">{{ event.simulator.name }}</div>
+        </div>
+      </div>
+      {% if event.description %}<p class="text-gray-600 prose max-w-none">{{ event.description|linebreaks }}</p>{% endif %}
+    </div>
+    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-      <!-- Main Content -->
-      <div class="lg:col-span-2">
-        <!-- Event Header -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div class="flex items-start justify-between mb-4">
-            <div class="flex-1">
-              <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ event.name }}</h1>
-              <!-- Event Badges -->
-              <div class="flex items-center space-x-2 mb-4">
-                {% if event.event_source == 'SERIES' %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    Official Series
-                  </span>
-                {% elif event.event_source == 'SPECIAL' %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
-                    Special Event
-                  </span>
-                {% elif event.event_source == 'CLUB' %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                    Club Event
-                  </span>
-                {% else %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                    Community
-                  </span>
+      <!-- Sidebar (left on mobile, right on desktop) -->
+      <aside class="order-2 lg:order-2 lg:col-span-1 space-y-6">
+
+        <!-- Track Layout (moved) -->
+        {% if event.sim_layout.has_svg_maps %}
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Track Layout</h2>
+            <div class="relative">
+              {% with svg_layers=event.sim_layout.get_svg_map_layers %}
+                {% if svg_layers %}
+                  <div class="relative w-full h-auto max-h-80 bg-gray-100 dark:bg-gray-900 rounded">
+                    {% for layer in svg_layers %}
+                      {% if forloop.first %}
+                        <!-- First image sets intrinsic height -->
+                        <img src="{{ layer.image.url }}" alt="{{ layer.caption }}" class="w-full h-auto object-contain" />
+                      {% else %}
+                        <img src="{{ layer.image.url }}" alt="{{ layer.caption }}" class="absolute inset-0 w-full h-full object-contain" style="z-index:{{ forloop.counter }};" />
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                  <p class="text-sm text-gray-500 mt-2 text-center">{{ event.sim_layout.name }}</p>
                 {% endif %}
-                {% if event.status == 'SCHEDULED' %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                    {{ event.get_status_display }}
-                  </span>
-                {% elif event.status == 'ONGOING' %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                    {{ event.get_status_display }}
-                  </span>
-                {% elif event.status == 'COMPLETED' %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                    {{ event.get_status_display }}
-                  </span>
-                {% else %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-                    {{ event.get_status_display }}
-                  </span>
-                {% endif %}
-                {% if event.is_team_event %}
-                  <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    Team Event
-                  </span>
-                {% endif %}
-              </div>
-            </div>
-            <!-- Simulator Info -->
-            <div class="flex-shrink-0 ml-6 text-center">
-              {% if event.simulator.icon %}
-                <img src="{{ event.simulator.icon.url }}"
-                     alt="{{ event.simulator.name }}"
-                     class="w-16 h-16 rounded-lg mx-auto mb-2" />
-              {% endif %}
-              <div class="text-sm font-medium text-gray-900">{{ event.simulator.name }}</div>
+              {% endwith %}
             </div>
           </div>
-          <!-- Event Description -->
-          {% if event.description %}
-            <div class="prose max-w-none mb-6">
-              <p class="text-gray-600">{{ event.description|linebreaks }}</p>
+        {% endif %}
+
+        <!-- Requirements -->
+        {% if event.min_license_level or event.min_safety_rating or event.min_skill_rating %}
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Requirements</h3>
+            <div class="space-y-3">
+              {% if event.min_license_level %}
+                <div class="flex justify-between"><span class="text-gray-600">Min License</span><span class="font-medium">{{ event.min_license_level }}</span></div>
+              {% endif %}
+              {% if event.min_safety_rating %}
+                <div class="flex justify-between"><span class="text-gray-600">Min SR</span><span class="font-medium">{{ event.min_safety_rating|floatformat:2 }}</span></div>
+              {% endif %}
+              {% if event.min_skill_rating %}
+                <div class="flex justify-between"><span class="text-gray-600">Min iRating</span><span class="font-medium">{{ event.min_skill_rating|floatformat:0 }}</span></div>
+              {% endif %}
             </div>
-          {% endif %}
-          <!-- Action Buttons -->
-          {% if can_join %}
-            <div class="mb-4">
-              <button class="bg-blue-600 text-white px-6 py-2 rounded-md font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Join Event
-              </button>
+          </div>
+        {% endif %}
+
+        <!-- Session Format -->
+        {% if event.sessions.all %}
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Session Format</h3>
+            <div class="space-y-2">
+              {% for session in event.sessions.all %}
+                <div class="flex justify-between items-center"><span class="text-gray-600">{{ session.get_session_type_display }}</span><span class="text-sm font-medium">{{ session.duration }} min</span></div>
+              {% endfor %}
             </div>
-          {% endif %}
-        </div>
+          </div>
+        {% endif %}
+
+        <!-- Upcoming Sessions -->
+        {% if upcoming_time_slots %}
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Upcoming Sessions</h3>
+            <div class="space-y-4">
+              {% for ts in upcoming_time_slots %}
+                <div class="border border-gray-200 rounded-lg p-4"><div class="text-base font-medium text-gray-900 mb-1">{{ ts.start_time|date:"D, M j H:i" }}</div><div class="text-xs text-gray-500">Reg: {{ ts.registration_open|date:"M j H:i" }} – {{ ts.registration_ends|date:"M j H:i" }}</div></div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </aside>
+
+      <!-- Main Content -->
+      <div class="order-1 lg:order-1 lg:col-span-2 space-y-8">
+        <!-- Weather Forecast (moved higher and taller) -->
+        {% if weather_forecasts %}
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6" style="height:480px;">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Weather Forecast</h2>
+            <div id="weather-chart" class="w-full h-full"></div>
+          </div>
+        {% endif %}
+
         <!-- Track & Series Information -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <h2 class="text-xl font-semibold text-gray-900 mb-4">Event Details</h2>
@@ -135,9 +179,9 @@
                     </svg>
                     <span class="font-medium">{{ series_context.name }}</span>
                   </div>
-                  {% if season_context %}
-                    <div class="text-sm text-gray-600 ml-7">Season: {{ season_context.name }}</div>
-                    {% if event.round_number %}<div class="text-sm text-gray-600 ml-7">Round {{ event.round_number }}</div>{% endif %}
+                  <div class="text-sm text-gray-600 ml-7">Season: Season 1</div>
+                  {% if event.round_number %}
+                    <div class="text-sm text-gray-600 ml-7">Round {{ event.round_number|add:1 }}</div>
                   {% endif %}
                   {% if series_context.category %}
                     <div class="text-sm text-gray-600 ml-7">Category: {{ series_context.category|title }}</div>
@@ -175,84 +219,51 @@
               {% endif %}
             </div>
           {% endif %}
-          {# Allowed / Event Classes #}
-          {% if event.classes.all %}
-            <div class="mt-6 pt-6 border-t border-gray-200">
-              <h3 class="text-lg font-medium text-gray-900 mb-4">Eligible Cars by Class</h3>
-              {% for block in class_car_data %}
-                <h4 class="text-md font-semibold text-gray-800 mt-4 mb-2">{{ block.event_class.name }}</h4>
-                <div class="overflow-x-auto">
-                  <table class="min-w-full text-sm text-left border border-gray-200 mb-6">
-                    <thead class="bg-gray-50">
-                      <tr>
-                        <th class="px-4 py-2 border-b">Car</th>
-                        <th class="px-4 py-2 border-b">Fuel %</th>
-                        <th class="px-4 py-2 border-b">Power %</th>
-                        <th class="px-4 py-2 border-b">Weight kg</th>
-                        <th class="px-4 py-2 border-b">Tire sets</th>
-                        <th class="px-4 py-2 border-b">Fixed Setup</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {% for entry in block.entries %}
-                        {% with car=entry.car res=entry.restrictions %}
-                          <tr class="border-t">
-                            <td class="px-4 py-2 flex items-center space-x-2">
-                              {% if car.logo %}<img src="{{ car.logo.url }}" class="w-6 h-6 rounded" />{% endif %}
-                              <span>{{ car.display_name|default:car.car_model.full_name }}</span>
-                            </td>
-                            <td class="px-4 py-2 text-center">{{ res.max_pct_fuel_fill|default:'—' }}</td>
-                            <td class="px-4 py-2 text-center">{{ res.power_adjust_pct|default:'—' }}</td>
-                            <td class="px-4 py-2 text-center">{{ res.weight_penalty_kg|default:'—' }}</td>
-                            <td class="px-4 py-2 text-center">{{ res.max_dry_tire_sets|default:'—' }}</td>
-                            <td class="px-4 py-2 text-center">
-                              {% if res.is_fixed_setup %}✔️{% endif %}
-                            </td>
-                          </tr>
-                        {% endwith %}
-                      {% endfor %}
-                    </tbody>
-                  </table>
-                </div>
-              {% endfor %}
-            </div>
-          {% endif %}
         </div>
-        <!-- Upcoming Time Slots -->
-        {% if upcoming_time_slots %}
+        
+        {# Allowed / Event Classes #}
+        {% if event.classes.all %}
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Upcoming Sessions</h2>
-            <div class="space-y-4">
-              {% for time_slot in upcoming_time_slots %}
-                <div class="border border-gray-200 rounded-lg p-4">
-                  <div class="flex items-center justify-between mb-2">
-                    <div class="text-lg font-medium text-gray-900">{{ time_slot.start_time|date:"l, F j, Y" }}</div>
-                    <div class="text-sm text-gray-600">{{ time_slot.start_time|date:"H:i" }} - {{ time_slot.end_time|date:"H:i" }}</div>
-                  </div>
-                  <div class="text-sm text-gray-600 mb-2">
-                    Registration: {{ time_slot.registration_open|date:"M j, H:i" }} - {{ time_slot.registration_ends|date:"M j, H:i" }}
-                  </div>
-                  {% if time_slot == next_instance and weather_forecasts %}
-                    <div class="mt-3 pt-3 border-t border-gray-100">
-                      <div class="text-sm font-medium text-gray-700 mb-2">Weather Forecast</div>
-                      <div class="grid grid-cols-4 gap-2 text-xs">
-                        {% for forecast in weather_forecasts|slice:":8" %}
-                          <div class="text-center">
-                            <div class="text-gray-600">{{ forecast.timestamp|date:"H:i" }}</div>
-                            <div class="font-medium">{{ forecast.air_temperature|floatformat:0 }}°C</div>
-                            {% if forecast.precipitation_chance > 20 %}
-                              <div class="text-blue-600">{{ forecast.precipitation_chance }}%</div>
-                            {% endif %}
-                          </div>
-                        {% endfor %}
-                      </div>
-                    </div>
-                  {% endif %}
-                </div>
-              {% endfor %}
-            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-4">Eligible Cars by Class</h3>
+            {% for block in class_car_data %}
+              <h4 class="text-md font-semibold text-gray-800 mt-4 mb-2">{{ block.event_class.name }}</h4>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm text-left border border-gray-200 mb-6">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-2 border-b">Car</th>
+                      <th class="px-4 py-2 border-b">Fuel %</th>
+                      <th class="px-4 py-2 border-b">Power %</th>
+                      <th class="px-4 py-2 border-b">Weight kg</th>
+                      <th class="px-4 py-2 border-b">Tire sets</th>
+                      <th class="px-4 py-2 border-b">Fixed Setup</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for entry in block.entries %}
+                      {% with car=entry.car res=entry.restrictions %}
+                        <tr class="border-t">
+                          <td class="px-4 py-2 flex items-center space-x-2">
+                            {% if car.logo %}<img src="{{ car.logo.url }}" class="w-6 h-6 rounded" />{% endif %}
+                            <span>{{ car.display_name|default:car.car_model.full_name }}</span>
+                          </td>
+                          <td class="px-4 py-2 text-center">{{ res.max_pct_fuel_fill|default:'—' }}</td>
+                          <td class="px-4 py-2 text-center">{{ res.power_adjust_pct|default:'—' }}</td>
+                          <td class="px-4 py-2 text-center">{{ res.weight_penalty_kg|default:'—' }}</td>
+                          <td class="px-4 py-2 text-center">{{ res.max_dry_tire_sets|default:'—' }}</td>
+                          <td class="px-4 py-2 text-center">
+                            {% if res.is_fixed_setup %}✔️{% endif %}
+                          </td>
+                        </tr>
+                      {% endwith %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% endfor %}
           </div>
         {% endif %}
+        
         <!-- Recent Time Slots -->
         {% if recent_time_slots %}
           <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -279,89 +290,153 @@
           </div>
         {% endif %}
       </div>
-      <!-- Sidebar -->
-      <div class="lg:col-span-1">
-        <!-- Event Stats -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Event Statistics</h3>
-          <div class="space-y-3">
-            <div class="flex justify-between">
-              <span class="text-gray-600">Total Time Slots</span>
-              <span class="font-medium">{{ upcoming_time_slots|length|add:recent_time_slots|length }}</span>
-            </div>
-            {% if upcoming_time_slots %}
-              <div class="flex justify-between">
-                <span class="text-gray-600">Upcoming</span>
-                <span class="font-medium text-green-600">{{ upcoming_time_slots|length }}</span>
-              </div>
-            {% endif %}
-            {% if recent_time_slots %}
-              <div class="flex justify-between">
-                <span class="text-gray-600">Completed</span>
-                <span class="font-medium">{{ recent_time_slots|length }}</span>
-              </div>
-            {% endif %}
-            {% if event.max_entries %}
-              <div class="flex justify-between">
-                <span class="text-gray-600">Max Entries</span>
-                <span class="font-medium">{{ event.max_entries }}</span>
-              </div>
-            {% endif %}
-            {% if event.is_team_event and event.min_drivers_per_entry %}
-              <div class="flex justify-between">
-                <span class="text-gray-600">Team Size</span>
-                <span class="font-medium">
-                  {{ event.min_drivers_per_entry }}
-                  {% if event.max_drivers_per_entry and event.max_drivers_per_entry != event.min_drivers_per_entry %}
-                    -{{ event.max_drivers_per_entry }}
-                  {% endif %}
-                  drivers
-                </span>
-              </div>
-            {% endif %}
-          </div>
-        </div>
-        <!-- Requirements -->
-        {% if event.min_license_level or event.min_safety_rating or event.min_skill_rating %}
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Requirements</h3>
-            <div class="space-y-3">
-              {% if event.min_license_level %}
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Min License</span>
-                  <span class="font-medium">{{ event.min_license_level }}</span>
-                </div>
-              {% endif %}
-              {% if event.min_safety_rating %}
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Min Safety Rating</span>
-                  <span class="font-medium">{{ event.min_safety_rating|floatformat:2 }}</span>
-                </div>
-              {% endif %}
-              {% if event.min_skill_rating %}
-                <div class="flex justify-between">
-                  <span class="text-gray-600">Min Skill Rating</span>
-                  <span class="font-medium">{{ event.min_skill_rating|floatformat:0 }}</span>
-                </div>
-              {% endif %}
-            </div>
-          </div>
-        {% endif %}
-        <!-- Event Sessions -->
-        {% if event.sessions.all %}
-          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4">Session Format</h3>
-            <div class="space-y-2">
-              {% for session in event.sessions.all %}
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-600">{{ session.get_session_type_display }}</span>
-                  <span class="text-sm font-medium">{{ session.duration }} min</span>
-                </div>
-              {% endfor %}
-            </div>
-          </div>
-        {% endif %}
-      </div>
     </div>
   </div>
+{% endblock %}
+
+{% block page_javascript %}
+  {% if weather_forecasts %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Ensure d3 is available globally (bundled via webpack)
+        const d3 = window.d3;
+        if (!d3) {
+          console.error('d3 not found. Make sure it is bundled and exposed globally.');
+          return;
+        }
+
+        // Prepare weather data (ISO timestamps to support full-day range)
+        const weatherData = [
+          {% for forecast in weather_forecasts %}
+            {
+              time: new Date("{{ forecast.timestamp|date:'c' }}"),
+              temperature: {{ forecast.air_temperature|floatformat:1 }},
+              precipitation: {{ forecast.precipitation_chance }}
+            }{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ];
+
+        // Prepare session start & end markers
+        const sessionTimes = [
+          {% for session in event.sessions.all|dictsort:"in_game_time" %}
+            {% if session.in_game_time %}
+              {
+                start: new Date("{{ session.in_game_time|date:'c' }}"),
+                end: new Date(new Date("{{ session.in_game_time|date:'c' }}").getTime() + {{ session.duration|default:0 }} * 60000),
+                type: "{{ session.get_session_type_display }}"
+              }{% if not forloop.last %},{% endif %}
+            {% endif %}
+          {% endfor %}
+        ];
+
+        // Dimensions
+        const container = document.getElementById('weather-chart');
+        const margin = { top: 20, right: 50, bottom: 100, left: 50 };
+
+        const width = container.clientWidth - margin.left - margin.right;
+        const heightMain = 260;
+        const heightContext = 60;
+
+        const svg = d3
+          .select(container)
+          .append('svg')
+          .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${heightMain + heightContext + margin.top + margin.bottom}`);
+
+        const focus = svg
+          .append('g')
+          .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const context = svg
+          .append('g')
+          .attr('transform', `translate(${margin.left},${margin.top + heightMain + 20})`);
+
+        // Scales
+        const x = d3
+          .scaleTime()
+          .domain(d3.extent(weatherData, d => d.time))
+          .range([0, width]);
+
+        const x2 = x.copy();
+
+        const yTemp = d3
+          .scaleLinear()
+          .domain([d3.min(weatherData, d => d.temperature) - 2, d3.max(weatherData, d => d.temperature) + 2])
+          .nice()
+          .range([heightMain, 0]);
+
+        const yPrecip = d3.scaleLinear().domain([0, 100]).range([heightMain, 0]);
+
+        const yTempMini = yTemp.copy().range([heightContext, 0]);
+        const yPrecipMini = yPrecip.copy().range([heightContext, 0]);
+
+        // Axes
+        const xAxis = d3.axisBottom(x).tickFormat(d3.utcFormat('%H:%M'));
+        const xAxis2 = d3.axisBottom(x2).tickFormat(d3.utcFormat('%H:%M'));
+        const yAxisLeft = d3.axisLeft(yTemp);
+        const yAxisRight = d3.axisRight(yPrecip);
+
+        // Line generators
+        const tempLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yTemp(d.temperature));
+        const tempLine2 = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yTemp(d.temperature) /* same y domain */);
+
+        const precipLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yPrecip(d.precipitation));
+        const precipLine2 = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yPrecipMini(d.precipitation));
+
+        const tempLineMini = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yTempMini(d.temperature));
+
+        // Draw lines in focus
+        focus.append('path').datum(weatherData).attr('class', 'temp-line').attr('fill', 'none').attr('stroke', '#eab308').attr('stroke-width', 2).attr('d', tempLine);
+        focus.append('path').datum(weatherData).attr('class', 'precip-line').attr('fill', 'none').attr('stroke', '#3b82f6').attr('stroke-width', 2).attr('stroke-dasharray', '4 2').attr('d', precipLine);
+
+        // Draw axes
+        const xAxisG = focus.append('g').attr('class','x-axis').attr('transform', `translate(0,${heightMain})`).call(xAxis);
+        focus.append('g').call(yAxisLeft);
+        focus.append('g').attr('transform', `translate(${width},0)`).call(yAxisRight);
+
+        // Session markers (start & end)
+        sessionTimes.forEach((session, idx) => {
+          const color = idx === 0 ? '#22c55e' : session.type.toLowerCase().includes('race') ? '#ef4444' : '#6b7280';
+          // start line
+          focus.append('line').attr('class','session-marker').attr('x1', x(session.start)).attr('x2', x(session.start)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 2');
+          // end line
+          focus.append('line').attr('class','session-marker').attr('x1', x(session.end)).attr('x2', x(session.end)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 4');
+
+          // label at start
+          focus.append('text').attr('class','session-label').attr('x', x(session.start) + 3).attr('y', 12).attr('fill', color).attr('font-size', '10px').text(session.type.toUpperCase());
+        });
+
+        // Draw lines in context chart
+        context.append('path').datum(weatherData).attr('class', 'temp-line2').attr('fill', 'none').attr('stroke', '#eab308').attr('stroke-width', 1).attr('d', tempLineMini);
+        context.append('path').datum(weatherData).attr('class', 'precip-line2').attr('fill', 'none').attr('stroke', '#3b82f6').attr('stroke-width', 1).attr('stroke-dasharray', '4 2').attr('d', precipLine2);
+
+        context.append('g').attr('transform', `translate(0,${heightContext})`).call(xAxis2);
+
+        // Brush
+        const brush = d3.brushX().extent([[0, 0], [width, heightContext]]).on('brush end', brushed);
+
+        context.append('g').attr('class', 'x-brush').call(brush);
+
+        function brushed(event) {
+          if (!event.selection) return;
+          const [x0, x1] = event.selection.map(x2.invert);
+          x.domain([x0, x1]);
+          focus.selectAll('.temp-line').attr('d', tempLine);
+          focus.selectAll('.precip-line').attr('d', precipLine);
+
+          // Update markers
+          focus.selectAll('line.session-marker').remove();
+          // remove old labels
+          focus.selectAll('text.session-label').remove();
+
+          sessionTimes.forEach((session, idx) => {
+            const color = idx === 0 ? '#22c55e' : session.type.toLowerCase().includes('race') ? '#ef4444' : '#6b7280';
+            focus.append('line').attr('class', 'session-marker').attr('x1', x(session.start)).attr('x2', x(session.start)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 2');
+            focus.append('line').attr('class', 'session-marker').attr('x1', x(session.end)).attr('x2', x(session.end)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 4');
+            focus.append('text').attr('class', 'session-label').attr('x', x(session.start) + 3).attr('y', 12).attr('fill', color).attr('font-size', '10px').text(session.type.toUpperCase());
+          });
+          xAxisG.call(xAxis);
+        }
+      });
+    </script>
+  {% endif %}
 {% endblock %}

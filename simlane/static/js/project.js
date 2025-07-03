@@ -4,6 +4,7 @@ import '../sass/project.scss';
 // Import Alpine.js for reactive state management (useful globally)
 import Alpine from 'alpinejs';
 import wsClient from './ws';
+import * as d3 from 'd3';
 
 /* Project specific Javascript goes here. */
 
@@ -109,3 +110,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// AFTER Alpine setup
+window.d3 = d3;
