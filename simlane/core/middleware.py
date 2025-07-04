@@ -55,6 +55,7 @@ class AuthenticationRequiredMiddleware(MiddlewareMixin):
             "/robots.txt",
             "/favicon.ico",
             "/contact/",
+            "/events/",
         ]
 
         if any(request.path.startswith(prefix) for prefix in public_prefixes):

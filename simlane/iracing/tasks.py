@@ -683,40 +683,49 @@ def sync_iracing_owned_content(self, sim_profile_id: int) -> Dict[str, Any]:
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_iracing_weather_task(self, event_id: int) -> Dict[str, Any]:
+def sync_iracing_weather_task(self, event_id: int, refresh: bool = False) -> Dict[str, Any]:
     """
     Sync weather data for an event.
     """
     try:
-        logger.info(f"Syncing weather for event {event_id}")
+        logger.debug(f"Syncing weather for event {event_id}")
         _ensure_service_available()
         
         event = Event.objects.get(id=event_id)
         weather_forecast_version = event.weather_forecast_version
         if not event.weather_forecast_url:
-            logger.info(f"Event {event_id} has no weather forecast url")
+            logger.debug(f"Event {event_id} has no weather forecast url")
             return {"success": False, "error": "No weather forecast url"}
         
-        response = requests.get(event.weather_forecast_url, timeout=10)
-        response.raise_for_status()
-        weather_data: list[dict[str, Any]] = response.json()
+        if event.weather_forecast_data and not refresh:
+            logger.debug(f"Event {event_id} already has weather data, skipping refresh")
+            weather_data = event.weather_forecast_data
+        else:
+            logger.debug(f"Refreshing weather data for event {event_id}")
+            
+            response = requests.get(event.weather_forecast_url, timeout=10)
+            response.raise_for_status()
+            weather_data: list[dict[str, Any]] = response.json()
         
-        event.weather_forecast_data = weather_data
-        event.save()
+            event.weather_forecast_data = weather_data
+            event.save()
         
         if not weather_data:
             logger.info(f"No weather data found for event {event_id}")
             return {"success": False, "error": "No weather data", "weather_data": weather_data}
         
         # Create weather forecast
-        time_slots = list(TimeSlot.objects.filter(event=event))
-        for time_slot in time_slots:
-            logger.info(f"Syncing weather for time slot {time_slot.id}")
-            created  = create_weather_forecasts_from_iracing_data(event=event, weather_forecast_data=weather_data, time_slot=time_slot, forecast_version=weather_forecast_version)
-            if created:
-                logger.info(f"Created weather forecast for time slot {time_slot.id}")
-            else:
-                logger.info(f"Updated weather forecast for time slot {time_slot.id}")
+        # time_slots = list(TimeSlot.objects.filter(event=event))
+        # for now link the weather to the event
+        # for time_slot in time_slots:
+        #     logger.info(f"Syncing weather for time slot {time_slot.id}")
+        #     created  = create_weather_forecasts_from_iracing_data(event=event, weather_forecast_data=weather_data, time_slot=time_slot, forecast_version=weather_forecast_version)
+        #     if created:
+        created = create_weather_forecasts_from_iracing_data(event=event, weather_forecast_data=weather_data, forecast_version=weather_forecast_version)
+        if created:
+            logger.info(f"Created weather forecast for event {event.id}")
+        else:
+            logger.info(f"weather forecast updated for event {event.id}")
         
         return {"success": True, "event_id": event_id, "event_name": event.name}
         

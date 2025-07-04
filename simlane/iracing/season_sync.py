@@ -147,7 +147,7 @@ class ScheduleProcessor:
         # import here to avoid circular import
         from simlane.iracing.tasks import sync_iracing_weather_task
         
-        sync_iracing_weather_task.delay(event_id=event_id) # type: ignore
+        sync_iracing_weather_task.delay(event_id=event_id, refresh=True) # type: ignore
         self.weather_sync_queued += 1
     
     def _process_event_sessions(self, event: Event, schedule_data: Schedule, simulated_start_time: str) -> None:

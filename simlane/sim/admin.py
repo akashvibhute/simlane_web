@@ -270,7 +270,7 @@ class ProfileRatingAdmin(ModelAdmin):
 @admin.register(WeatherForecast)
 class WeatherForecastAdmin(ModelAdmin):
     list_display = [
-        "time_slot",
+        "event",
         "timestamp",
         "air_temperature",
         "precipitation_chance",
@@ -282,9 +282,9 @@ class WeatherForecastAdmin(ModelAdmin):
         "allow_precipitation",
         "forecast_version",
     ]
-    search_fields = ["time_slot__event__name"]
+    search_fields = ["event__name"]
     readonly_fields = ["created_at", "updated_at"]
-    raw_id_fields = ["time_slot"]
+    raw_id_fields = ["event"]
     date_hierarchy = "timestamp"
 
 

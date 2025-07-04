@@ -1138,7 +1138,7 @@ def event_detail(request, event_slug):
             "organizing_club",
             "organizing_user",
         ).prefetch_related(
-            "time_slots__weather_forecasts",
+            "weather_forecasts",
             "time_slots__result",
             "sessions",
             "classes",
@@ -1162,12 +1162,8 @@ def event_detail(request, event_slug):
         start_time__lte=timezone.now(),
     ).order_by("-start_time")[:6]
 
-    # Get weather data for next time slot if available
-    next_time_slot = upcoming_time_slots.first()
-    weather_forecasts = []
-    if next_time_slot:
-        weather_forecasts = next_time_slot.weather_forecasts.order_by("timestamp")
-
+    weather_forecasts = event.weather_forecasts.order_by("timestamp")
+    print(len(weather_forecasts))
     # Check if current user can join this event
     can_join = False
     can_manage = False
@@ -1205,7 +1201,7 @@ def event_detail(request, event_slug):
         "event": event,
         "upcoming_time_slots": upcoming_time_slots,
         "recent_time_slots": recent_time_slots,
-        "next_time_slot": next_time_slot,
+        # "next_time_slot": next_time_slot,
         "weather_forecasts": weather_forecasts,
         "can_join": can_join,
         "can_manage": can_manage,

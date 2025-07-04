@@ -1827,6 +1827,15 @@ class WeatherForecast(models.Model):
     time_slot = models.ForeignKey(
         TimeSlot,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="weather_forecasts",
+    )
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="weather_forecasts",
     )
     time_offset = models.IntegerField(help_text="Minutes from event start")
@@ -1905,7 +1914,7 @@ class WeatherForecast(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.time_slot.event.name} - {self.time_offset} minutes"
+        return f"{self.event.name} - {self.time_offset} minutes"
 
 
 class SimProfileCarOwnership(models.Model):

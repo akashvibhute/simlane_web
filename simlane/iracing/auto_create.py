@@ -117,7 +117,7 @@ def find_or_create_sim_layout_from_track_data(
 def create_weather_forecasts_from_iracing_data(
     event: Event,
     weather_forecast_data: list,
-    time_slot: TimeSlot,
+    # time_slot: TimeSlot,
     forecast_version: int = 1,
 ) -> int:
     """
@@ -193,10 +193,8 @@ def create_weather_forecasts_from_iracing_data(
                 )
             else:
                 # Fallback: calculate from time_offset
-                time_offset_minutes = forecast_item.get("time_offset", 0)
-                timestamp = time_slot.start_time + timedelta(
-                    minutes=time_offset_minutes
-                )
+                logger.warning("No timestamp in forecast item: %s", forecast_item)
+                continue
 
             # Convert iRacing units to standard units using official conversion factors
             # Air temperature: divide by 100 (Celsius)
@@ -224,31 +222,39 @@ def create_weather_forecasts_from_iracing_data(
             # Precipitation amount: divide by 10 (mm/hour)
             precip_amount = forecast_item.get("precip_amount", 0) / 10.0
 
-            WeatherForecast.objects.create(
-                time_slot=time_slot,
+            defaults = {
+                "is_sun_up": forecast_item.get("is_sun_up", True),
+                "affects_session": forecast_item.get("affects_session", True),
+                # Temperature and Pressure (converted)
+                "air_temperature": air_temp_celsius,
+                "pressure": pressure_hpa,
+                # Wind (converted)
+                "wind_speed": wind_speed_ms,
+                "wind_direction": forecast_item.get("wind_dir", 0),
+                # Precipitation (converted)
+                "precipitation_chance": int(precip_chance_percent),
+                "precipitation_amount": precip_amount,
+                "allow_precipitation": forecast_item.get("allow_precip", False),
+                # Cloud and Humidity (converted)
+                "cloud_cover": int(cloud_cover_percent),
+                "relative_humidity": int(humidity_percent),
+                # Metadata
+                "forecast_version": forecast_version,
+                "valid_stats": forecast_item.get("valid_stats", True),
+                "units_info": units_info,  # Store unit conversion reference
+                "raw_data": forecast_item,  # Store complete raw data for reference
+            }
+
+            _weatherForecast, created = WeatherForecast.objects.update_or_create(
+                event=event,
                 time_offset=forecast_item.get("time_offset", 0),
                 timestamp=timestamp,
-                is_sun_up=forecast_item.get("is_sun_up", True),
-                affects_session=forecast_item.get("affects_session", True),
-                # Temperature and Pressure (converted)
-                air_temperature=air_temp_celsius,
-                pressure=pressure_hpa,
-                # Wind (converted)
-                wind_speed=wind_speed_ms,
-                wind_direction=forecast_item.get("wind_dir", 0),
-                # Precipitation (converted)
-                precipitation_chance=int(precip_chance_percent),
-                precipitation_amount=precip_amount,
-                allow_precipitation=forecast_item.get("allow_precip", False),
-                # Cloud and Humidity (converted)
-                cloud_cover=int(cloud_cover_percent),
-                relative_humidity=int(humidity_percent),
-                # Metadata
-                forecast_version=forecast_version,
-                valid_stats=forecast_item.get("valid_stats", True),
-                units_info=units_info,  # Store unit conversion reference
-                raw_data=forecast_item,  # Store complete raw data for reference
+                defaults=defaults,
             )
+            if created:
+                logger.info(f"Created weather forecast for event {event.id}")
+            else:
+                logger.info(f"weather forecast updated for event {event.id}")
             created_count += 1
 
         except Exception as e:
@@ -260,9 +266,9 @@ def create_weather_forecasts_from_iracing_data(
             continue
 
     logger.info(
-        "Created %d weather forecast records for TimeSlot %s (version %d)",
+        "Created %d weather forecast records for Event %s (version %d)",
         created_count,
-        time_slot.id,
+        event.id,
         forecast_version,
     )
     return created_count
