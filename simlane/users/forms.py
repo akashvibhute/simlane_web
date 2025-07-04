@@ -34,7 +34,7 @@ class UserUpdateForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ["profile_image"]
+        fields = ["profile_image", "timezone"]
         widgets = {
             "profile_image": forms.FileInput(
                 attrs={
@@ -48,12 +48,24 @@ class UserUpdateForm(forms.ModelForm):
                     "accept": "image/*",
                 },
             ),
+            "timezone": forms.Select(
+                attrs={
+                    "class": (
+                        "mt-1 block w-full rounded-md border-gray-300 shadow-sm "
+                        "focus:border-primary-500 focus:ring-primary-500 sm:text-sm "
+                        "dark:bg-gray-700 dark:border-gray-600 dark:text-white "
+                        "dark:focus:border-primary-400 dark:focus:ring-primary-400"
+                    ),
+                },
+            ),
         }
         labels = {
             "profile_image": "Profile Picture",
+            "timezone": "Timezone",
         }
         help_texts = {
             "profile_image": "Upload a square image for best results (max 2MB)",
+            "timezone": "Select your timezone for displaying dates and times",
         }
 
 
@@ -64,6 +76,21 @@ class UserSignupForm(SignupForm):
     Check UserSocialSignupForm for accounts created from social.
     """
 
+    timezone = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.HiddenInput(),
+        initial="UTC",
+    )
+
+    def save(self, request):
+        user = super().save(request)
+        # Set timezone if provided
+        if self.cleaned_data.get("timezone"):
+            user.timezone = self.cleaned_data["timezone"]
+            user.save()
+        return user
+
 
 class UserSocialSignupForm(SocialSignupForm):
     """
@@ -71,6 +98,21 @@ class UserSocialSignupForm(SocialSignupForm):
     Default fields will be added automatically.
     See UserSignupForm otherwise.
     """
+
+    timezone = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.HiddenInput(),
+        initial="UTC",
+    )
+
+    def save(self, request):
+        user = super().save(request)
+        # Set timezone if provided
+        if self.cleaned_data.get("timezone"):
+            user.timezone = self.cleaned_data["timezone"]
+            user.save()
+        return user
 
 
 class SimProfileForm(forms.ModelForm):
@@ -131,7 +173,7 @@ class SimProfileForm(forms.ModelForm):
                 int(sim_api_id)
             except ValueError:
                 raise forms.ValidationError(
-                    "iRacing customer ID must be a number (e.g., 123456)"
+                    "iRacing customer ID must be a number (e.g., 123456)",
                 )
         return sim_api_id
 
@@ -153,9 +195,7 @@ class SimProfileForm(forms.ModelForm):
                 existing_profile = existing_profile.exclude(pk=self.instance.pk)
 
             if existing_profile.exists():
-                error_msg = (
-                    f"You already have an iRacing profile with customer ID {sim_api_id}."
-                )
+                error_msg = f"You already have an iRacing profile with customer ID {sim_api_id}."
                 raise forms.ValidationError(error_msg)
 
             # Check if profile exists and is linked to another user
@@ -163,13 +203,16 @@ class SimProfileForm(forms.ModelForm):
                 simulator=simulator,
                 sim_api_id=sim_api_id,
             )
-            
+
             if self.instance.pk:
                 existing_any_profile = existing_any_profile.exclude(pk=self.instance.pk)
 
             if existing_any_profile.exists():
                 existing_profile = existing_any_profile.first()
-                if existing_profile.linked_user and existing_profile.linked_user != self.user:
+                if (
+                    existing_profile.linked_user
+                    and existing_profile.linked_user != self.user
+                ):
                     error_msg = (
                         f"iRacing profile with customer ID {sim_api_id} is already "
                         "linked to another user."
@@ -185,7 +228,10 @@ class SimProfileForm(forms.ModelForm):
     def validate_unique(self):
         """Override to skip unique validation when we have an existing unlinked profile."""
         # Check if we have an existing unlinked profile we want to link
-        if hasattr(self, '_existing_unlinked_profile') and self._existing_unlinked_profile:
+        if (
+            hasattr(self, "_existing_unlinked_profile")
+            and self._existing_unlinked_profile
+        ):
             # Skip model validation since we'll handle linking in the view
             return
         # Otherwise, run normal validation

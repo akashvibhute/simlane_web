@@ -19,7 +19,8 @@
   </div>
   <form method="post"
         action="{% url 'socialaccount_signup' %}"
-        class="space-y-6">
+        class="space-y-6"
+        id="social-signup-form">
     {% csrf_token %}
     {{ redirect_field }}
     <!-- Form Fields -->
@@ -65,4 +66,57 @@
     <a href="{% url 'account_login' %}"
        class="text-sm text-primary-600 hover:text-primary-500">{% trans "Back to Sign In" %}</a>
   </div>
+  <script>
+    // Detect user's timezone and populate hidden field
+    document.addEventListener('DOMContentLoaded', function() {
+      const timezoneField = document.querySelector('input[name="timezone"]');
+      if (timezoneField) {
+        try {
+          // Get user's timezone using Intl.DateTimeFormat
+          const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+          // Map common browser timezones to our available choices
+          const timezoneMapping = {
+            'America/New_York': 'America/New_York',
+            'America/Chicago': 'America/Chicago',
+            'America/Denver': 'America/Denver',
+            'America/Los_Angeles': 'America/Los_Angeles',
+            'America/Toronto': 'America/Toronto',
+            'America/Vancouver': 'America/Vancouver',
+            'America/Mexico_City': 'America/Mexico_City',
+            'America/Sao_Paulo': 'America/Sao_Paulo',
+            'Europe/London': 'Europe/London',
+            'Europe/Paris': 'Europe/Paris',
+            'Europe/Berlin': 'Europe/Berlin',
+            'Europe/Rome': 'Europe/Rome',
+            'Europe/Madrid': 'Europe/Madrid',
+            'Asia/Tokyo': 'Asia/Tokyo',
+            'Asia/Shanghai': 'Asia/Shanghai',
+            'Asia/Kolkata': 'Asia/Kolkata',
+            'Asia/Dubai': 'Asia/Dubai',
+            'Australia/Sydney': 'Australia/Sydney',
+            'Australia/Melbourne': 'Australia/Melbourne',
+            'Africa/Cairo': 'Africa/Cairo',
+            'Africa/Johannesburg': 'Africa/Johannesburg',
+            // US timezone aliases
+            'US/Eastern': 'US/Eastern',
+            'US/Central': 'US/Central',
+            'US/Mountain': 'US/Mountain',
+            'US/Pacific': 'US/Pacific'
+          };
+
+          // Set the timezone if we have a mapping for it
+          if (timezoneMapping[userTimezone]) {
+            timezoneField.value = timezoneMapping[userTimezone];
+          } else {
+            // Default to UTC if we don't have a mapping
+            timezoneField.value = 'UTC';
+          }
+        } catch (error) {
+          console.log('Could not detect timezone, using UTC as default');
+          timezoneField.value = 'UTC';
+        }
+      }
+    });
+  </script>
 {% endblock inner_content %}

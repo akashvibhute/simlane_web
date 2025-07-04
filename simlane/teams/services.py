@@ -41,7 +41,8 @@ class EventParticipationService:
                 status="entered",
                 preferred_car=car,
                 participant_timezone=kwargs.get(
-                    "timezone", user.timezone if hasattr(user, "timezone") else "UTC"
+                    "timezone",
+                    user.timezone if hasattr(user, "timezone") else "UTC",
                 ),
                 entered_at=timezone.now(),
                 **kwargs,
@@ -50,7 +51,11 @@ class EventParticipationService:
 
     @staticmethod
     def create_team_signup(
-        event, user, club_event=None, invitation=None, **preferences
+        event,
+        user,
+        club_event=None,
+        invitation=None,
+        **preferences,
     ):
         """Create team event signup (Phase 1)"""
         with transaction.atomic():
@@ -62,7 +67,8 @@ class EventParticipationService:
                 club_event=club_event,
                 signup_invitation=invitation,
                 participant_timezone=preferences.get(
-                    "timezone", user.timezone if hasattr(user, "timezone") else "UTC"
+                    "timezone",
+                    user.timezone if hasattr(user, "timezone") else "UTC",
                 ),
                 preferred_car=preferences.get("preferred_car"),
                 backup_car=preferences.get("backup_car"),
@@ -81,7 +87,9 @@ class EventParticipationService:
 
     @staticmethod
     def assign_participants_to_team(
-        participant_ids: list[int], team: Team, assigned_by: User
+        participant_ids: list[int],
+        team: Team,
+        assigned_by: User,
     ):
         """Assign multiple participants to a team (Phase 2)"""
         with transaction.atomic():
@@ -166,12 +174,16 @@ class AvailabilityService:
         **preferences,
     ):
         """Create availability window with timezone conversion"""
-        import pytz
+        import zoneinfo
 
         # Convert local times to UTC
-        user_tz = pytz.timezone(timezone_str)
-        start_utc = user_tz.localize(start_time_local).astimezone(pytz.UTC)
-        end_utc = user_tz.localize(end_time_local).astimezone(pytz.UTC)
+        user_tz = zoneinfo.ZoneInfo(timezone_str)
+        start_utc = start_time_local.replace(tzinfo=user_tz).astimezone(
+            zoneinfo.ZoneInfo("UTC")
+        )
+        end_utc = end_time_local.replace(tzinfo=user_tz).astimezone(
+            zoneinfo.ZoneInfo("UTC")
+        )
 
         window = AvailabilityWindow.objects.create(
             participation=participation,
@@ -195,14 +207,22 @@ class AvailabilityService:
         timezone_str: str,
     ):
         """Create multiple availability windows efficiently"""
-        import pytz
+        import zoneinfo
 
-        user_tz = pytz.timezone(timezone_str)
+        user_tz = zoneinfo.ZoneInfo(timezone_str)
         windows = []
 
         for data in availability_data:
-            start_utc = user_tz.localize(data["start_time_local"]).astimezone(pytz.UTC)
-            end_utc = user_tz.localize(data["end_time_local"]).astimezone(pytz.UTC)
+            start_utc = (
+                data["start_time_local"]
+                .replace(tzinfo=user_tz)
+                .astimezone(zoneinfo.ZoneInfo("UTC"))
+            )
+            end_utc = (
+                data["end_time_local"]
+                .replace(tzinfo=user_tz)
+                .astimezone(zoneinfo.ZoneInfo("UTC"))
+            )
 
             windows.append(
                 AvailabilityWindow(
@@ -216,14 +236,16 @@ class AvailabilityService:
                     max_consecutive_stints=data.get("max_consecutive_stints", 1),
                     preferred_stint_length=data.get("preferred_stint_length"),
                     notes=data.get("notes", ""),
-                )
+                ),
             )
 
         return AvailabilityWindow.objects.bulk_create(windows)
 
     @staticmethod
     def get_availability_conflicts(
-        event: Event, target_start, target_end
+        event: Event,
+        target_start,
+        target_end,
     ) -> list[dict]:
         """Find availability conflicts for stint assignment"""
         conflicts = []
@@ -244,19 +266,20 @@ class AvailabilityService:
                     "window_start": window.start_time,
                     "window_end": window.end_time,
                     "available_roles": window.get_roles_list(),
-                }
+                },
             )
 
         return conflicts
 
     @staticmethod
     def generate_coverage_report(
-        event: Event, timezone_display="UTC"
+        event: Event,
+        timezone_display="UTC",
     ) -> dict[str, Any]:
         """Generate comprehensive availability coverage report"""
-        import pytz
+        import zoneinfo
 
-        display_tz = pytz.timezone(timezone_display)
+        display_tz = zoneinfo.ZoneInfo(timezone_display)
         windows = (
             AvailabilityWindow.objects.filter(
                 participation__event=event,
@@ -276,7 +299,7 @@ class AvailabilityService:
             current_hour = start_hour
             while current_hour <= end_hour:
                 hour_key = current_hour.astimezone(display_tz).strftime(
-                    "%Y-%m-%d %H:00"
+                    "%Y-%m-%d %H:00",
                 )
 
                 if hour_key not in coverage:
@@ -307,7 +330,7 @@ class AvailabilityService:
                 else 0
             )
             hour_data["users"] = list(
-                hour_data["users"]
+                hour_data["users"],
             )  # Convert set to list for JSON serialization
 
         return {
@@ -324,7 +347,9 @@ class TeamFormationService:
     def analyze_compatibility(event: Event, user_ids: list[int]) -> dict[str, Any]:
         """Analyze compatibility between potential team members"""
         overlaps = AvailabilityWindow.find_overlapping_availability(
-            user_ids, event, min_overlap_hours=1
+            user_ids,
+            event,
+            min_overlap_hours=1,
         )
 
         compatibility_matrix = {}
@@ -359,7 +384,9 @@ class TeamFormationService:
 
     @staticmethod
     def suggest_optimal_teams(
-        event: Event, team_size: int = 3, max_teams: int = None
+        event: Event,
+        team_size: int = 3,
+        max_teams: int = None,
     ) -> list[dict]:
         """Generate optimal team suggestions using advanced algorithms"""
         participants = EventParticipation.objects.filter(
@@ -407,7 +434,7 @@ class TeamFormationService:
             enhanced_recommendations.append(
                 {
                     "team_members": list(
-                        team_users.values("id", "username", "first_name", "last_name")
+                        team_users.values("id", "username", "first_name", "last_name"),
                     ),
                     "compatibility_score": rec["total_overlap_score"],
                     "total_availability_hours": total_availability_hours,
@@ -417,9 +444,9 @@ class TeamFormationService:
                     if car_preferences
                     else None,
                     "team_balance_score": TeamFormationService._calculate_balance_score(
-                        team_participations
+                        team_participations,
                     ),
-                }
+                },
             )
 
         return sorted(
@@ -452,7 +479,7 @@ class TeamFormationService:
         # Calculate variance (lower variance = better balance)
         mean_score = sum(experience_scores) / len(experience_scores)
         variance = sum((score - mean_score) ** 2 for score in experience_scores) / len(
-            experience_scores
+            experience_scores,
         )
 
         # Convert to 0-1 scale (lower variance = higher balance score)
@@ -522,7 +549,7 @@ class InvitationService:
 
         if existing and not existing.is_expired():
             raise ValidationError(
-                f"Pending invitation already exists for {invitee_email}"
+                f"Pending invitation already exists for {invitee_email}",
             )
 
         # Create new invitation
@@ -591,7 +618,8 @@ class WorkflowService:
 
     @staticmethod
     def close_signup_phase(
-        event: Event, club_event=None
+        event: Event,
+        club_event=None,
     ):  # club_event parameter removed
         """Close signup phase and prepare for team formation"""
         with transaction.atomic():
@@ -616,7 +644,8 @@ class WorkflowService:
 
     @staticmethod
     def finalize_team_allocations(
-        event: Event, club_event=None
+        event: Event,
+        club_event=None,
     ):  # club_event parameter removed
         """Finalize team allocations and create event entries"""
         with transaction.atomic():

@@ -1,11 +1,12 @@
 # Enhanced imports for unified system
 import secrets
 import uuid
+import zoneinfo
 from datetime import timedelta
 
-import pytz
 from django.core.exceptions import ValidationError
-from django.db import models, transaction
+from django.db import models
+from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -488,7 +489,7 @@ class TeamMember(models.Model):
                 self.can_manage_entries,
                 self.can_invite_members,
                 self.can_edit_team,
-            ]
+            ],
         )
 
     def is_active_membership(self):
@@ -730,7 +731,8 @@ class EventParticipation(models.Model):
                 fields=["assigned_time_slot", "user"],
                 name="unique_user_event_time_slot_participation",
                 condition=models.Q(
-                    assigned_time_slot__isnull=False, user__isnull=False
+                    assigned_time_slot__isnull=False,
+                    user__isnull=False,
                 ),
             ),
             # Team can only participate in one time slot at a time
@@ -738,7 +740,8 @@ class EventParticipation(models.Model):
                 fields=["assigned_time_slot", "team"],
                 name="unique_team_event_time_slot_participation",
                 condition=models.Q(
-                    assigned_time_slot__isnull=False, team__isnull=False
+                    assigned_time_slot__isnull=False,
+                    team__isnull=False,
                 ),
             ),
         ]
@@ -752,10 +755,10 @@ class EventParticipation(models.Model):
             models.Index(fields=["participation_type", "status"]),
             models.Index(fields=["event", "participation_type"]),
             models.Index(
-                fields=["signup_context_club", "event"]
+                fields=["signup_context_club", "event"],
             ),  # New index for club signups
             models.Index(
-                fields=["assigned_time_slot", "status"]
+                fields=["assigned_time_slot", "status"],
             ),  # New index for time slot queries
         ]
 
@@ -820,7 +823,8 @@ class EventParticipation(models.Model):
     def get_participants_for_event(cls, event, status_filter=None):
         """Get all participants for an event with optional status filter"""
         queryset = cls.objects.filter(event=event).select_related(
-            "user", "team__owner_user"
+            "user",
+            "team__owner_user",
         )
 
         if status_filter:
@@ -926,7 +930,6 @@ class AvailabilityWindow(models.Model):
         """
         Custom validation for complex constraints that can't be done at database level
         """
-        from datetime import timedelta
 
         # Check minimum duration (15 minutes)
         if self.start_time and self.end_time:
@@ -935,7 +938,7 @@ class AvailabilityWindow(models.Model):
                 raise ValidationError(
                     {
                         "__all__": "Availability window must be at least 15 minutes long.",
-                    }
+                    },
                 )
 
             # Check that duration is a multiple of 15 minutes
@@ -944,7 +947,7 @@ class AvailabilityWindow(models.Model):
                 raise ValidationError(
                     {
                         "__all__": "Availability window duration must be a multiple of 15 minutes.",
-                    }
+                    },
                 )
 
         # Check if window is within event time boundaries
@@ -957,7 +960,7 @@ class AvailabilityWindow(models.Model):
                     raise ValidationError(
                         {
                             "start_time": f"Availability window cannot start before event start time ({event.start_time})",
-                        }
+                        },
                     )
 
             if hasattr(event, "end_time") and event.end_time:
@@ -965,7 +968,7 @@ class AvailabilityWindow(models.Model):
                     raise ValidationError(
                         {
                             "end_time": f"Availability window cannot end after event end time ({event.end_time})",
-                        }
+                        },
                     )
 
         # Check for overlapping windows for the same participation
@@ -984,7 +987,7 @@ class AvailabilityWindow(models.Model):
                             "__all__": f"This availability window overlaps with another window "
                             f"({overlapping.start_time} to {overlapping.end_time}). "
                             f"Windows for the same participant cannot overlap.",
-                        }
+                        },
                     )
 
     def save(self, *args, **kwargs):
@@ -1008,7 +1011,7 @@ class AvailabilityWindow(models.Model):
     def get_local_times(self):
         """Get start/end times in participant's timezone"""
         user_tz_str = self.participation.get_effective_timezone()
-        user_tz = pytz.timezone(user_tz_str)
+        user_tz = zoneinfo.ZoneInfo(user_tz_str)
         return {
             "start_local": self.start_time.astimezone(user_tz),
             "end_local": self.end_time.astimezone(user_tz),
@@ -1076,7 +1079,7 @@ class AvailabilityWindow(models.Model):
         )
 
         chart_data = []
-        display_tz = pytz.timezone(display_timezone)
+        display_tz = zoneinfo.ZoneInfo(display_timezone)
 
         for window in windows:
             local_times = window.get_local_times()
@@ -1104,7 +1107,7 @@ class AvailabilityWindow(models.Model):
                     "duration_hours": window.duration_hours(),
                     "roles": window.get_roles_list(),
                     "notes": window.notes,
-                }
+                },
             )
 
         return chart_data
@@ -1170,7 +1173,10 @@ class AvailabilityWindow(models.Model):
 
     @classmethod
     def get_team_formation_recommendations(
-        cls, event, team_size=3, min_coverage_hours=6
+        cls,
+        event,
+        team_size=3,
+        min_coverage_hours=6,
     ):
         """
         Advanced team formation algorithm using availability overlap analysis
@@ -1244,12 +1250,14 @@ class AvailabilityWindow(models.Model):
                         "team_members": potential_team,
                         "total_overlap_score": best_score,
                         "coverage_estimate": best_score,  # Simplified
-                    }
+                    },
                 )
                 used_users.update(potential_team)
 
         return sorted(
-            recommendations, key=lambda x: x["total_overlap_score"], reverse=True
+            recommendations,
+            key=lambda x: x["total_overlap_score"],
+            reverse=True,
         )
 
 
@@ -1386,7 +1394,7 @@ class RaceStrategy(models.Model):
                     rest_duration = (next_start - prev_end).total_seconds() / 60
                     if rest_duration < self.min_driver_rest:
                         issues.append(
-                            f"Insufficient rest for driver {stints[i].driver}"
+                            f"Insufficient rest for driver {stints[i].driver}",
                         )
 
         return issues
@@ -1574,10 +1582,14 @@ class EventSignupInvitation(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
     event = models.ForeignKey(
-        Event, on_delete=models.CASCADE, related_name="signup_invitations"
+        Event,
+        on_delete=models.CASCADE,
+        related_name="signup_invitations",
     )
     organizer_user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="sent_signup_invitations"
+        User,
+        on_delete=models.CASCADE,
+        related_name="sent_signup_invitations",
     )
 
     # Invitation details
@@ -1719,6 +1731,7 @@ class ClubInvitation(models.Model):
     def can_send_reminder(self):
         """Check if reminder can be sent (max 2 reminders, 24h apart)"""
         from django.utils import timezone
+
         if self.reminder_count >= 2:
             return False
         if self.reminder_sent_at:
@@ -1734,14 +1747,17 @@ class ClubInvitation(models.Model):
         club_member, created = ClubMember.objects.get_or_create(
             user=user,
             club=self.club,
-            defaults={'role': self.role}
+            defaults={"role": self.role},
         )
 
         if not created:
             # User was already a member, update their role if invitation role is higher
             if self.role == ClubRole.ADMIN:
                 club_member.role = ClubRole.ADMIN
-            elif self.role == ClubRole.TEAMS_MANAGER and club_member.role == ClubRole.MEMBER:
+            elif (
+                self.role == ClubRole.TEAMS_MANAGER
+                and club_member.role == ClubRole.MEMBER
+            ):
                 club_member.role = ClubRole.TEAMS_MANAGER
             club_member.save()
 
@@ -1759,34 +1775,38 @@ class ClubInvitation(models.Model):
 
 class ClubJoinRequest(models.Model):
     """Track user requests to join clubs"""
-    
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    club = models.ForeignKey(Club, on_delete=models.CASCADE, related_name="join_requests")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="club_join_requests")
-    
+    club = models.ForeignKey(
+        Club, on_delete=models.CASCADE, related_name="join_requests"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="club_join_requests"
+    )
+
     # Request details
     description = models.TextField(
         max_length=1000,
-        help_text="User's explanation for wanting to join the club"
+        help_text="User's explanation for wanting to join the club",
     )
-    
+
     # Status tracking
     status = models.CharField(
         max_length=20,
         choices=[
-            ('pending', 'Pending'),
-            ('approved', 'Approved'),
-            ('rejected', 'Rejected'),
-            ('cancelled', 'Cancelled'),
+            ("pending", "Pending"),
+            ("approved", "Approved"),
+            ("rejected", "Rejected"),
+            ("cancelled", "Cancelled"),
         ],
-        default='pending'
+        default="pending",
     )
-    
+
     # Response from admin
     admin_response = models.TextField(
         blank=True,
         max_length=500,
-        help_text="Admin's message when approving/rejecting the request"
+        help_text="Admin's message when approving/rejecting the request",
     )
     reviewed_by = models.ForeignKey(
         User,
@@ -1794,20 +1814,20 @@ class ClubJoinRequest(models.Model):
         null=True,
         blank=True,
         related_name="reviewed_join_requests",
-        help_text="Admin who reviewed this request"
+        help_text="Admin who reviewed this request",
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
-    
+
     # Discord message tracking
     discord_message_id = models.CharField(
         max_length=50,
         blank=True,
-        help_text="Discord message ID for the join request notification"
+        help_text="Discord message ID for the join request notification",
     )
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         unique_together = ["club", "user"]
         indexes = [
@@ -1816,10 +1836,10 @@ class ClubJoinRequest(models.Model):
             models.Index(fields=["status"]),
             models.Index(fields=["created_at"]),
         ]
-        
+
     def __str__(self):
         return f"{self.user.username} request to join {self.club.name}"
-    
+
     def approve(self, admin_user, response_message="", role=ClubRole.MEMBER):
         """Approve the join request and add user to club"""
         with transaction.atomic():
@@ -1827,38 +1847,38 @@ class ClubJoinRequest(models.Model):
             club_member, created = ClubMember.objects.get_or_create(
                 user=self.user,
                 club=self.club,
-                defaults={'role': role}
+                defaults={"role": role},
             )
-            
+
             # Update request status
-            self.status = 'approved'
+            self.status = "approved"
             self.admin_response = response_message
             self.reviewed_by = admin_user
             self.reviewed_at = timezone.now()
             self.save()
-            
+
             return club_member
-    
+
     def reject(self, admin_user, response_message=""):
         """Reject the join request"""
-        self.status = 'rejected'
+        self.status = "rejected"
         self.admin_response = response_message
         self.reviewed_by = admin_user
         self.reviewed_at = timezone.now()
         self.save()
-        
+
     def cancel(self):
         """Cancel the join request (by user)"""
-        self.status = 'cancelled'
+        self.status = "cancelled"
         self.save()
-        
+
     @property
     def is_pending(self):
-        return self.status == 'pending'
-        
-    @property 
+        return self.status == "pending"
+
+    @property
     def is_reviewed(self):
-        return self.status in ['approved', 'rejected']
+        return self.status in ["approved", "rejected"]
 
 
 class ClubEventSignupSheet(models.Model):

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Availability Picker by Driver Lanes</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 2rem;
+      }
+
+      svg {
+        width: 100%;
+        height: 250px;
+        border: 1px solid #ccc;
+      }
+
+      .slot {
+        fill-opacity: 0.6;
+        cursor: ew-resize;
+      }
+
+      .handle {
+        fill: transparent;
+        cursor: ew-resize;
+        pointer-events: all;
+      }
+
+      .brush .selection {
+        fill: rgba(30, 144, 255, 0.3);
+      }
+
+      .label {
+        font-size: 12px;
+        fill: #333;
+        dominant-baseline: middle;
+      }
+
+      .driver-label {
+        font-weight: bold;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Availability Picker with Driver Lanes</h2>
+    <p>
+      Your timezone: <span id="timezone"></span>
+    </p>
+    <svg id="timeline">
+    </svg>
+    <h3>Availability Slots</h3>
+    <ul id="slot-list">
+    </ul>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+      const svg = d3.select("#timeline");
+      const width = svg.node().getBoundingClientRect().width;
+      const height = 250;
+      svg.attr("height", height);
+
+      const margin = {
+        left: 80,
+        right: 60,
+        top: 20,
+        bottom: 30
+      };
+      const innerWidth = width - margin.left - margin.right;
+      const laneHeight = 40; // height per driver lane
+      const lanePadding = 10;
+
+      const startTime = new Date("2025-07-04T10:00:00Z");
+      const endTime = new Date("2025-07-05T16:00:00Z");
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      document.getElementById("timezone").textContent = timezone;
+
+      const x = d3.scaleTime()
+        .domain([startTime, endTime])
+        .range([margin.left, width - margin.right]);
+
+      const xAxis = d3.axisBottom(x)
+        .ticks(d3.timeHour.every(2))
+        .tickFormat(d => new Intl.DateTimeFormat(undefined, {
+          weekday: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).format(d));
+
+      svg.append("g")
+        .attr("transform", `translate(0,${height - margin.bottom})`)
+        .call(xAxis);
+
+      const brush = d3.brushX()
+        .extent([
+          [margin.left, margin.top],
+          [width - margin.right, height - margin.bottom]
+        ])
+        .on("end", brushed);
+
+      svg.append("g")
+        .attr("class", "brush")
+        .call(brush);
+
+      let slots = [];
+
+      // Get unique drivers for lanes
+      function getDrivers() {
+        return [...new Set(slots.map(s => s.name))].sort();
+      }
+
+      // Color scale for drivers
+      const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+      // Calculate y-position of lane by driver name
+      function laneY(name) {
+        const drivers = getDrivers();
+        const idx = drivers.indexOf(name);
+        return margin.top + idx * laneHeight + lanePadding;
+      }
+
+      // Overlap check only within same driver
+      function overlaps(newSlot, ignoreIndex = -1) {
+        return slots.some((s, i) => {
+          if (i === ignoreIndex) return false;
+          if (s.name !== newSlot.name) return false;
+          return newSlot.start < s.end && newSlot.end > s.start;
+        });
+      }
+
+      function brushed({
+        selection
+      }) {
+        if (!selection) return;
+
+        const [x0, x1] = selection;
+        const start = x.invert(x0);
+        const end = x.invert(x1);
+
+        if ((end - start) < 5 * 60 * 1000) {
+          alert("Please select a time range of at least 5 minutes.");
+          svg.select(".brush").call(brush.move, null);
+          return;
+        }
+
+        const name = prompt("Enter your name for this availability slot:", "Driver 1");
+        if (!name) {
+          svg.select(".brush").call(brush.move, null);
+          return;
+        }
+
+        const newSlot = {
+          start,
+          end,
+          name
+        };
+
+        if (overlaps(newSlot)) {
+          alert(`This slot overlaps with an existing slot of the same driver (${name}).`);
+          svg.select(".brush").call(brush.move, null);
+          return;
+        }
+
+        slots.push(newSlot);
+        updateSlots();
+        svg.select(".brush").call(brush.move, null);
+      }
+
+      function updateSlots() {
+        // Clear old groups
+        svg.selectAll("g.slot-group").remove();
+        svg.selectAll("text.driver-label").remove();
+
+        const drivers = getDrivers();
+
+        // Add driver labels on left margin
+        svg.selectAll("text.driver-label")
+          .data(drivers)
+          .enter()
+          .append("text")
+          .attr("class", "driver-label")
+          .attr("x", margin.left - 10)
+          .attr("y", d => laneY(d) + laneHeight / 2)
+          .attr("text-anchor", "end")
+          .attr("dominant-baseline", "middle")
+          .text(d => d);
+
+        // Draw each slot in the correct lane & color
+        const groups = svg.selectAll("g.slot-group")
+          .data(slots)
+          .enter()
+          .append("g")
+          .attr("class", "slot-group")
+          .call(d3.drag()
+            .on("drag", function(event, d) {
+              const dx = event.dx;
+              const timeDelta = x.invert(x(d.start) + dx) - d.start;
+              const newStart = new Date(+d.start + timeDelta);
+              const newEnd = new Date(+d.end + timeDelta);
+              const tempSlot = {
+                start: newStart,
+                end: newEnd,
+                name: d.name
+              };
+              if (!overlaps(tempSlot, slots.indexOf(d)) && newStart >= startTime && newEnd <= endTime) {
+                d.start = newStart;
+                d.end = newEnd;
+                updateSlots();
+              }
+            })
+          );
+
+        groups.append("rect")
+          .attr("class", "slot")
+          .attr("y", d => laneY(d.name))
+          .attr("height", laneHeight - lanePadding * 2)
+          .attr("x", d => x(d.start))
+          .attr("width", d => x(d.end) - x(d.start))
+          .attr("fill", d => colorScale(d.name));
+
+        // Left handle
+        groups.append("rect")
+          .attr("class", "handle")
+          .attr("y", d => laneY(d.name))
+          .attr("width", 10)
+          .attr("height", laneHeight - lanePadding * 2)
+          .attr("x", d => x(d.start) - 5)
+          .call(d3.drag().on("drag", function(event, d) {
+            const newStart = x.invert(event.x);
+            if (newStart >= d.end || newStart < startTime) return;
+            const tempSlot = {
+              start: newStart,
+              end: d.end,
+              name: d.name
+            };
+            if (!overlaps(tempSlot, slots.indexOf(d))) {
+              d.start = newStart;
+              updateSlots();
+            }
+          }));
+
+        // Right handle
+        groups.append("rect")
+          .attr("class", "handle")
+          .attr("y", d => laneY(d.name))
+          .attr("width", 10)
+          .attr("height", laneHeight - lanePadding * 2)
+          .attr("x", d => x(d.end) - 5)
+          .call(d3.drag().on("drag", function(event, d) {
+            const newEnd = x.invert(event.x);
+            if (newEnd <= d.start || newEnd > endTime) return;
+            const tempSlot = {
+              start: d.start,
+              end: newEnd,
+              name: d.name
+            };
+            if (!overlaps(tempSlot, slots.indexOf(d))) {
+              d.end = newEnd;
+              updateSlots();
+            }
+          }));
+
+        // Add text label at end of each slot
+        groups.append("text")
+          .attr("class", "label")
+          .attr("x", d => x(d.end) + 5)
+          .attr("y", d => laneY(d.name) + (laneHeight / 2))
+          .attr("dominant-baseline", "middle")
+          .text(d => d.name);
+
+        // Update list below the chart
+        const ul = document.getElementById("slot-list");
+        ul.innerHTML = "";
+        slots.forEach((slot, i) => {
+          const li = document.createElement("li");
+          li.textContent = `${slot.name}: ${slot.start.toLocaleString()} - ${slot.end.toLocaleString()}`;
+          const btn = document.createElement("button");
+          btn.textContent = "Remove";
+          btn.onclick = () => {
+            slots.splice(i, 1);
+            updateSlots();
+          };
+          li.appendChild(btn);
+          ul.appendChild(li);
+        });
+      }
+    </script>
+  </body>
+</html>

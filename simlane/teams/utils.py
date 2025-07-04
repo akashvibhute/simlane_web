@@ -73,7 +73,8 @@ def generate_secure_slug(text: str, model_class, field_name: str = "slug") -> st
 
 
 def suggest_team_compositions_enhanced(
-    participations: list[EventParticipation], criteria: dict
+    participations: list[EventParticipation],
+    criteria: dict,
 ) -> list[dict]:
     """AI-assisted team suggestions with multiple criteria"""
     suggestions = []
@@ -444,11 +445,11 @@ def generate_notification_summary(club_event) -> dict:
 Utility functions for team formation, availability analysis, and chart generation.
 """
 
+import zoneinfo
 from datetime import datetime
 from datetime import timedelta
 from typing import Any
 
-import pytz
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
@@ -464,7 +465,7 @@ class TimezoneUtils:
         if not utc_datetime:
             return None
 
-        user_tz = pytz.timezone(user_timezone_str)
+        user_tz = zoneinfo.ZoneInfo(user_timezone_str)
         return utc_datetime.astimezone(user_tz)
 
     @staticmethod
@@ -473,11 +474,11 @@ class TimezoneUtils:
         if not local_datetime:
             return None
 
-        user_tz = pytz.timezone(user_timezone_str)
+        user_tz = zoneinfo.ZoneInfo(user_timezone_str)
         if local_datetime.tzinfo is None:
-            local_datetime = user_tz.localize(local_datetime)
+            local_datetime = local_datetime.replace(tzinfo=user_tz)
 
-        return local_datetime.astimezone(pytz.UTC)
+        return local_datetime.astimezone(zoneinfo.ZoneInfo("UTC"))
 
     @staticmethod
     def get_common_timezones():
@@ -504,7 +505,7 @@ class TimezoneUtils:
     def format_timezone_display(timezone_str: str) -> str:
         """Format timezone for user-friendly display"""
         try:
-            tz = pytz.timezone(timezone_str)
+            tz = zoneinfo.ZoneInfo(timezone_str)
             now = timezone.now()
             offset = now.astimezone(tz).strftime("%z")
             return f"{timezone_str} (UTC{offset[:3]}:{offset[3:]})"
@@ -517,12 +518,12 @@ class AvailabilityChartGenerator:
 
     @staticmethod
     def generate_coverage_heatmap_data(
-        event, timezone_display="UTC", resolution_hours=1
+        event,
+        timezone_display="UTC",
+        resolution_hours=1,
     ) -> dict[str, Any]:
         """Generate data for availability coverage heatmap"""
-        import pytz
-
-        display_tz = pytz.timezone(timezone_display)
+        display_tz = zoneinfo.ZoneInfo(timezone_display)
 
         # Get all availability windows
         windows = (
@@ -543,7 +544,7 @@ class AvailabilityChartGenerator:
         # Round to hour boundaries
         start_time = earliest.replace(minute=0, second=0, microsecond=0)
         end_time = latest.replace(minute=0, second=0, microsecond=0) + timedelta(
-            hours=1
+            hours=1,
         )
 
         # Get unique users
@@ -552,7 +553,7 @@ class AvailabilityChartGenerator:
                 event_participations__event=event,
             )
             .values("id", "username", "first_name", "last_name")
-            .distinct()
+            .distinct(),
         )
 
         # Generate time slots
@@ -565,7 +566,7 @@ class AvailabilityChartGenerator:
                     "utc": current_time.isoformat(),
                     "local": local_time.isoformat(),
                     "display": local_time.strftime("%a %m/%d %H:%M"),
-                }
+                },
             )
             current_time += timedelta(hours=resolution_hours)
 
@@ -606,7 +607,7 @@ class AvailabilityChartGenerator:
                             "available": True,
                             "preference_level": best_preference,
                             "roles": list(roles),
-                        }
+                        },
                     )
                 else:
                     user_row["availability"].append(
@@ -614,7 +615,7 @@ class AvailabilityChartGenerator:
                             "available": False,
                             "preference_level": 0,
                             "roles": [],
-                        }
+                        },
                     )
 
             heatmap_data.append(user_row)
@@ -628,7 +629,9 @@ class AvailabilityChartGenerator:
 
     @staticmethod
     def generate_team_overlap_chart(
-        user_ids: list[int], event, timezone_display="UTC"
+        user_ids: list[int],
+        event,
+        timezone_display="UTC",
     ) -> dict[str, Any]:
         """Generate chart data for team member availability overlap"""
         overlaps = AvailabilityWindow.find_overlapping_availability(user_ids, event)
@@ -644,7 +647,7 @@ class AvailabilityChartGenerator:
                     "id": user.id,
                     "name": user.get_full_name() or user.username,
                     "username": user.username,
-                }
+                },
             )
 
         for overlap in overlaps:
@@ -654,7 +657,7 @@ class AvailabilityChartGenerator:
                     "target": overlap["user2_id"],
                     "value": overlap["total_overlap_hours"],
                     "overlap_windows": overlap["overlap_windows"],
-                }
+                },
             )
 
         return {
@@ -669,7 +672,9 @@ class TeamFormationAlgorithms:
 
     @staticmethod
     def greedy_team_formation(
-        event, team_size: int = 3, max_teams: int = None
+        event,
+        team_size: int = 3,
+        max_teams: int = None,
     ) -> list[list[int]]:
         """
         Greedy algorithm for team formation based on availability overlap.
@@ -681,7 +686,7 @@ class TeamFormationAlgorithms:
                 event=event,
                 status="signed_up",
                 participation_type="team_signup",
-            ).values_list("user_id", flat=True)
+            ).values_list("user_id", flat=True),
         )
 
         if len(participants) < team_size:
@@ -689,7 +694,8 @@ class TeamFormationAlgorithms:
 
         # Get all pairwise overlaps
         all_overlaps = AvailabilityWindow.find_overlapping_availability(
-            participants, event
+            participants,
+            event,
         )
 
         # Build adjacency matrix with overlap hours as weights
@@ -827,7 +833,8 @@ class TeamFormationAlgorithms:
 
                 # Combined score (lower variance = better balance, higher overlap = better)
                 balance_score = avg_overlap / max(
-                    exp_variance, 0.1
+                    exp_variance,
+                    0.1,
                 )  # Avoid division by zero
 
                 if balance_score > best_balance_score:
@@ -875,7 +882,8 @@ class AvailabilityConflictDetector:
 
     @staticmethod
     def detect_stint_conflicts(
-        team_members: list[int], proposed_stints: list[dict]
+        team_members: list[int],
+        proposed_stints: list[dict],
     ) -> list[dict]:
         """
         Detect conflicts between proposed stint assignments and member availability.
@@ -923,10 +931,10 @@ class AvailabilityConflictDetector:
                                     "start_time",
                                     "end_time",
                                     "preference_level",
-                                )
+                                ),
                             ),
                             "severity": "warning",
-                        }
+                        },
                     )
                 else:
                     conflicts.append(
@@ -936,14 +944,16 @@ class AvailabilityConflictDetector:
                             "stint_start": start_time,
                             "stint_end": end_time,
                             "severity": "error",
-                        }
+                        },
                     )
 
         return conflicts
 
     @staticmethod
     def suggest_alternative_stints(
-        team_members: list[int], event, total_duration_hours: int
+        team_members: list[int],
+        event,
+        total_duration_hours: int,
     ) -> list[dict]:
         """
         Suggest alternative stint arrangements that work better with availability.
@@ -987,7 +997,7 @@ class AvailabilityConflictDetector:
                     / 3600,
                     "available_drivers": available_drivers,
                     "driver_count": len(available_drivers),
-                }
+                },
             )
 
         # Merge overlapping periods and sort by driver availability
@@ -1006,7 +1016,7 @@ class AvailabilityConflictDetector:
                 ).total_seconds() / 3600
                 # Combine available drivers
                 all_drivers = set(
-                    last_period["available_drivers"] + period["available_drivers"]
+                    last_period["available_drivers"] + period["available_drivers"],
                 )
                 last_period["available_drivers"] = list(all_drivers)
                 last_period["driver_count"] = len(all_drivers)
