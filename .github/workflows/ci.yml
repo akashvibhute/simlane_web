@@ -111,7 +111,7 @@ jobs:
             traefik.cache-to=type=gha,scope=traefik-production,mode=max
 
       - name: Push only Django image to registry
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           push: true
           context: .
@@ -126,7 +126,7 @@ jobs:
           cache-to: type=gha,scope=django-production,mode=max
 
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
