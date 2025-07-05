@@ -1220,6 +1220,124 @@ def event_detail(request, event_slug):
             else None
         )
 
+    # Check if we have data for tabs (for conditional display in template)
+    has_car_data = event.classes.exists()
+    has_results = recent_time_slots.exists()
+
+    context = {
+        "event": event,
+        "upcoming_time_slots": upcoming_time_slots,
+        "recent_time_slots": recent_time_slots,
+        "weather_forecasts": weather_forecasts,
+        "can_join": can_join,
+        "can_manage": can_manage,
+        "series_context": series_context,
+        "season_context": season_context,
+        "class_car_data": has_car_data,  # Just a boolean for tab display
+    }
+
+    response = render(request, "sim/events/detail.html", context)
+
+    # Cache the response for anonymous users
+    if cache_key and not request.user.is_authenticated:
+        cache.set(cache_key, response, timeout=900)  # 15 minutes
+
+    return response
+
+
+def event_timeslots_tab(request, event_slug):
+    """HTMX view for event timeslots tab"""
+    event = get_object_or_404(
+        Event.objects.select_related("simulator").prefetch_related("time_slots__result"),
+        slug=event_slug,
+        visibility__in=["PUBLIC", "UNLISTED"],
+    )
+    
+    # Check if user can view this event
+    if not event.can_user_view(request.user):
+        raise Http404("Event not found")
+    
+    # Get upcoming time slots
+    upcoming_time_slots = event.time_slots.filter(
+        start_time__gt=timezone.now(),
+    ).order_by("start_time")[:10]
+
+    # Dynamically generate upcoming time slots for repeating schedules (iRacing)
+    if (
+        not upcoming_time_slots
+        and event.simulator.slug == "iracing"
+        and event.time_pattern
+    ):
+        try:
+            from datetime import timedelta
+            from simlane.iracing.season_sync import RecurrenceHandler
+
+            now = timezone.now()
+            # Generate slots for the next 1 days
+            generated_slots = RecurrenceHandler.generate_time_slots_for_period(
+                event,
+                start_date=now,
+                end_date=now + timedelta(days=1),
+            )
+            # Take first 10 generated slots for display
+            upcoming_time_slots = generated_slots[0:10]
+        except Exception as e:
+            # Fallback: leave upcoming_time_slots empty and log the error
+            import logging
+            logging.getLogger(__name__).warning(
+                "Error generating repeating time slots for event %s: %s",
+                event.slug,
+                e,
+            )
+
+    # Get recent/completed time slots
+    recent_time_slots = event.time_slots.filter(
+        start_time__lte=timezone.now(),
+    ).order_by("-start_time")[:10]
+    
+    context = {
+        "event": event,
+        "upcoming_time_slots": upcoming_time_slots,
+        "recent_time_slots": recent_time_slots,
+    }
+    
+    return render(request, "sim/events/tabs/timeslots.html", context)
+
+
+def event_weather_tab(request, event_slug):
+    """HTMX view for event weather tab"""
+    event = get_object_or_404(
+        Event.objects.select_related("simulator").prefetch_related("sessions"),
+        slug=event_slug,
+        visibility__in=["PUBLIC", "UNLISTED"],
+    )
+    
+    # Check if user can view this event
+    if not event.can_user_view(request.user):
+        raise Http404("Event not found")
+    
+    context = {
+        "event": event,
+    }
+    
+    return render(request, "sim/events/tabs/weather.html", context)
+
+
+def event_cars_tab(request, event_slug):
+    """HTMX view for event cars & BOP tab"""
+    event = get_object_or_404(
+        Event.objects.select_related("simulator").prefetch_related(
+            "classes",
+            "classes__car_class",
+        ),
+        slug=event_slug,
+        visibility__in=["PUBLIC", "UNLISTED"],
+    )
+    
+    # Check if user can view this event
+    if not event.can_user_view(request.user):
+        raise Http404("Event not found")
+    
     # Build per-class car + restriction data
     class_car_data = []
     for ec in event.classes.all():
@@ -1234,24 +1352,58 @@ def event_detail(request, event_slug):
                 },
             )
         class_car_data.append({"event_class": ec, "entries": entries})
-
+    
     context = {
         "event": event,
-        "upcoming_time_slots": upcoming_time_slots,
-        "recent_time_slots": recent_time_slots,
-        # "next_time_slot": next_time_slot,
-        "weather_forecasts": weather_forecasts,
-        "can_join": can_join,
-        "can_manage": can_manage,
-        "series_context": series_context,
-        "season_context": season_context,
         "class_car_data": class_car_data,
     }
+    
+    return render(request, "sim/events/tabs/cars.html", context)
 
-    response = render(request, "sim/events/detail.html", context)
 
-    # Cache the response for anonymous users
-    if cache_key and not request.user.is_authenticated:
-        cache.set(cache_key, response, timeout=900)  # 15 minutes
+def event_results_tab(request, event_slug):
+    """HTMX view for event results tab"""
+    event = get_object_or_404(
+        Event.objects.select_related("simulator").prefetch_related(
+            "time_slots__result",
+        ),
+        slug=event_slug,
+        visibility__in=["PUBLIC", "UNLISTED"],
+    )
+    
+    # Check if user can view this event
+    if not event.can_user_view(request.user):
+        raise Http404("Event not found")
+    
+    # Get recent/completed time slots
+    recent_time_slots = event.time_slots.filter(
+        start_time__lte=timezone.now(),
+    ).order_by("-start_time")[:20]  # Get more for results tab
+    
+    context = {
+        "event": event,
+        "recent_time_slots": recent_time_slots,
+    }
+    
+    return render(request, "sim/events/tabs/results.html", context)
 
-    return response
+
+def event_layout_tab(request, event_slug):
+    """HTMX view for event track layout tab (mobile)"""
+    event = get_object_or_404(
+        Event.objects.select_related(
+            "sim_layout__sim_track",
+        ),
+        slug=event_slug,
+        visibility__in=["PUBLIC", "UNLISTED"],
+    )
+    
+    # Check if user can view this event
+    if not event.can_user_view(request.user):
+        raise Http404("Event not found")
+    
+    context = {
+        "event": event,
+    }
+    
+    return render(request, "sim/events/tabs/layout.html", context)

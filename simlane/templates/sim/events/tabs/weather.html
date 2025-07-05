@@ -1,0 +1,183 @@
+<div style="height: 480px">
+  <div id="weather-chart-{{ event.id }}" class="w-full h-full"></div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const eventId = '{{ event.id }}';
+    const chartContainer = document.getElementById('weather-chart-' + eventId);
+    
+    if (!chartContainer) return;
+    
+    // Fetch weather data from API
+    fetch(`/api/events/${eventId}/weather/`)
+      .then(response => response.json())
+      .then(data => {
+        renderWeatherChart(chartContainer, data);
+      })
+      .catch(error => {
+        console.error('Error loading weather data:', error);
+        chartContainer.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">Failed to load weather data</div>';
+      });
+  });
+
+  function renderWeatherChart(container, data) {
+    const d3 = window.d3;
+    if (!d3) {
+      console.error('d3 not found. Make sure it is bundled and exposed globally.');
+      return;
+    }
+
+    // Clear container
+    container.innerHTML = '';
+
+    // Prepare weather data
+    const weatherData = data.weather_forecasts.map(forecast => ({
+      time: new Date(forecast.timestamp),
+      temperature: forecast.air_temperature,
+      precipitation: forecast.precipitation_chance,
+      cloudCover: forecast.cloud_cover,
+      sunUp: forecast.is_sun_up
+    }));
+
+    // Prepare session data
+    const sessionTimes = data.sessions
+      .filter(session => session.in_game_time)
+      .map(session => ({
+        start: new Date(session.in_game_time),
+        end: new Date(new Date(session.in_game_time).getTime() + (session.duration || 0) * 60000),
+        type: session.session_type
+      }));
+
+    if (weatherData.length === 0) {
+      container.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">No weather data available</div>';
+      return;
+    }
+
+    // Dimensions
+    const margin = { top: 20, right: 50, bottom: 100, left: 50 };
+    const width = container.clientWidth - margin.left - margin.right;
+    const heightMain = 260;
+    const heightContext = 60;
+
+    const svg = d3
+      .select(container)
+      .append('svg')
+      .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${heightMain + heightContext + margin.top + margin.bottom}`);
+
+    const focus = svg
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    const context = svg
+      .append('g')
+      .attr('transform', `translate(${margin.left},${margin.top + heightMain + 20})`);
+
+    // Theme palette
+    const isDark = document.documentElement.classList.contains('dark');
+    const palette = {
+      temp: isDark ? '#fbbf24' : '#d97706', // amber-400 vs amber-600
+      precip: isDark ? '#60a5fa' : '#2563eb', // blue-400 vs blue-600
+      cloud: isDark ? '#9ca3af' : '#6b7280', // gray-400 vs gray-500
+      axis: isDark ? '#9ca3af' : '#374151', // gray-400 vs gray-700
+      night: isDark ? '#ffffff' : '#000000',
+    };
+
+    // Scales
+    const x = d3.scaleTime().domain(d3.extent(weatherData, d => d.time)).range([0, width]);
+    const x2 = x.copy();
+
+    const yTemp = d3
+      .scaleLinear()
+      .domain([d3.min(weatherData, d => d.temperature) - 2, d3.max(weatherData, d => d.temperature) + 2])
+      .nice()
+      .range([heightMain, 0]);
+
+    const yPrecip = d3.scaleLinear().domain([0, 100]).range([heightMain, 0]);
+    const yCloud = yPrecip;
+
+    const yTempMini = yTemp.copy().range([heightContext, 0]);
+    const yPrecipMini = yPrecip.copy().range([heightContext, 0]);
+
+    // Axes
+    const xAxis = d3.axisBottom(x).tickFormat(d3.utcFormat('%H:%M'));
+    const xAxis2 = d3.axisBottom(x2).tickFormat(d3.utcFormat('%H:%M'));
+    const yAxisLeft = d3.axisLeft(yTemp);
+    const yAxisRight = d3.axisRight(yPrecip);
+
+    // Apply axis styling
+    function styleAxis(axisG) {
+      axisG.selectAll('text').attr('fill', palette.axis);
+      axisG.selectAll('line,path').attr('stroke', palette.axis);
+    }
+
+    // Line generators
+    const tempLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yTemp(d.temperature));
+    const precipLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yPrecip(d.precipitation));
+    const cloudLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yCloud(d.cloudCover));
+
+    // Draw lines in focus
+    focus.append('path').datum(weatherData).attr('fill', 'none').attr('stroke', palette.temp).attr('stroke-width', 2).attr('d', tempLine);
+    focus.append('path').datum(weatherData).attr('fill', 'none').attr('stroke', palette.precip).attr('stroke-width', 2).attr('stroke-dasharray', '4 2').attr('d', precipLine);
+    focus.append('path').datum(weatherData).attr('fill', 'none').attr('stroke', palette.cloud).attr('stroke-width', 1.5).attr('stroke-dasharray', '2 2').attr('d', cloudLine);
+
+    // Draw axes
+    const xAxisG = focus.append('g').attr('transform', `translate(0,${heightMain})`);
+    styleAxis(xAxisG.call(xAxis));
+    styleAxis(focus.append('g').call(yAxisLeft));
+    styleAxis(focus.append('g').attr('transform', `translate(${width},0)`).call(yAxisRight));
+
+    // Legend
+    const legendData = [
+      { label: 'Temp (°C)', color: palette.temp, dash: '', strokeWidth: 2 },
+      { label: 'Precip %', color: palette.precip, dash: '4 2', strokeWidth: 2 },
+      { label: 'Cloud %', color: palette.cloud, dash: '2 2', strokeWidth: 1.5 },
+      { label: 'Night', color: palette.night, dash: '', strokeWidth: 6, isRect: true }
+    ];
+
+    const legend = focus.append('g').attr('class', 'legend').attr('transform', 'translate(0, -12)');
+    const legendItem = legend.selectAll('g').data(legendData).enter().append('g').attr('transform', (d, i) => `translate(${i * 100},0)`);
+
+    legendItem.each(function(d) {
+      const g = d3.select(this);
+      if (d.isRect) {
+        g.append('rect').attr('x', 0).attr('y', -4).attr('width', 20).attr('height', 8).attr('fill', d.color).attr('opacity', 0.15);
+      } else {
+        g.append('line').attr('x1', 0).attr('y1', 0).attr('x2', 20).attr('y2', 0).attr('stroke', d.color).attr('stroke-width', d.strokeWidth).attr('stroke-dasharray', d.dash);
+      }
+    });
+
+    legendItem.append('text').attr('x', 24).attr('y', 4).attr('font-size', '10px').attr('fill', palette.axis).text(d => d.label);
+
+    // Session markers
+    sessionTimes.forEach((session, idx) => {
+      const color = idx === 0 ? '#16a34a' : session.type.toLowerCase().includes('race') ? '#dc2626' : '#6b7280';
+      focus.append('line').attr('x1', x(session.start)).attr('x2', x(session.start)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 2');
+      focus.append('line').attr('x1', x(session.end)).attr('x2', x(session.end)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 4');
+    });
+
+    // Night-time shading
+    const nightLayer = focus.append('g').attr('class', 'night-layer');
+    const segments = [];
+    let currentStart = null;
+    weatherData.forEach(d => {
+      if (!d.sunUp) {
+        if (currentStart === null) currentStart = d.time;
+      } else if (currentStart !== null) {
+        segments.push({ start: currentStart, end: d.time });
+        currentStart = null;
+      }
+    });
+    if (currentStart !== null) {
+      segments.push({ start: currentStart, end: weatherData[weatherData.length - 1].time });
+    }
+
+    nightLayer.selectAll('rect').data(segments).enter().append('rect')
+      .attr('x', d => x(d.start))
+      .attr('y', 0)
+      .attr('width', d => Math.max(1, x(d.end) - x(d.start)))
+      .attr('height', heightMain)
+      .attr('fill', palette.night)
+      .attr('opacity', 0.06);
+  }
+</script>

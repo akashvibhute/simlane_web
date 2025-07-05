@@ -31,5 +31,41 @@
 #     can_strategize: bool = False
 #     preference_level: int = 3
 
+from datetime import datetime
+from typing import List, Optional
+from uuid import UUID
+from ninja import Schema
+
+class WeatherForecastSchema(Schema):
+    id: UUID
+    time_offset: int
+    timestamp: datetime
+    is_sun_up: bool
+    affects_session: bool
+    air_temperature: float
+    pressure: float
+    wind_speed: float
+    wind_direction: int
+    precipitation_chance: int
+    precipitation_amount: float
+    allow_precipitation: bool
+    cloud_cover: int
+    relative_humidity: int
+    forecast_version: int
+    valid_stats: bool
+
+class SessionSchema(Schema):
+    id: UUID
+    session_type: str
+    in_game_time: Optional[datetime] = None
+    duration: Optional[int] = None
+    laps: Optional[int] = None
+
+class EventWeatherDataSchema(Schema):
+    event_id: UUID
+    time_slot_id: Optional[UUID] = None
+    weather_forecasts: List[WeatherForecastSchema]
+    sessions: List[SessionSchema]
+
 # All legacy event schemas have been removed
 # This file is kept as a placeholder for future event API schemas

@@ -1,0 +1,61 @@
+<div class="text-center">
+  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+    {{ event.sim_layout.sim_track.track_model.name }}
+  </h3>
+  {% if event.sim_layout.name != event.sim_layout.sim_track.track_model.name %}
+    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Layout: {{ event.sim_layout.name }}</p>
+  {% endif %}
+  {% if event.sim_layout.length_km %}
+    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Length: {{ event.sim_layout.length_km|floatformat:2 }} km</p>
+  {% endif %}
+  {% if event.sim_layout.layout_type %}
+    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Type: {{ event.sim_layout.get_layout_type_display }}</p>
+  {% endif %}
+  
+  <div class="relative inline-block">
+    {% with track=event.sim_layout.sim_track %}
+      {% if track.logo %}
+        <img src="{{ track.logo.url }}"
+             alt="{{ track.name }} logo"
+             class="absolute bottom-0 left-0 w-16 h-16 object-contain rounded p-1 z-20" />
+      {% endif %}
+    {% endwith %}
+    
+    <button type="button"
+            class="absolute top-2 right-2 z-30 bg-gray-900 bg-opacity-40 hover:bg-opacity-100 rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer text-white transition-opacity"
+            aria-label="Enlarge track map"
+            id="zoom-track-map-btn-mobile">
+      <svg xmlns="http://www.w3.org/2000/svg"
+           fill="none"
+           viewBox="0 0 24 24"
+           stroke-width="1.5"
+           stroke="currentColor"
+           class="w-6 h-6">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+      </svg>
+    </button>
+    
+    {% with svg_layers=event.sim_layout.get_svg_map_layers %}
+      {% if svg_layers %}
+        <div class="relative w-full h-auto max-h-80 bg-gray-700 dark:bg-gray-600 rounded">
+          {% for layer in svg_layers %}
+            {% if forloop.first %}
+              <img src="{{ layer.image.url }}"
+                   alt="{{ layer.caption }}"
+                   class="w-full h-auto object-contain" />
+            {% else %}
+              <img src="{{ layer.image.url }}"
+                   alt="{{ layer.caption }}"
+                   class="absolute inset-0 w-full h-full object-contain"
+                   style="z-index:{{ forloop.counter }}" />
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="w-full h-40 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+          <span class="text-gray-500 dark:text-gray-400">No track layout available</span>
+        </div>
+      {% endif %}
+    {% endwith %}
+  </div>
+</div>

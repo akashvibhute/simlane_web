@@ -1,0 +1,126 @@
+{% if class_car_data %}
+  <!-- Create separate tabs for each class if multiclass -->
+  {% if class_car_data|length > 1 %}
+    <div class="mb-6">
+      <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="flex space-x-8" aria-label="Class tabs">
+          {% for block in class_car_data %}
+            <button class="class-tab-button whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors {% if forloop.first %}border-primary-500 text-primary-600 dark:text-primary-400{% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300{% endif %}" 
+                    data-class-tab="class-{{ forloop.counter0 }}">
+              <span class="w-3 h-3 bg-primary-500 rounded-full mr-2 inline-block"></span>
+              {{ block.event_class.name }}
+            </button>
+          {% endfor %}
+        </nav>
+      </div>
+    </div>
+  {% endif %}
+
+  {% for block in class_car_data %}
+    <div class="class-tab-content {% if not forloop.first and class_car_data|length > 1 %}hidden{% endif %}" id="class-{{ forloop.counter0 }}-content">
+      {% if class_car_data|length == 1 %}
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+          <span class="w-3 h-3 bg-primary-500 rounded-full mr-2"></span>
+          {{ block.event_class.name }}
+        </h3>
+      {% endif %}
+      
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 rounded-lg overflow-hidden">
+          <thead class="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Car</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fuel Fill %</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Power Adjust %</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Weight Penalty (kg)</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tire Sets</th>
+              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Fixed Setup</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {% for entry in block.entries %}
+              {% with car=entry.car res=entry.restrictions %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      {% if car.logo %}
+                        <img src="{{ car.logo.url }}" class="w-12 h-12 object-contain bg-gray-100 dark:bg-gray-700 rounded mr-3" />
+                      {% endif %}
+                      <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ car.display_name|default:car.car_model.full_name }}
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">{{ res.max_pct_fuel_fill|default:'100' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">{{ res.power_adjust_pct|default:'0' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">{{ res.weight_penalty_kg|default:'0' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">{{ res.max_dry_tire_sets|default:'No Limit' }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
+                    {% if res.is_fixed_setup %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Yes
+                      </span>
+                    {% else %}
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>
+                        No
+                      </span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endwith %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    {% if not forloop.last and class_car_data|length > 1 %}
+      <div class="mt-6"></div>
+    {% endif %}
+  {% endfor %}
+
+  {% if class_car_data|length > 1 %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const classTabButtons = document.querySelectorAll('.class-tab-button');
+        const classTabContents = document.querySelectorAll('.class-tab-content');
+
+        classTabButtons.forEach(button => {
+          button.addEventListener('click', () => {
+            const targetTab = button.dataset.classTab;
+            
+            // Remove active classes from all tabs
+            classTabButtons.forEach(btn => {
+              btn.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+              btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300', 'dark:text-gray-400', 'dark:hover:text-gray-300');
+            });
+            
+            classTabContents.forEach(content => {
+              content.classList.add('hidden');
+            });
+            
+            // Add active class to clicked tab
+            button.classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+            button.classList.remove('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300', 'dark:text-gray-400', 'dark:hover:text-gray-300');
+            
+            // Show corresponding content
+            const targetContent = document.getElementById(targetTab + '-content');
+            if (targetContent) {
+              targetContent.classList.remove('hidden');
+            }
+          });
+        });
+      });
+    </script>
+  {% endif %}
+{% else %}
+  <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+    No car information available for this event.
+  </div>
+{% endif %}

@@ -101,4 +101,21 @@
   .dark .clear-filters {
     @apply border-gray-600 bg-gray-700 text-gray-300 hover:bg-gray-600 focus:ring-gray-400;
   }
+
+  /* Tab System */
+  .tab-content {
+    @apply hidden;
+  }
+
+  .tab-content.active {
+    @apply block;
+  }
+
+  .tab-button.active {
+    @apply border-primary-500 text-primary-600;
+  }
+
+  .dark .tab-button.active {
+    @apply border-primary-400 text-primary-400;
+  }
 }

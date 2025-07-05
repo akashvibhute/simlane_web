@@ -20,6 +20,11 @@ events_patterns = [
     path("upcoming/", views.upcoming_events_list, name="upcoming_events_list"),
     path("search-dropdown/", views.event_search_dropdown, name="event_search_dropdown"),
     path("<slug:event_slug>/", views.event_detail, name="event_detail"),
+    path("<slug:event_slug>/tab/timeslots/", views.event_timeslots_tab, name="event_timeslots_tab"),
+    path("<slug:event_slug>/tab/weather/", views.event_weather_tab, name="event_weather_tab"),
+    path("<slug:event_slug>/tab/cars/", views.event_cars_tab, name="event_cars_tab"),
+    path("<slug:event_slug>/tab/results/", views.event_results_tab, name="event_results_tab"),
+    path("<slug:event_slug>/tab/layout/", views.event_layout_tab, name="event_layout_tab"),
 ]
 
 # Profiles patterns - to be included at top level

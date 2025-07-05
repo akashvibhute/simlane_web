@@ -28,8 +28,9 @@ from simlane.teams.models import (
     Club,
     ClubMember,
 )
-from simlane.sim.models import Event, TimeSlot
+from simlane.sim.models import Event, TimeSlot, WeatherForecast, EventSession
 from simlane.users.models import User
+from simlane.api.schemas.events import EventWeatherDataSchema, WeatherForecastSchema, SessionSchema
 
 router = Router()
 
@@ -620,3 +621,27 @@ def complete_stint(request, strategy_id: UUID, stint_id: UUID):
     stint.save()
     
     return {"success": True, "message": "Stint completed"}
+
+# ===== WEATHER ENDPOINTS =====
+
+@router.get("/events/{event_id}/weather", response=EventWeatherDataSchema, auth=None)
+def get_event_weather_data(request, event_id: UUID, time_slot_id: Optional[UUID] = None):
+    """Get weather data and session information for an event"""
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Get weather forecasts
+    weather_qs = WeatherForecast.objects.filter(event=event)
+    if time_slot_id:
+        weather_qs = weather_qs.filter(time_slot_id=time_slot_id)
+    
+    weather_forecasts = weather_qs.order_by('timestamp')
+    
+    # Get sessions
+    sessions = EventSession.objects.filter(event=event).order_by('in_game_time')
+    
+    return {
+        "event_id": event_id,
+        "time_slot_id": time_slot_id,
+        "weather_forecasts": weather_forecasts,
+        "sessions": sessions,
+    }
