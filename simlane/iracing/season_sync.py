@@ -317,9 +317,7 @@ class ScheduleProcessor:
         layout_name = schedule_data.get("track", {}).get("config_name") or "Default"
 
         # Generate event name
-        event_name = self._generate_event_name(
-            series_name, round_num, track_name, layout_name
-        )
+        event_name = self._generate_event_name(season, round_num, track_name, layout_name)
         event_slug = slugify(event_name)[:280]
 
         # Extract weather and timing data
@@ -423,15 +421,16 @@ class ScheduleProcessor:
 
     def _generate_event_name(
         self,
-        series_name: str,
-        round_num: int,
-        track_name: str,
-        layout_name: str,
+        season: Season, 
+        round_num: int, 
+        track_name: str, 
+        layout_name: str
     ) -> str:
         """Generate a descriptive event name."""
-        week_display = f"Week {round_num}" if round_num is not None else "Event"
-        event_name = f"{series_name} - {week_display} - {track_name}"
-
+        max_weeks = season.season_settings.get("max_weeks", 1)
+        week_display = f"Week {round_num + 1}" if (round_num is not None and max_weeks > 1) else "Event"
+        event_name = f"{season.name} - {week_display} - {track_name}"
+        
         if layout_name and layout_name.lower() not in ["default", ""]:
             event_name += f" ({layout_name})"
 

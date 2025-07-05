@@ -13,5 +13,5 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         refresh = options.get("refresh", False)
-        task = sync_current_seasons_task.delay(refresh=refresh)
+        task = sync_current_seasons_task.delay(refresh=refresh) # type: ignore[call-arg]
         self.stdout.write(self.style.SUCCESS(f"Queued sync_current_seasons_task (id={task.id}) refresh={refresh}")) 

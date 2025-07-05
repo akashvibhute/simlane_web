@@ -273,6 +273,8 @@ class Series(TypedDict):
     oval_caution_type: int
     parent_season_id: int
     seasons: List[Season]
+    series_copy: str
+    logo: str
 
 
 class PastSeasonsResponse(TypedDict):

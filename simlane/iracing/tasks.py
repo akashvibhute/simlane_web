@@ -49,7 +49,7 @@ def _get_or_create_iracing_series(
     series_id: int,
     series_info: SeriesType,
     iracing_simulator: Simulator,
-) -> tuple:
+) -> tuple[Series, bool]:
     """
     Get or create an iRacing series (basic data only).
 
@@ -86,6 +86,7 @@ def _get_or_create_iracing_series(
         defaults={
             "name": cleaned_name,
             "website": series_info.get("forum_url", ""),
+            "category": series_info.get("category", ""),
         },
     )
 
@@ -122,7 +123,9 @@ def sync_series_task(self, refresh: bool = False) -> dict[str, Any]:
 
         # Fetch series data (with S3 caching)
         series_response = cached_iracing_service.get_series(refresh=refresh)
-
+        series_assets = iracing_service.get_series_assets()
+        
+        
         series_created = 0
         series_updated = 0
         errors = []
@@ -132,13 +135,37 @@ def sync_series_task(self, refresh: bool = False) -> dict[str, Any]:
                 series_id = series_info.get("series_id")
                 if not series_id:
                     continue
-
+                
+                description = series_assets.get(str(series_info.get("series_id"))).get("series_copy")
+                logo_url = series_assets.get(str(series_info.get("series_id"))).get("logo")
+                
                 series, created = _get_or_create_iracing_series(
                     series_id,
                     series_info,
                     iracing_simulator,
                 )
-
+                logger.debug(f"Processing series {series.name} (ID: {series_id}), logo: {logo_url}")
+                # Update series description
+                series.description = description or ""
+                # Check if logo URL is available and download it if not already set
+                if series and logo_url and not series.logo:
+                    try:
+                        logger.debug(f"Downloading logo for series {series.name} from {logo_url}")
+                        logo_url = "https://images-static.iracing.com/img/logos/series/" + logo_url
+                        series.logo_url = logo_url or ""
+                        response = requests.get(logo_url, timeout=10)
+                        response.raise_for_status()
+                        file_content = ContentFile(response.content)
+                        series.logo.name = f"series_{series_id}_logo.png"
+                        series.logo.save(f"series_{series_id}_logo.png", file_content, save=True)
+                        logger.debug(f"Saved logo for series {series.name}")
+                    except requests.RequestException as e:
+                        logger.error(f"Failed to download logo for series {series.name}: {e}")
+                        errors.append(f"Failed to download logo for series {series.name}: {e}")
+                
+                # Save series
+                series.save()
+                
                 if created:
                     series_created += 1
                     logger.debug(f"Created series: {series.name}")
