@@ -3,15 +3,20 @@
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
+  (function loadWeatherChart() {
     const eventId = '{{ event.id }}';
     const chartContainer = document.getElementById('weather-chart-' + eventId);
     
     if (!chartContainer) return;
     
     // Fetch weather data from API
-    fetch(`/api/events/${eventId}/weather/`)
-      .then(response => response.json())
+    fetch(`/api/events/events/${eventId}/weather`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(data => {
         renderWeatherChart(chartContainer, data);
       })
@@ -19,7 +24,7 @@
         console.error('Error loading weather data:', error);
         chartContainer.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">Failed to load weather data</div>';
       });
-  });
+  })();
 
   function renderWeatherChart(container, data) {
     const d3 = window.d3;

@@ -161,26 +161,30 @@
   </form>
 </div>
 <script>
+(function() {
   // Image preview functionality
-  document.getElementById('{{ form.profile_image.id_for_label }}').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const preview = document.getElementById('profile-preview');
-        const placeholder = document.getElementById('profile-placeholder');
-        preview.src = e.target.result;
-        preview.classList.remove('hidden');
-        if (placeholder) {
-          placeholder.classList.add('hidden');
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  });
+  var fileInput = document.getElementById('{{ form.profile_image.id_for_label }}');
+  if (fileInput) {
+    fileInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const preview = document.getElementById('profile-preview');
+          const placeholder = document.getElementById('profile-placeholder');
+          preview.src = e.target.result;
+          preview.classList.remove('hidden');
+          if (placeholder) {
+            placeholder.classList.add('hidden');
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
 
   // Handle clear checkbox
-  const profileClearCheckbox = document.getElementById('profile_image-clear_id');
+  var profileClearCheckbox = document.getElementById('profile_image-clear_id');
   if (profileClearCheckbox) {
     profileClearCheckbox.addEventListener('change', function(e) {
       const preview = document.getElementById('profile-preview');
@@ -196,4 +200,5 @@
       }
     });
   }
+})();
 </script>

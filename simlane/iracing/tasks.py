@@ -395,9 +395,9 @@ def sync_current_seasons_task(self, refresh: bool = False) -> dict[str, Any]:
                         errors,
                     ) = processor.process_season_schedule(season, season_data)
 
-                    # for event_id in weather_tasks:
-                    #     sync_iracing_weather_task.delay(event_id=event_id) # type: ignore
-                    #     weather_sync_queued += 1
+                    for event_id in weather_tasks:
+                        sync_iracing_weather_task.delay(event_id=event_id) # type: ignore
+                        weather_sync_queued += 1
 
                     total_events_created += events_created
                     total_events_updated += events_updated
