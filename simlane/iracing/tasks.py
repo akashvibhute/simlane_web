@@ -8,23 +8,32 @@ This module contains the new modular approach to syncing iRacing data:
 """
 
 import logging
-from typing import Any, Dict, List
-from pathlib import Path
+from typing import Any
 
-from celery import shared_task
-from django.utils import timezone
-from django.core.files.base import ContentFile
-from django.contrib.contenttypes.models import ContentType
 import requests
+from celery import shared_task
+from celery.signals import task_postrun
+from django.contrib.contenttypes.models import ContentType
+from django.core.files.base import ContentFile
+from django.db import connections
+from django.db import transaction
+from django.utils import timezone
 
-from simlane.iracing.auto_create import create_weather_forecasts_from_iracing_data
-from simlane.iracing.services import IRacingServiceError, iracing_service
-from simlane.iracing.api_cache_service import cached_iracing_service
-from simlane.iracing.season_sync import ScheduleProcessor, create_season_from_schedule_data
-from simlane.iracing.types import PastSeasonsResponse, Series as SeriesType
-from simlane.sim.models import CarClass, Event, Season, Series, Simulator, SimLayout, TimeSlot, WeatherForecast
 from simlane.core.models import MediaGallery
-from django.conf import settings
+from simlane.iracing.api_cache_service import cached_iracing_service
+from simlane.iracing.auto_create import create_weather_forecasts_from_iracing_data
+from simlane.iracing.season_sync import ScheduleProcessor
+from simlane.iracing.season_sync import create_season_from_schedule_data
+from simlane.iracing.services import IRacingServiceError
+from simlane.iracing.services import iracing_service
+from simlane.iracing.types import PastSeasonsResponse
+from simlane.iracing.types import Series as SeriesType
+from simlane.sim.models import CarClass
+from simlane.sim.models import Event
+from simlane.sim.models import Season
+from simlane.sim.models import Series
+from simlane.sim.models import SimLayout
+from simlane.sim.models import Simulator
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +65,7 @@ def _get_or_create_iracing_series(
 
     # Clean series name
     import re
+
     name_cleanup_patterns = [
         r"^iRacing\s+",
         r"\s+Series$",
@@ -88,20 +98,20 @@ def _get_or_create_iracing_series(
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_series_task(self, refresh: bool = False) -> Dict[str, Any]:
+def sync_series_task(self, refresh: bool = False) -> dict[str, Any]:
     """
     Sync series data only (no seasons or events).
-    
+
     Args:
         refresh: Whether to bypass cache
-        
+
     Returns:
         Dict containing sync results
     """
     try:
         logger.info("Syncing iRacing series data")
         _ensure_service_available()
-        
+
         # Get iRacing simulator
         try:
             iracing_simulator = Simulator.objects.get(name="iRacing")
@@ -109,36 +119,38 @@ def sync_series_task(self, refresh: bool = False) -> Dict[str, Any]:
             error_msg = "iRacing simulator not found in database"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         # Fetch series data (with S3 caching)
         series_response = cached_iracing_service.get_series(refresh=refresh)
-        
+
         series_created = 0
         series_updated = 0
         errors = []
-        
+
         for series_info in series_response:
             try:
                 series_id = series_info.get("series_id")
                 if not series_id:
                     continue
-                
+
                 series, created = _get_or_create_iracing_series(
-                    series_id, series_info, iracing_simulator
+                    series_id,
+                    series_info,
+                    iracing_simulator,
                 )
-                
+
                 if created:
                     series_created += 1
                     logger.debug(f"Created series: {series.name}")
                 else:
                     series_updated += 1
                     logger.debug(f"Updated series: {series.name}")
-                
+
             except Exception as e:
                 error_msg = f"Error processing series {series_info.get('series_id', 'unknown')}: {e}"
                 logger.exception(error_msg)
                 errors.append(error_msg)
-        
+
         result = {
             "success": True,
             "series_created": series_created,
@@ -146,37 +158,37 @@ def sync_series_task(self, refresh: bool = False) -> Dict[str, Any]:
             "errors": errors,
             "completed_at": timezone.now().isoformat(),
         }
-        
+
         logger.info(
             f"Series sync completed: {series_created} created, {series_updated} updated, "
-            f"{len(errors)} errors"
+            f"{len(errors)} errors",
         )
-        
+
         return result
-        
+
     except Exception as e:
         logger.exception("Failed to sync series")
         return {"success": False, "error": str(e)}
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_season_task(self, season_id: int, refresh: bool = False) -> Dict[str, Any]:
+def sync_season_task(self, season_id: int, refresh: bool = False) -> dict[str, Any]:
     """
     Sync a specific season by ID and process its schedule.
-    
+
     Args:
         season_id: iRacing season ID
         refresh: Whether to bypass cache
-        
+
     Returns:
         Dict containing sync results
     """
-    # TODO: This is a temporary fix to allow the season sync to work. 
+    # TODO: This is a temporary fix to allow the season sync to work.
     # The responses of season schedule are different from the responses of series seasons.
     try:
         logger.info(f"Syncing season {season_id}")
         _ensure_service_available()
-        
+
         # Get iRacing simulator
         try:
             iracing_simulator = Simulator.objects.get(name="iRacing")
@@ -184,38 +196,43 @@ def sync_season_task(self, season_id: int, refresh: bool = False) -> Dict[str, A
             error_msg = "iRacing simulator not found in database"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         # Fetch season schedule (with S3 caching)
-        schedule_data = cached_iracing_service.get_series_season_schedule(season_id, refresh=refresh)
-        
+        schedule_data = cached_iracing_service.get_series_season_schedule(
+            season_id, refresh=refresh
+        )
+
         if not schedule_data or "schedules" not in schedule_data:
             error_msg = f"No schedule data found for season {season_id}"
             logger.warning(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         # Get series information
         series_id = schedule_data.get("series_id")
         if not series_id:
             error_msg = f"No series_id in schedule data for season {season_id}"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         try:
             series = Series.objects.get(external_series_id=series_id)
         except Series.DoesNotExist:
             error_msg = f"Series {series_id} not found. Run series sync first."
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         # Create or update season
         season = create_season_from_schedule_data(series, schedule_data)
-        
+
         # Process schedule
         processor = ScheduleProcessor(iracing_simulator)
-        events_created, events_updated, time_slots_created, errors = processor.process_season_schedule(
-            season, schedule_data
+        events_created, events_updated, time_slots_created, errors = (
+            processor.process_season_schedule(
+                season,
+                schedule_data,
+            )
         )
-        
+
         result = {
             "success": True,
             "season_id": season_id,
@@ -226,38 +243,38 @@ def sync_season_task(self, season_id: int, refresh: bool = False) -> Dict[str, A
             "errors": errors,
             "completed_at": timezone.now().isoformat(),
         }
-        
+
         logger.info(
             f"Season {season_id} sync completed: {events_created} events created, "
             f"{events_updated} events updated, {time_slots_created} time slots created, "
-            f"{len(errors)} errors"
+            f"{len(errors)} errors",
         )
-        
+
         return result
-        
+
     except Exception as e:
         logger.exception(f"Failed to sync season {season_id}")
         return {"success": False, "error": str(e)}
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
+def sync_current_seasons_task(self, refresh: bool = False) -> dict[str, Any]:
     """
     Sync current and future seasons for all series.
-    
+
     This uses the series_seasons API which returns current season data
     and schedules for all series in a single call.
-    
+
     Args:
         refresh: Whether to bypass cache
-        
+
     Returns:
         Dict containing sync results
     """
     try:
         logger.info("Syncing current and future seasons for all series")
         _ensure_service_available()
-        
+
         # Get iRacing simulator
         try:
             iracing_simulator = Simulator.objects.get(name="iRacing")
@@ -265,10 +282,12 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
             error_msg = "iRacing simulator not found in database"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         # Fetch current seasons data (includes schedules) with S3 caching
-        seasons_data = cached_iracing_service.get_series_seasons(include_series=True, refresh=refresh)
-        
+        seasons_data = cached_iracing_service.get_series_seasons(
+            include_series=True, refresh=refresh
+        )
+
         total_seasons_processed = 0
         total_events_created = 0
         total_events_updated = 0
@@ -279,74 +298,98 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
         total_event_sessions_updated = 0
         total_event_classes_created = 0
         total_event_classes_updated = 0
-        
+        weather_tasks = []
         for season_data in seasons_data:
-            try:
-                series_id = season_data.get("series_id")
-                if not series_id:
-                    continue
-                
-                # Ensure series exists
+            with transaction.atomic():
                 try:
-                    series = Series.objects.get(external_series_id=series_id)
-                except Series.DoesNotExist:
-                    logger.warning(f"Series {series_id} not found. Skipping seasons.")
-                    continue
-                
-                # Create season if it doesn't exist
-                season_id = season_data.get("season_id")
-                if not season_id:
-                    continue
-                
-                schedules = season_data.get("schedules", [])
-                
-                season, created = Season.objects.update_or_create(
-                    external_season_id=season_id,
-                    series=series,
-                    defaults={
-                        "name": season_data.get("season_name", ""),
-                        "start_date": season_data.get("start_date"),
-                        "end_date": schedules[-1].get("week_end_time") if schedules else None,
-                        "active": season_data.get("active", False),
-                        "complete": season_data.get("complete", False),
-                        "series": series,
-                        "schedule_description": season_data.get("schedule_description", ""),
-                        "season_settings": {
-                            "week_count": season_data.get("week_count", 1),
-                            "season_year": season_data.get("season_year"),
-                            "season_quarter": season_data.get("season_quarter"),
-                            "season_short_name": season_data.get("season_short_name"),
-                            "start_on_qual_tire": season_data.get("start_on_qual_tire", False),
-                            "start_zone": season_data.get("start_zone", False),
-                            "short_parade_lap": season_data.get("short_parade_lap", False),
-                        }
-                    }
-                )
-                
-                processor = ScheduleProcessor(iracing_simulator)
-                events_created, events_updated, time_slots_created, weather_sync_queued, event_sessions_created, event_sessions_updated, event_classes_created, event_classes_updated, errors = (
-                    processor.process_season_schedule(season, season_data)
+                    series_id = season_data.get("series_id")
+                    if not series_id:
+                        continue
+
+                    # Ensure series exists
+                    try:
+                        series = Series.objects.get(external_series_id=series_id)
+                    except Series.DoesNotExist:
+                        logger.warning(
+                            f"Series {series_id} not found. Skipping seasons."
                         )
-                            
-                total_events_created += events_created
-                total_events_updated += events_updated  
-                total_time_slots_created += time_slots_created
-                total_weather_sync_queued += weather_sync_queued
-                total_event_sessions_created += event_sessions_created
-                total_event_sessions_updated += event_sessions_updated
-                total_event_classes_created += event_classes_created
-                total_event_classes_updated += event_classes_updated
-                
-                all_errors.extend(errors)
-                
-                total_seasons_processed += 1
-                
-            except Exception as e:
-                error_msg = f"Error processing series current season for {season_data.get('series_id', 'unknown')}: {e}"
-                logger.exception(error_msg)
-                all_errors.append(error_msg)
-                
-        
+                        continue
+
+                    # Create season if it doesn't exist
+                    season_id = season_data.get("season_id")
+                    if not season_id:
+                        continue
+
+                    schedules = season_data.get("schedules", [])
+
+                    season, created = Season.objects.update_or_create(
+                        external_season_id=season_id,
+                        series=series,
+                        defaults={
+                            "name": season_data.get("season_name", ""),
+                            "start_date": season_data.get("start_date"),
+                            "end_date": schedules[-1].get("week_end_time")
+                            if schedules
+                            else None,
+                            "active": season_data.get("active", False),
+                            "complete": season_data.get("complete", False),
+                            "series": series,
+                            "schedule_description": season_data.get(
+                                "schedule_description", ""
+                            ),
+                            "season_settings": {
+                                "week_count": season_data.get("week_count", 1),
+                                "season_year": season_data.get("season_year"),
+                                "season_quarter": season_data.get("season_quarter"),
+                                "season_short_name": season_data.get(
+                                    "season_short_name"
+                                ),
+                                "start_on_qual_tire": season_data.get(
+                                    "start_on_qual_tire", False
+                                ),
+                                "start_zone": season_data.get("start_zone", False),
+                                "short_parade_lap": season_data.get(
+                                    "short_parade_lap", False
+                                ),
+                            },
+                        },
+                    )
+
+                    processor = ScheduleProcessor(iracing_simulator)
+                    (
+                        events_created,
+                        events_updated,
+                        time_slots_created,
+                        weather_tasks,
+                        event_sessions_created,
+                        event_sessions_updated,
+                        event_classes_created,
+                        event_classes_updated,
+                        errors,
+                    ) = processor.process_season_schedule(season, season_data)
+
+                    # for event_id in weather_tasks:
+                    #     sync_iracing_weather_task.delay(event_id=event_id) # type: ignore
+                    #     weather_sync_queued += 1
+
+                    total_events_created += events_created
+                    total_events_updated += events_updated
+                    total_time_slots_created += time_slots_created
+                    # total_weather_sync_queued += weather_sync_queued
+                    total_event_sessions_created += event_sessions_created
+                    total_event_sessions_updated += event_sessions_updated
+                    total_event_classes_created += event_classes_created
+                    total_event_classes_updated += event_classes_updated
+
+                    all_errors.extend(errors)
+
+                    total_seasons_processed += 1
+
+                except Exception as e:
+                    error_msg = f"Error processing series current season for {season_data.get('series_id', 'unknown')}: {e}"
+                    logger.exception(error_msg)
+                    all_errors.append(error_msg)
+
         result = {
             "success": True,
             "seasons_processed": total_seasons_processed,
@@ -362,18 +405,18 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
             "errors": all_errors,
             "completed_at": timezone.now().isoformat(),
         }
-        
+
         logger.info(
             f"Current seasons sync completed: {total_seasons_processed} seasons processed, "
             f"{total_events_created} events created, {total_events_updated} events updated, "
             f"{total_time_slots_created} time slots created, {total_weather_sync_queued} weather sync queued, "
             f"{total_event_sessions_created} event sessions created, {total_event_sessions_updated} event sessions updated, "
             f"{total_event_classes_created} event classes created, {total_event_classes_updated} event classes updated, "
-            f"{len(all_errors)} errors"
+            f"{len(all_errors)} errors",
         )
-        
+
         return result
-        
+
     except Exception as e:
         logger.exception("Failed to sync current seasons")
         return {"success": False, "error": str(e)}
@@ -381,22 +424,24 @@ def sync_current_seasons_task(self, refresh: bool = False) -> Dict[str, Any]:
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def sync_past_seasons_for_series_task(
-    self, series_id: int, refresh: bool = False
-) -> Dict[str, Any]:
+    self,
+    series_id: int,
+    refresh: bool = False,
+) -> dict[str, Any]:
     """
     Sync past seasons for a specific series.
-    
+
     Args:
         series_id: iRacing series ID
         refresh: Whether to bypass cache
-        
+
     Returns:
         Dict containing sync results
     """
     try:
         logger.info(f"Syncing past seasons for series {series_id}")
         _ensure_service_available()
-        
+
         # Ensure series exists
         try:
             series = Series.objects.get(external_series_id=series_id)
@@ -404,10 +449,12 @@ def sync_past_seasons_for_series_task(
             error_msg = f"Series {series_id} not found. Run series sync first."
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         # Get past seasons for this series (with S3 caching)
-        past_seasons_data: PastSeasonsResponse = cached_iracing_service.get_series_past_seasons(series_id, refresh=refresh)
-        
+        past_seasons_data: PastSeasonsResponse = (
+            cached_iracing_service.get_series_past_seasons(series_id, refresh=refresh)
+        )
+
         if not past_seasons_data:
             logger.info(f"No past seasons found for series {series_id}")
             return {
@@ -416,21 +463,26 @@ def sync_past_seasons_for_series_task(
                 "seasons_queued": 0,
                 "message": "No past seasons found",
             }
-        
+
         # Queue individual season sync tasks
         seasons_queued = 0
         series = past_seasons_data["series"]
         past_seasons = series["seasons"]
-        
+
         for season_info in past_seasons:
             season_id = season_info.get("season_id")
             if season_id:
                 # Queue the season sync task - using apply_async to avoid naming conflicts
                 from celery import current_app
-                current_app.send_task('simlane.iracing.tasks.sync_season_task', args=[season_id], kwargs={'refresh': refresh})
+
+                current_app.send_task(
+                    "simlane.iracing.tasks.sync_season_task",
+                    args=[season_id],
+                    kwargs={"refresh": refresh},
+                )
                 seasons_queued += 1
                 logger.debug(f"Queued season {season_id} for sync")
-        
+
         result = {
             "success": True,
             "series_id": series_id,
@@ -438,81 +490,86 @@ def sync_past_seasons_for_series_task(
             "seasons_queued": seasons_queued,
             "completed_at": timezone.now().isoformat(),
         }
-        
+
         logger.info(
             f"Past seasons sync for series {series_id} completed: "
-            f"{seasons_queued} seasons queued for processing"
+            f"{seasons_queued} seasons queued for processing",
         )
-        
+
         return result
-        
+
     except Exception as e:
         logger.exception(f"Failed to sync past seasons for series {series_id}")
         return {"success": False, "error": str(e)}
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def queue_all_past_seasons_sync_task(self, refresh: bool = False) -> Dict[str, Any]:
+def queue_all_past_seasons_sync_task(self, refresh: bool = False) -> dict[str, Any]:
     """
     Queue past season sync tasks for all series.
-    
+
     This task finds all series and queues individual past season sync tasks.
-    
+
     Args:
         refresh: Whether to bypass cache
-        
+
     Returns:
         Dict containing sync results
     """
     try:
         logger.info("Queuing past seasons sync for all series")
-        
+
         # Get all iRacing series
         iracing_series = Series.objects.filter(
             simulator__name="iRacing",
-            is_active=True
+            is_active=True,
         ).values_list("external_series_id", flat=True)
-        
+
         series_queued = 0
-        
+
         for series_id in iracing_series:
             if series_id:
                 # Queue past seasons sync for this series - using apply_async to avoid naming conflicts
                 from celery import current_app
-                current_app.send_task('simlane.iracing.tasks.sync_past_seasons_for_series_task', args=[series_id], kwargs={'refresh': refresh})
+
+                current_app.send_task(
+                    "simlane.iracing.tasks.sync_past_seasons_for_series_task",
+                    args=[series_id],
+                    kwargs={"refresh": refresh},
+                )
                 series_queued += 1
                 logger.debug(f"Queued past seasons sync for series {series_id}")
-        
+
         result = {
             "success": True,
             "series_queued": series_queued,
             "completed_at": timezone.now().isoformat(),
         }
-        
+
         logger.info(f"Queued past seasons sync for {series_queued} series")
-        
+
         return result
-        
+
     except Exception as e:
         logger.exception("Failed to queue past seasons sync")
         return {"success": False, "error": str(e)}
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_car_classes_task(self, refresh: bool = False) -> Dict[str, Any]:
+def sync_car_classes_task(self, refresh: bool = False) -> dict[str, Any]:
     """
     Sync car classes from iRacing API.
-    
+
     Args:
         refresh: Whether to bypass cache
-        
+
     Returns:
         Dict containing sync results
     """
     try:
         logger.info("Syncing iRacing car classes")
         _ensure_service_available()
-        
+
         # Get iRacing simulator
         try:
             iracing_simulator = Simulator.objects.get(name="iRacing")
@@ -520,20 +577,20 @@ def sync_car_classes_task(self, refresh: bool = False) -> Dict[str, Any]:
             error_msg = "iRacing simulator not found in database"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         # Fetch car classes
         car_classes_data = iracing_service.get_car_classes()
-        
+
         classes_created = 0
         classes_updated = 0
         errors = []
-        
+
         for car_class_info in car_classes_data:
             try:
                 car_class_id = car_class_info.get("car_class_id")
                 if not car_class_id:
                     continue
-                
+
                 car_class, created = CarClass.objects.get_or_create(
                     sim_api_id=car_class_id,
                     simulator=iracing_simulator,
@@ -545,26 +602,36 @@ def sync_car_classes_task(self, refresh: bool = False) -> Dict[str, Any]:
                         "car_sim_api_ids": car_class_info.get("cars_in_class", []),
                     },
                 )
-                
+
                 if not created:
                     # Update existing car class
                     car_class.name = car_class_info.get("name", car_class.name)
-                    car_class.short_name = car_class_info.get("short_name", car_class.short_name)
-                    car_class.relative_speed = car_class_info.get("relative_speed", car_class.relative_speed)
-                    car_class.rain_enabled = car_class_info.get("rain_enabled", car_class.rain_enabled)
-                    car_class.car_sim_api_ids = car_class_info.get("cars_in_class", car_class.car_sim_api_ids)
+                    car_class.short_name = car_class_info.get(
+                        "short_name", car_class.short_name
+                    )
+                    car_class.relative_speed = car_class_info.get(
+                        "relative_speed", car_class.relative_speed
+                    )
+                    car_class.rain_enabled = car_class_info.get(
+                        "rain_enabled", car_class.rain_enabled
+                    )
+                    car_class.car_sim_api_ids = car_class_info.get(
+                        "cars_in_class", car_class.car_sim_api_ids
+                    )
                     car_class.save()
                     classes_updated += 1
                 else:
                     classes_created += 1
-                
-                logger.debug(f"{'Created' if created else 'Updated'} car class: {car_class.name}")
-                
+
+                logger.debug(
+                    f"{'Created' if created else 'Updated'} car class: {car_class.name}"
+                )
+
             except Exception as e:
                 error_msg = f"Error processing car class {car_class_info.get('car_class_id', 'unknown')}: {e}"
                 logger.exception(error_msg)
                 errors.append(error_msg)
-        
+
         result = {
             "success": True,
             "classes_created": classes_created,
@@ -572,14 +639,14 @@ def sync_car_classes_task(self, refresh: bool = False) -> Dict[str, Any]:
             "errors": errors,
             "completed_at": timezone.now().isoformat(),
         }
-        
+
         logger.info(
             f"Car classes sync completed: {classes_created} created, {classes_updated} updated, "
-            f"{len(errors)} errors"
+            f"{len(errors)} errors",
         )
-        
+
         return result
-        
+
     except Exception as e:
         logger.exception("Failed to sync car classes")
         return {"success": False, "error": str(e)}
@@ -587,22 +654,24 @@ def sync_car_classes_task(self, refresh: bool = False) -> Dict[str, Any]:
 
 # Keep the existing owned content sync task as it works fine
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_iracing_owned_content(self, sim_profile_id: int) -> Dict[str, Any]:
+def sync_iracing_owned_content(self, sim_profile_id: int) -> dict[str, Any]:
     """
     Sync owned cars and tracks for a specific sim profile.
-    
+
     Args:
         sim_profile_id: SimProfile ID
-        
+
     Returns:
         Dict containing sync results
     """
     try:
-        from simlane.sim.models import SimProfile, SimProfileCarOwnership, SimProfileTrackOwnership
-        
+        from simlane.sim.models import SimProfile
+        from simlane.sim.models import SimProfileCarOwnership
+        from simlane.sim.models import SimProfileTrackOwnership
+
         logger.info(f"Syncing owned content for sim profile {sim_profile_id}")
         _ensure_service_available()
-        
+
         # Get the sim profile
         try:
             sim_profile = SimProfile.objects.get(id=sim_profile_id)
@@ -610,58 +679,58 @@ def sync_iracing_owned_content(self, sim_profile_id: int) -> Dict[str, Any]:
             error_msg = f"SimProfile {sim_profile_id} not found"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         if not sim_profile.sim_api_id:
             error_msg = f"SimProfile {sim_profile_id} has no sim_api_id"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-        
+
         # Get member info which includes owned content
         member_info = iracing_service.get_member_info()
-        
+
         owned_cars = member_info.get("owned", {}).get("cars", [])
         owned_tracks = member_info.get("owned", {}).get("tracks", [])
-        
+
         # Sync owned cars
         cars_synced = 0
         for car_id in owned_cars:
             from simlane.sim.models import SimCar
-            
+
             try:
                 sim_car = SimCar.objects.get(
                     sim_api_id=car_id,
-                    simulator=sim_profile.simulator
+                    simulator=sim_profile.simulator,
                 )
-                
+
                 SimProfileCarOwnership.objects.get_or_create(
                     sim_profile=sim_profile,
                     sim_car=sim_car,
                 )
                 cars_synced += 1
-                
+
             except SimCar.DoesNotExist:
                 logger.warning(f"SimCar not found for car_id {car_id}")
-        
+
         # Sync owned tracks
         tracks_synced = 0
         for track_id in owned_tracks:
             from simlane.sim.models import SimTrack
-            
+
             try:
                 sim_track = SimTrack.objects.get(
                     sim_api_id=track_id,
-                    simulator=sim_profile.simulator
+                    simulator=sim_profile.simulator,
                 )
-                
+
                 SimProfileTrackOwnership.objects.get_or_create(
                     sim_profile=sim_profile,
                     sim_track=sim_track,
                 )
                 tracks_synced += 1
-                
+
             except SimTrack.DoesNotExist:
                 logger.warning(f"SimTrack not found for track_id {track_id}")
-        
+
         result = {
             "success": True,
             "sim_profile_id": sim_profile_id,
@@ -669,51 +738,57 @@ def sync_iracing_owned_content(self, sim_profile_id: int) -> Dict[str, Any]:
             "tracks_synced": tracks_synced,
             "completed_at": timezone.now().isoformat(),
         }
-        
+
         logger.info(
             f"Owned content sync completed for profile {sim_profile_id}: "
-            f"{cars_synced} cars, {tracks_synced} tracks"
+            f"{cars_synced} cars, {tracks_synced} tracks",
         )
-        
+
         return result
-        
+
     except Exception as e:
         logger.exception(f"Failed to sync owned content for profile {sim_profile_id}")
         return {"success": False, "error": str(e)}
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_iracing_weather_task(self, event_id: int, refresh: bool = False) -> Dict[str, Any]:
+def sync_iracing_weather_task(
+    self, event_id: int, refresh: bool = False
+) -> dict[str, Any]:
     """
     Sync weather data for an event.
     """
     try:
         logger.debug(f"Syncing weather for event {event_id}")
         _ensure_service_available()
-        
+
         event = Event.objects.get(id=event_id)
         weather_forecast_version = event.weather_forecast_version
         if not event.weather_forecast_url:
             logger.debug(f"Event {event_id} has no weather forecast url")
             return {"success": False, "error": "No weather forecast url"}
-        
+
         if event.weather_forecast_data and not refresh:
             logger.debug(f"Event {event_id} already has weather data, skipping refresh")
             weather_data = event.weather_forecast_data
         else:
             logger.debug(f"Refreshing weather data for event {event_id}")
-            
+
             response = requests.get(event.weather_forecast_url, timeout=10)
             response.raise_for_status()
             weather_data: list[dict[str, Any]] = response.json()
-        
+
             event.weather_forecast_data = weather_data
             event.save()
-        
+
         if not weather_data:
             logger.info(f"No weather data found for event {event_id}")
-            return {"success": False, "error": "No weather data", "weather_data": weather_data}
-        
+            return {
+                "success": False,
+                "error": "No weather data",
+                "weather_data": weather_data,
+            }
+
         # Create weather forecast
         # time_slots = list(TimeSlot.objects.filter(event=event))
         # for now link the weather to the event
@@ -721,14 +796,18 @@ def sync_iracing_weather_task(self, event_id: int, refresh: bool = False) -> Dic
         #     logger.info(f"Syncing weather for time slot {time_slot.id}")
         #     created  = create_weather_forecasts_from_iracing_data(event=event, weather_forecast_data=weather_data, time_slot=time_slot, forecast_version=weather_forecast_version)
         #     if created:
-        created = create_weather_forecasts_from_iracing_data(event=event, weather_forecast_data=weather_data, forecast_version=weather_forecast_version)
+        created = create_weather_forecasts_from_iracing_data(
+            event=event,
+            weather_forecast_data=weather_data,
+            forecast_version=weather_forecast_version,
+        )
         if created:
             logger.info(f"Created weather forecast for event {event.id}")
         else:
             logger.info(f"weather forecast updated for event {event.id}")
-        
+
         return {"success": True, "event_id": event_id, "event_name": event.name}
-        
+
     except Exception as e:
         logger.exception(f"Failed to sync weather for event {event_id}")
         return {"success": False, "error": str(e)}
@@ -737,6 +816,7 @@ def sync_iracing_weather_task(self, event_id: int, refresh: bool = False) -> Dic
 # -------------------------
 # Track SVG map syncing
 # -------------------------
+
 
 def sync_track_svg_maps(refresh: bool = False) -> dict:
     """Download SVG layers for iRacing tracks and save to MediaGallery.
@@ -751,7 +831,7 @@ def sync_track_svg_maps(refresh: bool = False) -> dict:
         # Pull assets and track list from API
         try:
             track_assets = iracing_service.get_track_assets()
-            
+
         except Exception as e:
             logger.exception("Failed to fetch assets or track list")
             return {"success": False, "error": str(e)}
@@ -764,7 +844,8 @@ def sync_track_svg_maps(refresh: bool = False) -> dict:
 
         content_type = ContentType.objects.get_for_model(SimLayout)
 
-        import random, string
+        import random
+        import string
 
         for layout in layouts:
             processed += 1
@@ -790,7 +871,7 @@ def sync_track_svg_maps(refresh: bool = False) -> dict:
                     content_type=content_type,
                     object_id=str(layout.id),
                     gallery_type="track_maps",
-                ).values_list("caption", flat=True)
+                ).values_list("caption", flat=True),
             )
 
             for order, (layer_name, filename) in enumerate(layers.items()):
@@ -803,7 +884,9 @@ def sync_track_svg_maps(refresh: bool = False) -> dict:
                     resp.raise_for_status()
 
                     file_content = ContentFile(resp.content)
-                    random_suffix = "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+                    random_suffix = "".join(
+                        random.choices(string.ascii_lowercase + string.digits, k=6)
+                    )
                     file_name = f"{layout.slug}-{layer_name}-{random_suffix}.svg"
 
                     gallery_item, _ = MediaGallery.objects.get_or_create(
@@ -819,7 +902,9 @@ def sync_track_svg_maps(refresh: bool = False) -> dict:
                 except Exception as e:
                     errors += 1
                     error_list.append(f"{layout} {layer_name}: {e}")
-                    logger.exception("Failed to download SVG for %s layer %s", layout, layer_name)
+                    logger.exception(
+                        "Failed to download SVG for %s layer %s", layout, layer_name
+                    )
 
         result = {
             "success": True,
@@ -845,7 +930,13 @@ def sync_track_svg_maps(refresh: bool = False) -> dict:
 
 # Celery wrapper
 
+
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
-def sync_track_svg_maps_task(self, refresh: bool = False):  # noqa: D401
+def sync_track_svg_maps_task(self, refresh: bool = False):
     """Celery wrapper around :pyfunc:`sync_track_svg_maps`."""
-    return sync_track_svg_maps(refresh) 
+    return sync_track_svg_maps(refresh)
+
+
+@task_postrun.connect
+def close_db_connections(**kwargs):
+    connections.close_all()

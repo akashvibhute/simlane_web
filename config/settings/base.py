@@ -323,7 +323,7 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_TIME_LIMIT = 5 * 60
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-soft-time-limit
 # TODO: set to whatever value is adequate in your circumstances
-CELERY_TASK_SOFT_TIME_LIMIT = 60
+CELERY_TASK_SOFT_TIME_LIMIT = 300
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#beat-scheduler
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#worker-send-task-events
@@ -336,8 +336,8 @@ CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 # Rate limiting and concurrency for iRacing tasks
 # https://docs.celeryq.dev/en/stable/userguide/configuration.html#task-routes
 CELERY_TASK_ROUTES = {
-    'simlane.iracing.tasks.sync_past_seasons_task': {'rate_limit': '2/m'},
-    'simlane.iracing.tasks.sync_past_seasons_batched_task': {'rate_limit': '1/10m'},
+    "simlane.iracing.tasks.sync_past_seasons_task": {"rate_limit": "2/m"},
+    "simlane.iracing.tasks.sync_past_seasons_batched_task": {"rate_limit": "1/10m"},
 }
 
 # Limit concurrent tasks per worker (optional)
@@ -541,8 +541,13 @@ API_RESPONSE_STORAGE = {
     "OPTIONS": {
         "access_key": env("DJANGO_API_RESPONSE_AWS_ACCESS_KEY_ID", default=""),
         "secret_key": env("DJANGO_API_RESPONSE_AWS_SECRET_ACCESS_KEY", default=""),
-        "bucket_name": env("DJANGO_API_RESPONSE_AWS_STORAGE_BUCKET_NAME", default="simlane-api-responses"),
-        "region_name": env("DJANGO_API_RESPONSE_AWS_S3_REGION_NAME", default="us-east-1"),
+        "bucket_name": env(
+            "DJANGO_API_RESPONSE_AWS_STORAGE_BUCKET_NAME",
+            default="simlane-api-responses",
+        ),
+        "region_name": env(
+            "DJANGO_API_RESPONSE_AWS_S3_REGION_NAME", default="us-east-1"
+        ),
         "location": "api_responses",
         "file_overwrite": False,  # Keep historical responses
         "default_acl": "private",  # API responses should be private
@@ -557,8 +562,8 @@ API_RESPONSE_STORAGE = {
 # API Response Cache Settings
 API_RESPONSE_CACHE_TTL = {
     "series": 24 * 60 * 60,  # 24 hours (series data changes infrequently)
-    "seasons": 60 * 60,      # 1 hour (season data changes during active season)
-    "schedules": 30 * 60,    # 30 minutes (schedule data can change frequently)
-    "cars": 24 * 60 * 60,    # 24 hours (car data rarely changes)
+    "seasons": 60 * 60,  # 1 hour (season data changes during active season)
+    "schedules": 30 * 60,  # 30 minutes (schedule data can change frequently)
+    "cars": 24 * 60 * 60,  # 24 hours (car data rarely changes)
     "tracks": 24 * 60 * 60,  # 24 hours (track data rarely changes)
 }

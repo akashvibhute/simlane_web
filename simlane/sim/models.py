@@ -6,7 +6,6 @@ from django.utils.text import slugify
 
 from simlane.users.models import User
 
-
 # # Enums
 # class UserRole(models.TextChoices):
 #     CLUB_ADMIN = "CLUB_ADMIN", "Club Admin"
@@ -216,7 +215,8 @@ class SimProfile(models.Model):
             from django.urls import reverse
 
             return reverse(
-                "users:profile_sim_profile_manage", kwargs={"profile_id": self.pk}
+                "users:profile_sim_profile_manage",
+                kwargs={"profile_id": self.pk},
             )
         return None
 
@@ -284,7 +284,9 @@ class CarClass(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=120, blank=True)
     short_name = models.CharField(
-        max_length=50, blank=True, help_text="Short display name (e.g., 'GT3 Class')"
+        max_length=50,
+        blank=True,
+        help_text="Short display name (e.g., 'GT3 Class')",
     )
     category = models.CharField(max_length=100, blank=True)
     description = models.TextField(blank=True)
@@ -365,10 +367,12 @@ class CarModel(models.Model):
     slug = models.SlugField(max_length=280, blank=True)
     manufacturer = models.CharField(max_length=255)  # car_make (e.g., "Pontiac")
     full_name = models.CharField(
-        max_length=255, blank=True
+        max_length=255,
+        blank=True,
     )  # car_name from API (e.g., "Pontiac Solstice")
     abbreviated_name = models.CharField(
-        max_length=20, blank=True
+        max_length=20,
+        blank=True,
     )  # car_name_abbreviated (e.g., "SOL")
 
     # GROUP 2: Categorization
@@ -392,22 +396,30 @@ class CarModel(models.Model):
 
     # GROUP 3: Technical Specifications (Base Car Properties)
     horsepower = models.IntegerField(
-        null=True, blank=True, help_text="HP from iRacing API"
+        null=True,
+        blank=True,
+        help_text="HP from iRacing API",
     )
     weight_lbs = models.IntegerField(
-        null=True, blank=True, help_text="Car weight in pounds"
+        null=True,
+        blank=True,
+        help_text="Car weight in pounds",
     )
     has_headlights = models.BooleanField(
-        default=False, help_text="Whether car has headlights"
+        default=False,
+        help_text="Whether car has headlights",
     )
     has_multiple_dry_tire_types = models.BooleanField(
-        default=False, help_text="Multiple dry tire compounds available"
+        default=False,
+        help_text="Multiple dry tire compounds available",
     )
     has_rain_capable_tire_types = models.BooleanField(
-        default=False, help_text="Rain tires available"
+        default=False,
+        help_text="Rain tires available",
     )
     rain_enabled = models.BooleanField(
-        default=False, help_text="Can race in rain conditions"
+        default=False,
+        help_text="Can race in rain conditions",
     )
     ai_enabled = models.BooleanField(default=True, help_text="AI can drive this car")
 
@@ -513,7 +525,7 @@ class CarModel(models.Model):
         sim_cars_manager = self.sim_cars
         sim_car_ct = ContentType.objects.get_for_model(sim_cars_manager.model)
         sim_car_ids = list(
-            sim_cars_manager.filter(is_active=True).values_list("id", flat=True)
+            sim_cars_manager.filter(is_active=True).values_list("id", flat=True),
         )
 
         if simulator_preference:
@@ -569,42 +581,56 @@ class SimCar(models.Model):
 
     # GROUP 1: API IDs - CRITICAL for ownership tracking
     sim_api_id = models.CharField(
-        max_length=255, help_text="car_id from iRacing API for API calls"
+        max_length=255,
+        help_text="car_id from iRacing API for API calls",
     )
     package_id = models.IntegerField(
-        help_text="package_id from iRacing API for ownership tracking"
+        help_text="package_id from iRacing API for ownership tracking",
     )
 
     # Display and configuration
     display_name = models.CharField(
-        max_length=255, blank=True, help_text="Full display name from car_name field"
+        max_length=255,
+        blank=True,
+        help_text="Full display name from car_name field",
     )
     bop_version = models.CharField(max_length=50, blank=True)
     is_active = models.BooleanField(default=True)
 
     # GROUP 3: BOP (Balance of Performance) Adjustments - Simulator Specific
     max_power_adjust_pct = models.IntegerField(
-        default=0, help_text="Maximum power adjustment percentage"
+        default=0,
+        help_text="Maximum power adjustment percentage",
     )
     min_power_adjust_pct = models.IntegerField(
-        default=0, help_text="Minimum power adjustment percentage"
+        default=0,
+        help_text="Minimum power adjustment percentage",
     )
     max_weight_penalty_kg = models.IntegerField(
-        default=0, help_text="Maximum weight penalty in kg"
+        default=0,
+        help_text="Maximum weight penalty in kg",
     )
 
     # GROUP 4: Pricing & Ownership - Simulator Specific
     price = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True, help_text="Price in USD"
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Price in USD",
     )
     price_display = models.CharField(
-        max_length=50, blank=True, help_text="Formatted price string"
+        max_length=50,
+        blank=True,
+        help_text="Formatted price string",
     )
     free_with_subscription = models.BooleanField(
-        default=False, help_text="Free with base subscription"
+        default=False,
+        help_text="Free with base subscription",
     )
     is_purchasable = models.BooleanField(
-        default=True, help_text="Can be purchased (is_ps_purchasable)"
+        default=True,
+        help_text="Can be purchased (is_ps_purchasable)",
     )
 
     # GROUP 6: Media Fields - Simulator Specific Images
@@ -615,10 +641,16 @@ class SimCar(models.Model):
         help_text="Car/manufacturer logo",
     )
     small_image = models.ImageField(
-        upload_to="cars/thumbnails/", blank=True, null=True, help_text="Thumbnail image"
+        upload_to="cars/thumbnails/",
+        blank=True,
+        null=True,
+        help_text="Thumbnail image",
     )
     large_image = models.ImageField(
-        upload_to="cars/images/", blank=True, null=True, help_text="Main/hero image"
+        upload_to="cars/images/",
+        blank=True,
+        null=True,
+        help_text="Main/hero image",
     )
     pit_data = models.OneToOneField(
         PitData,
@@ -662,7 +694,9 @@ class TrackModel(models.Model):
 
     # Basic track categorization - universal across simulators
     category = models.CharField(
-        max_length=20, blank=True, help_text="Track category: 'road' or 'oval'"
+        max_length=20,
+        blank=True,
+        help_text="Track category: 'road' or 'oval'",
     )
     time_zone = models.CharField(
         max_length=50,
@@ -763,15 +797,21 @@ class SimTrack(models.Model):
     is_free = models.BooleanField(default=False, help_text="Free with subscription")
     is_purchasable = models.BooleanField(default=True, help_text="Can be purchased")
     rain_enabled = models.BooleanField(
-        default=False, help_text="Rain weather supported"
+        default=False,
+        help_text="Rain weather supported",
     )
     search_filters = models.CharField(
-        max_length=500, blank=True, help_text="Search filters from API for optimization"
+        max_length=500,
+        blank=True,
+        help_text="Search filters from API for optimization",
     )
 
     # Media Fields
     logo = models.ImageField(
-        upload_to="tracks/logos/", blank=True, null=True, help_text="Track logo"
+        upload_to="tracks/logos/",
+        blank=True,
+        null=True,
+        help_text="Track logo",
     )
     small_image = models.ImageField(
         upload_to="tracks/thumbnails/",
@@ -780,7 +820,10 @@ class SimTrack(models.Model):
         help_text="Thumbnail image",
     )
     large_image = models.ImageField(
-        upload_to="tracks/images/", blank=True, null=True, help_text="Main/hero image"
+        upload_to="tracks/images/",
+        blank=True,
+        null=True,
+        help_text="Main/hero image",
     )
 
     is_active = models.BooleanField(default=True)
@@ -839,40 +882,56 @@ class SimLayout(models.Model):
         help_text="Specific layout type (road, oval, dirt_road, dirt_oval, etc.)",
     )
     retired = models.BooleanField(
-        default=False, help_text="Layout is retired/deprecated"
+        default=False,
+        help_text="Layout is retired/deprecated",
     )
 
     # Technical specifications - layout-specific
     max_cars = models.IntegerField(
-        null=True, blank=True, help_text="Maximum cars supported on this layout"
+        null=True,
+        blank=True,
+        help_text="Maximum cars supported on this layout",
     )
     grid_stalls = models.IntegerField(
-        null=True, blank=True, help_text="Number of grid starting positions"
+        null=True,
+        blank=True,
+        help_text="Number of grid starting positions",
     )
     number_pitstalls = models.IntegerField(
-        null=True, blank=True, help_text="Number of pit stalls available"
+        null=True,
+        blank=True,
+        help_text="Number of pit stalls available",
     )
     corners_per_lap = models.IntegerField(
-        null=True, blank=True, help_text="Number of corners per lap"
+        null=True,
+        blank=True,
+        help_text="Number of corners per lap",
     )
 
     # Session configuration - layout-specific
     qualify_laps = models.IntegerField(
-        null=True, blank=True, help_text="Number of qualifying laps"
+        null=True,
+        blank=True,
+        help_text="Number of qualifying laps",
     )
     allow_rolling_start = models.BooleanField(
-        default=True, help_text="Whether rolling starts are allowed"
+        default=True,
+        help_text="Whether rolling starts are allowed",
     )
     pit_road_speed_limit = models.IntegerField(
-        null=True, blank=True, help_text="Pit road speed limit (mph/kph)"
+        null=True,
+        blank=True,
+        help_text="Pit road speed limit (mph/kph)",
     )
 
     # Lighting capabilities - layout-specific
     night_lighting = models.BooleanField(
-        default=False, help_text="Track has night lighting capabilities"
+        default=False,
+        help_text="Track has night lighting capabilities",
     )
     fully_lit = models.BooleanField(
-        default=False, help_text="Track is fully lit for night racing"
+        default=False,
+        help_text="Track is fully lit for night racing",
     )
 
     pit_data = models.OneToOneField(
@@ -916,11 +975,15 @@ class SimLayout(models.Model):
         from simlane.core.models import MediaGallery
 
         content_type = ContentType.objects.get_for_model(self)
-        return MediaGallery.objects.filter(
-            content_type=content_type,
-            object_id=str(self.id),
-            gallery_type="track_maps",
-        ).order_by("order")
+        return (
+            MediaGallery.objects.filter(
+                content_type=content_type,
+                object_id=str(self.id),
+                gallery_type="track_maps",
+            )
+            .exclude(caption="background")
+            .order_by("order")
+        )
 
     def has_svg_maps(self):
         """Check if this layout has SVG track maps available."""
@@ -944,7 +1007,10 @@ class Series(models.Model):
 
     # Enhanced simulator-specific fields
     external_series_id = models.IntegerField(
-        unique=True, null=True, blank=True, help_text="Series ID from simulator API"
+        unique=True,
+        null=True,
+        blank=True,
+        help_text="Series ID from simulator API",
     )
     simulator = models.ForeignKey(
         Simulator,
@@ -955,14 +1021,15 @@ class Series(models.Model):
         help_text="Simulator this series belongs to (if simulator-specific)",
     )
     category = models.CharField(
-        max_length=50, blank=True, help_text="Track category: 'oval', 'road', etc."
+        max_length=50,
+        blank=True,
+        help_text="Track category: 'oval', 'road', etc.",
     )
-   
+
     is_official = models.BooleanField(default=True, help_text="Official series")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
 
     class Meta:
         verbose_name = "Series"
@@ -981,7 +1048,16 @@ class Series(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.simulator.slug + "-" + self.name + ("-" + str(self.external_series_id) if self.external_series_id else ""))
+            self.slug = slugify(
+                self.simulator.slug
+                + "-"
+                + self.name
+                + (
+                    "-" + str(self.external_series_id)
+                    if self.external_series_id
+                    else ""
+                )
+            )
             # Ensure uniqueness
             counter = 1
             original_slug = self.slug
@@ -997,7 +1073,8 @@ class Season(models.Model):
 
     # Core season identification
     external_season_id = models.IntegerField(
-        unique=True, help_text="Season ID from simulator API"
+        unique=True,
+        help_text="Season ID from simulator API",
     )
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=300, blank=True)
@@ -1045,29 +1122,38 @@ class Season(models.Model):
 class CarRestriction(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(
-        "Event", on_delete=models.CASCADE, related_name="car_restrictions"
+        "Event",
+        on_delete=models.CASCADE,
+        related_name="car_restrictions",
     )
     sim_car = models.ForeignKey(
-        SimCar, on_delete=models.CASCADE, related_name="event_restrictions"
+        SimCar,
+        on_delete=models.CASCADE,
+        related_name="event_restrictions",
     )
 
     # BOP restrictions per car per week (from iRacing car_restrictions data)
     max_dry_tire_sets = models.IntegerField(
-        default=0, help_text="Maximum dry tire sets allowed"
+        default=0,
+        help_text="Maximum dry tire sets allowed",
     )
     max_pct_fuel_fill = models.IntegerField(
-        default=100, help_text="Maximum fuel fill percentage"
+        default=100,
+        help_text="Maximum fuel fill percentage",
     )
     power_adjust_pct = models.FloatField(
-        default=0.0, help_text="Power adjustment percentage (can be decimal)"
+        default=0.0,
+        help_text="Power adjustment percentage (can be decimal)",
     )
     weight_penalty_kg = models.IntegerField(
-        default=0, help_text="Weight penalty in kilograms"
+        default=0,
+        help_text="Weight penalty in kilograms",
     )
 
     # Simplified setup restriction
     is_fixed_setup = models.BooleanField(
-        default=False, help_text="Whether this car uses fixed setup"
+        default=False,
+        help_text="Whether this car uses fixed setup",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1207,11 +1293,13 @@ class Event(models.Model):
 
     # Track-specific settings
     category = models.CharField(
-        max_length=20, blank=True, help_text="Track category: 'oval', 'road'"
+        max_length=20,
+        blank=True,
+        help_text="Track category: 'oval', 'road'",
     )
     enable_pitlane_collisions = models.BooleanField(default=False)
     full_course_cautions = models.BooleanField(default=True)
-    
+
     simulated_start_time = models.DateTimeField(null=True, blank=True)
 
     # Store the recurring schedule pattern from iRacing API
@@ -1262,11 +1350,13 @@ class Event(models.Model):
 
     # Track state
     track_state = models.JSONField(
-        null=True, blank=True, help_text="leave_marbles, etc."
+        null=True,
+        blank=True,
+        help_text="leave_marbles, etc.",
     )
 
     # Existing fields
-    registration_deadline = models.DateTimeField(null=True, blank=True)
+    registration_open_minutes = models.IntegerField(null=True, blank=True)
     is_team_event = models.BooleanField(null=True, blank=True)
     min_drivers_per_entry = models.IntegerField(null=True, blank=True)
     max_drivers_per_entry = models.IntegerField(null=True, blank=True)
@@ -1298,13 +1388,16 @@ class Event(models.Model):
                 check=(
                     # Must have exactly one organizer type (or none for imported events)
                     models.Q(
-                        organizing_club__isnull=False, organizing_user__isnull=True
+                        organizing_club__isnull=False,
+                        organizing_user__isnull=True,
                     )
                     | models.Q(
-                        organizing_club__isnull=True, organizing_user__isnull=False
+                        organizing_club__isnull=True,
+                        organizing_user__isnull=False,
                     )
                     | models.Q(
-                        organizing_club__isnull=True, organizing_user__isnull=True
+                        organizing_club__isnull=True,
+                        organizing_user__isnull=True,
                     )
                 ),
                 name="event_has_single_organizer_or_none",
@@ -1606,7 +1699,7 @@ class EventClass(models.Model):
             for car in allowed_cars:
                 try:
                     car_restriction = CarRestriction.objects.get(
-                        event__round_number=round_number,
+                        event=self.event,
                         sim_car=car,
                     )
                     restrictions[car.sim_api_id] = {
@@ -1633,7 +1726,9 @@ class EventClass(models.Model):
 class TimeSlot(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.ForeignKey(
-        Event, on_delete=models.CASCADE, related_name="time_slots"
+        Event,
+        on_delete=models.CASCADE,
+        related_name="time_slots",
     )
     slug = models.SlugField(max_length=300, blank=True)
     start_time = models.DateTimeField()
@@ -1840,11 +1935,11 @@ class WeatherForecast(models.Model):
     )
     time_offset = models.IntegerField(help_text="Minutes from event start")
     timestamp = models.DateTimeField(
-        help_text="Absolute timestamp for this forecast point"
+        help_text="Absolute timestamp for this forecast point",
     )
     is_sun_up = models.BooleanField(help_text="True if sun is up at this time")
     affects_session = models.BooleanField(
-        help_text="True if a session is running at this time"
+        help_text="True if a session is running at this time",
     )
 
     # Temperature and Pressure
@@ -1919,10 +2014,14 @@ class WeatherForecast(models.Model):
 
 class SimProfileCarOwnership(models.Model):
     sim_profile = models.ForeignKey(
-        "sim.SimProfile", on_delete=models.CASCADE, related_name="owned_cars"
+        "sim.SimProfile",
+        on_delete=models.CASCADE,
+        related_name="owned_cars",
     )
     sim_car = models.ForeignKey(
-        "sim.SimCar", on_delete=models.CASCADE, related_name="owners"
+        "sim.SimCar",
+        on_delete=models.CASCADE,
+        related_name="owners",
     )
     acquired_at = models.DateTimeField(auto_now_add=True)
     is_favorite = models.BooleanField(default=False)
@@ -1936,10 +2035,14 @@ class SimProfileCarOwnership(models.Model):
 
 class SimProfileTrackOwnership(models.Model):
     sim_profile = models.ForeignKey(
-        "sim.SimProfile", on_delete=models.CASCADE, related_name="owned_tracks"
+        "sim.SimProfile",
+        on_delete=models.CASCADE,
+        related_name="owned_tracks",
     )
     sim_track = models.ForeignKey(
-        "sim.SimTrack", on_delete=models.CASCADE, related_name="owners"
+        "sim.SimTrack",
+        on_delete=models.CASCADE,
+        related_name="owners",
     )
     acquired_at = models.DateTimeField(auto_now_add=True)
     is_favorite = models.BooleanField(default=False)
@@ -1965,10 +2068,13 @@ class EventResult(models.Model):
 
     # Core identifiers (simulator agnostic)
     subsession_id = models.BigIntegerField(
-        unique=True, help_text="Simulator subsession ID"
+        unique=True,
+        help_text="Simulator subsession ID",
     )
     session_id = models.BigIntegerField(
-        null=True, blank=True, help_text="Simulator session ID"
+        null=True,
+        blank=True,
+        help_text="Simulator session ID",
     )
 
     # Event summary statistics (universal)
@@ -2007,10 +2113,12 @@ class EventResult(models.Model):
 
     # Processing status
     results_fetched_at = models.DateTimeField(
-        auto_now_add=True, help_text="When results were fetched"
+        auto_now_add=True,
+        help_text="When results were fetched",
     )
     is_processed = models.BooleanField(
-        default=False, help_text="Whether results have been processed"
+        default=False,
+        help_text="Whether results have been processed",
     )
 
     # Raw data backup (includes simulator-specific fields)
@@ -2137,7 +2245,8 @@ class TeamResult(models.Model):
 
     # Points and race outcome
     champ_points = models.IntegerField(
-        default=0, help_text="Championship points earned"
+        default=0,
+        help_text="Championship points earned",
     )
     reason_out = models.CharField(
         max_length=50,
@@ -2154,10 +2263,14 @@ class TeamResult(models.Model):
     # Car and class info
     car_id = models.IntegerField(null=True, blank=True, help_text="Car identifier")
     car_class_id = models.IntegerField(
-        null=True, blank=True, help_text="Car class identifier"
+        null=True,
+        blank=True,
+        help_text="Car class identifier",
     )
     car_class_name = models.CharField(
-        max_length=100, blank=True, help_text="Car class name"
+        max_length=100,
+        blank=True,
+        help_text="Car class name",
     )
     car_name = models.CharField(max_length=100, blank=True, help_text="Car name")
 
@@ -2291,7 +2404,8 @@ class ParticipantResult(models.Model):
 
     # Points and ratings
     champ_points = models.IntegerField(
-        default=0, help_text="Championship points earned"
+        default=0,
+        help_text="Championship points earned",
     )
     oldi_rating = models.IntegerField(
         null=True,
@@ -2340,16 +2454,22 @@ class ParticipantResult(models.Model):
     # Car and class info
     car_id = models.IntegerField(null=True, blank=True, help_text="Car identifier")
     car_class_id = models.IntegerField(
-        null=True, blank=True, help_text="Car class identifier"
+        null=True,
+        blank=True,
+        help_text="Car class identifier",
     )
     car_class_name = models.CharField(
-        max_length=100, blank=True, help_text="Car class name"
+        max_length=100,
+        blank=True,
+        help_text="Car class name",
     )
     car_name = models.CharField(max_length=100, blank=True, help_text="Car name")
 
     # Additional data
     country_code = models.CharField(
-        max_length=3, blank=True, help_text="Driver country"
+        max_length=3,
+        blank=True,
+        help_text="Driver country",
     )
     division = models.IntegerField(null=True, blank=True, help_text="Driver division")
 
@@ -2388,7 +2508,7 @@ class ParticipantResult(models.Model):
 
         if bool(self.team_result) == bool(self.event_result):
             raise ValidationError(
-                "Must have either team_result (team event) or event_result (solo event), but not both"
+                "Must have either team_result (team event) or event_result (solo event), but not both",
             )
 
     @property

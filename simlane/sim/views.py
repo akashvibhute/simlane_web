@@ -43,7 +43,7 @@ def get_public_profiles():
             is_public=True,
         )
         .select_related("simulator", "linked_user")
-        .order_by("-last_active", "-created_at")
+        .order_by("-last_active", "-created_at"),
     )
 
 
@@ -165,7 +165,9 @@ def profiles_list(request):
     if request.headers.get("HX-Request"):
         if request.GET:
             return render(
-                request, "sim/profiles/profiles_results_partial.html", context
+                request,
+                "sim/profiles/profiles_results_partial.html",
+                context,
             )
         return render(request, "sim/profiles/list_partial.html", context)
     return render(request, "sim/profiles/list.html", context)
@@ -275,7 +277,7 @@ def profile_detail(request, simulator_slug, profile_identifier):
 
     # Get current ratings
     current_ratings = profile.ratings.select_related("rating_system").order_by(
-        "-recorded_at"
+        "-recorded_at",
     )[:6]
 
     # Get recent lap times
@@ -339,7 +341,7 @@ def profile_link(request, simulator_slug, profile_identifier):
         try:
             profile.link_to_user(request.user, verified=False)
             logger.info(
-                f"[PROFILE LINK] Linking profile id: {profile.id} for user {request.user.id}"
+                f"[PROFILE LINK] Linking profile id: {profile.id} for user {request.user.id}",
             )
             # Trigger iRacing owned content sync in the background
             sync_iracing_owned_content.delay(profile.id)
@@ -473,7 +475,7 @@ def profile_search_to_link(request):
 def dashboard_home(request):
     """Main dashboard showing all simulators and user's profiles"""
     user_profiles = request.user.linked_sim_profiles.select_related(
-        "simulator"
+        "simulator",
     ).order_by("simulator__name")
     simulators = Simulator.objects.filter(is_active=True).order_by("name")
 
@@ -509,7 +511,7 @@ def simulator_dashboard_section(request, simulator_slug, section="overview"):
             try:
                 selected_profile = user_profiles.get(id=profile_id)
                 request.session[f"selected_{simulator_slug}_profile_id"] = str(
-                    profile_id
+                    profile_id,
                 )
             except SimProfile.DoesNotExist:
                 pass
@@ -526,7 +528,7 @@ def simulator_dashboard_section(request, simulator_slug, section="overview"):
         selected_profile = user_profiles.first()
         if selected_profile:
             request.session[f"selected_{simulator_slug}_profile_id"] = str(
-                selected_profile.id
+                selected_profile.id,
             )
 
     context = {
@@ -539,7 +541,9 @@ def simulator_dashboard_section(request, simulator_slug, section="overview"):
     # HTMX requests return partial content
     if request.headers.get("HX-Request"):
         return render(
-            request, f"sim/{simulator_slug}/dashboard_content_partial.html", context
+            request,
+            f"sim/{simulator_slug}/dashboard_content_partial.html",
+            context,
         )
 
     # Regular requests return full page
@@ -599,7 +603,8 @@ def cars_list(request):
         sim_profile = request.user.linked_sim_profiles.first()
         owned_car_ids = set(
             SimProfileCarOwnership.objects.filter(sim_profile=sim_profile).values_list(
-                "sim_car__car_model_id", flat=True
+                "sim_car__car_model_id",
+                flat=True,
             ),
         )
     for car in page_obj:
@@ -632,7 +637,7 @@ def car_detail(request, car_slug):
             Prefetch(
                 "sim_cars",
                 queryset=SimCar.objects.select_related("simulator", "pit_data").filter(
-                    is_active=True
+                    is_active=True,
                 ),
             ),
         ),
@@ -716,7 +721,8 @@ def tracks_list(request):
         sim_profile = request.user.linked_sim_profiles.first()
         owned_track_ids = set(
             SimProfileCarOwnership.objects.filter(sim_profile=sim_profile).values_list(
-                "sim_car__car_model_id", flat=True
+                "sim_car__car_model_id",
+                flat=True,
             ),
         )
 
@@ -727,7 +733,7 @@ def tracks_list(request):
     if sim_track_map is None:
         sim_track_map = {}
         sim_track_qs = SimTrack.objects.filter(
-            track_model__in=track_ids
+            track_model__in=track_ids,
         ).select_related("simulator")
         for st in sim_track_qs:
             sim_track_map.setdefault(st.track_model_id, []).append(st)
@@ -770,7 +776,7 @@ def track_detail(request, track_slug):
                     Prefetch(
                         "layouts",
                         queryset=SimLayout.objects.select_related("pit_data").order_by(
-                            "name"
+                            "name",
                         ),
                     ),
                 ),
@@ -839,7 +845,7 @@ def layout_detail(request, track_slug, layout_slug):
                     "simulator": sim_track.simulator,
                     "sim_track": sim_track,
                     "layout": found_layout,
-                }
+                },
             )
         except SimLayout.DoesNotExist:
             continue
@@ -893,7 +899,8 @@ def refresh_iracing_owned_content(request):
         profile = SimProfile.objects.get(id=sim_profile_id, linked_user=request.user)
     except SimProfile.DoesNotExist:
         return JsonResponse(
-            {"error": "SimProfile not found or not linked to user."}, status=404
+            {"error": "SimProfile not found or not linked to user."},
+            status=404,
         )
     sync_iracing_owned_content.delay(profile.id)
     return render(request, "sim/components/refresh_status.html", {"status": "syncing"})
@@ -903,7 +910,7 @@ def event_search_dropdown(request):
     """Lightweight dropdown search for events - optimized for autocomplete"""
     search_query = request.GET.get("q", "").strip()
     simulator_slug = request.GET.get("simulator", "")
-    
+
     # Return empty if search query is too short
     if len(search_query) < 4:
         context = {
@@ -911,7 +918,7 @@ def event_search_dropdown(request):
             "search_query": search_query,
         }
         return render(request, "sim/events/dropdown_results_partial.html", context)
-    
+
     # Build optimized query for dropdown
     events = (
         Event.objects.select_related(
@@ -928,7 +935,7 @@ def event_search_dropdown(request):
         )
         .distinct()
     )
-    
+
     # Apply search filter
     events = events.filter(
         Q(name__icontains=search_query)
@@ -939,19 +946,19 @@ def event_search_dropdown(request):
         | Q(organizing_club__name__icontains=search_query)
         | Q(organizing_user__username__icontains=search_query),
     )
-    
+
     # Apply simulator filter if provided
     if simulator_slug:
         events = events.filter(simulator__slug=simulator_slug)
-    
+
     # Order by upcoming time slots and limit results for dropdown
     events = events.order_by("time_slots__start_time")[:15]
-    
+
     context = {
         "events": events,
         "search_query": search_query,
     }
-    
+
     return render(request, "sim/events/dropdown_results_partial.html", context)
 
 
@@ -1134,7 +1141,7 @@ def event_detail(request, event_slug):
             "simulator",
             "series",
             "series__simulator",
-            "sim_layout__sim_track__track_model",
+            "sim_layout__sim_track",
             "organizing_club",
             "organizing_user",
         ).prefetch_related(
@@ -1157,13 +1164,44 @@ def event_detail(request, event_slug):
         start_time__gt=timezone.now(),
     ).order_by("start_time")[:6]
 
+    # Dynamically generate upcoming time slots for repeating schedules (iRacing)
+    if (
+        not upcoming_time_slots
+        and event.simulator.slug == "iracing"
+        and event.time_pattern
+    ):
+        print("Generating upcoming time slots for repeating schedule")
+        try:
+            from datetime import timedelta
+
+            from simlane.iracing.season_sync import RecurrenceHandler
+
+            now = timezone.now()
+            # Generate slots for the next 1 days
+            generated_slots = RecurrenceHandler.generate_time_slots_for_period(
+                event,
+                start_date=now,
+                end_date=now + timedelta(days=1),
+            )
+            # Take first 6 generated slots for display
+            print(generated_slots)
+            upcoming_time_slots = generated_slots[0:6]
+        except Exception as e:
+            # Fallback: leave upcoming_time_slots empty and log the error (logger already configured)
+            import logging
+
+            logging.getLogger(__name__).warning(
+                "Error generating repeating time slots for event %s: %s",
+                event.slug,
+                e,
+            )
+
     # Get recent/completed time slots
     recent_time_slots = event.time_slots.filter(
         start_time__lte=timezone.now(),
     ).order_by("-start_time")[:6]
 
     weather_forecasts = event.weather_forecasts.order_by("timestamp")
-    print(len(weather_forecasts))
     # Check if current user can join this event
     can_join = False
     can_manage = False
@@ -1193,7 +1231,7 @@ def event_detail(request, event_slug):
                 {
                     "car": car,
                     "restrictions": restrictions_map.get(car.sim_api_id, {}),
-                }
+                },
             )
         class_car_data.append({"event_class": ec, "entries": entries})
 

@@ -1,629 +1,733 @@
-{% extends "base.html" %} {% load static %} {% load timezone_filters %} {% block title %}{{ event.name }} -
-SimLane{% endblock %} {% block content %}
-<div class="container mx-auto px-4 py-8">
-  <!-- Breadcrumb -->
-  <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
-    <a href="{% url 'events:events_list' %}" class="hover:text-blue-600"
-      >Events</a
-    >
-    <span>›</span>
-    {% if event.series %}
-    <a
-      href="{% url 'events:events_list' %}?series={{ event.series.slug }}"
-      class="hover:text-blue-600"
-      >{{ event.series.name }}</a
-    >
-    <span>›</span>
-    <span class="text-gray-700">Season 1</span>
-    <span>›</span>
-    {% if event.round_number %}
-    <span class="text-gray-700">Round {{ event.round_number|add:1 }}</span>
-    <span>›</span>
-    {% endif %} {% endif %}
-    <span class="text-gray-900 dark:text-gray-100">{{ event.name|truncatewords:5 }}</span>
-  </nav>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-    <div class="flex items-start justify-between">
-      <div class="flex-1">
-        <div class="flex space-x-4 mb-4">
-          {% if event.series and event.series.logo %}
-          <img
-            src="{{ event.series.logo.url }}"
-            alt="{{ event.series.name }}"
-            class="h-16 object-contain"
-          />
-          {% endif %}
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            {{ event.name }}
-          </h1>
-        </div>
+{% extends "base.html" %}
 
-        <div class="flex flex-wrap gap-2 items-center">
-          <div class="text-sm text-gray-600">
-          {% if event.event_source == 'OFFICIAL' and event.type == 'SPECIAL' %}
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-            >Official</span
-          >
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800"
-            >Special Event</span
-          >
+{% load static %}
+{% load timezone_filters %}
 
-          {% elif event.event_source == 'OFFICIAL' %}
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
-            >Official Series</span
-          >
-          {% elif event.event_source == 'CLUB' %}
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800"
-            >Club Event</span
-          >
-          {% else %}
-          <span
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
-            >Community</span
-          >
-          {% endif %} {% if event.status %}<span
-            class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
-            >{{ event.get_status_display }}</span
-          >{% endif %}
-          </div>
-
-          {% if event.sessions.all %}
-          <div class="flex space-x-2 text-sm font-medium">
-            {% for session in event.sessions.all %} {% if
-            session.get_session_type_display == 'Practice' or
-            session.get_session_type_display == 'Warmup' %}
-            <div
-              class="flex items-center bg-gray-200 rounded-full px-3 py-1 text-gray-600"
-            >
-              <span class="">{{ session.get_session_type_display }} - </span
-              ><span class="text-sm font-medium">
-                {% if session.duration %}{{ session.duration }} min{% endif %}
-                {% if session.laps %} {{ session.laps }} laps {% endif %}
-              </span>
-            </div>
-            {% elif session.get_session_type_display == 'Qualifying' %}
-            <div
-              class="flex items-center bg-blue-200 rounded-full px-3 py-1 text-blue-600"
-            >
-              <span class="">{{ session.get_session_type_display }} - </span
-              ><span class="text-sm font-medium">
-                {% if session.duration %}{{ session.duration }} min{% endif %}
-                {% if session.laps %} {{ session.laps }} laps {% endif %}
-              </span>
-            </div>
-            {% elif session.get_session_type_display == 'Race' %}
-            <div
-              class="flex items-center bg-red-200 rounded-full px-3 py-1 text-red-600"
-            >
-              <span class="">{{ session.get_session_type_display }} - </span
-              ><span class="text-sm font-medium">
-                {% if session.duration %}{{ session.duration }} min{% endif %}
-                {% if session.laps %} {{ session.laps }} laps {% endif %}
-              </span>
-            </div>
-            {% endif %} {% endfor %}
-          </div>
-          {% endif %}
-        </div>
-      </div>
-      <div class="flex-shrink-0 ml-6 text-center">
-        {% if event.simulator.icon %}<img
-          src="{{ event.simulator.icon.url }}"
-          alt="{{ event.simulator.name }}"
-          class="w-16 h-16 rounded-lg mx-auto object-contain mb-2"
-        />{% endif %}
-        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-          {{ event.simulator.name }}
-        </div>
-      </div>
-    </div>
-    {% if upcoming_time_slots %}
-    <div class="flex flex-wrap gap-4 text-sm font-medium mt-4">
-      {% for ts in upcoming_time_slots %}
-      <div class="border border-gray-200 w-64 rounded-lg p-4">
-        <div class="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
-          {{ ts.start_time|user_timezone:user|format_datetime_tz:"%a, %b %d %H:%M %Z" }}
-        </div>
-        <div class="text-xs text-gray-500">
-          Registration window: {{ ts.registration_open|user_timezone:user|format_datetime_tz:"%b %d %H:%M" }} – {{ ts.registration_ends|user_timezone:user|format_datetime_tz:"%H:%M" }}
-        </div>
-        {% if user.is_authenticated and user.timezone != 'UTC' %}
-        <div class="text-xs text-gray-400 mt-1">
-          {{ user.timezone }}
-        </div>
-        {% else %}
-        <div class="text-xs text-gray-400 mt-1">
-          UTC
-        </div>
-        {% endif %} 
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-  </div>
-
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Sidebar (left on mobile, right on desktop) -->
-    <aside class="order-2 lg:order-2 lg:col-span-1 space-y-6">
-      {% if event.sim_layout.has_svg_maps %}
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-          {{ event.sim_layout.sim_track.track_model.name }} - {{
-          event.sim_layout.sim_track.track_model.country }}
-        </h2>
-        {% if event.sim_layout.name !=
-        event.sim_layout.sim_track.track_model.name %}
-        <div class="text-sm text-gray-600 mb-4">
-          Layout: {{ event.sim_layout.name }}
-        </div>
-        {% endif %} {% if event.sim_layout.length_km %}
-        <div class="text-sm text-gray-600">
-          Length: {{ event.sim_layout.length_km|floatformat:2 }} km
-        </div>
-        {% endif %} {% if event.sim_layout.layout_type %}
-        <div class="text-sm text-gray-600">
-          Type: {{ event.sim_layout.get_layout_type_display }}
-        </div>
+{% block title %}
+  {{ event.name }} -
+  SimLane
+{% endblock %}
+{% block content %}
+  <div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center space-x-2 text-sm text-gray-600 mb-6">
+      <a href="{% url 'events:events_list' %}" class="hover:text-blue-600">Events</a>
+      <span>›</span>
+      {% if event.series %}
+        <a href="{% url 'events:events_list' %}?series={{ event.series.slug }}"
+           class="hover:text-blue-600">{{ event.series.name }}</a>
+        <span>›</span>
+        <span class="text-gray-700">Season 1</span>
+        <span>›</span>
+        {% if event.round_number %}
+          <span class="text-gray-700">Round {{ event.round_number|add:1 }}</span>
+          <span>›</span>
         {% endif %}
-        <div class="relative">
-          {% with svg_layers=event.sim_layout.get_svg_map_layers %} {% if
-          svg_layers %}
-          <div
-            class="relative w-full h-auto max-h-80 bg-gray-100 dark:bg-gray-900 rounded"
-          >
-            {% for layer in svg_layers %} {% if forloop.first %}
-            <!-- First image sets intrinsic height -->
-            <img
-              src="{{ layer.image.url }}"
-              alt="{{ layer.caption }}"
-              class="w-full h-auto object-contain"
-            />
-            {% else %}
-            <img
-              src="{{ layer.image.url }}"
-              alt="{{ layer.caption }}"
-              class="absolute inset-0 w-full h-full object-contain"
-              style="z-index:{{ forloop.counter }};"
-            />
-            {% endif %} {% endfor %}
-          </div>
-          {% endif %} {% endwith %}
-        </div>
-      </div>
       {% endif %}
-
-      <!-- Requirements -->
-      {% if event.min_license_level or event.min_safety_rating or
-      event.min_skill_rating %}
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Requirements</h3>
-        <div class="space-y-3">
-          {% if event.min_license_level %}
-          <div class="flex justify-between">
-            <span class="text-gray-600">Min License</span
-            ><span class="font-medium">{{ event.min_license_level }}</span>
+      <span class="text-gray-900 dark:text-gray-100">{{ event.name|truncatewords:5 }}</span>
+    </nav>
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+      <div class="flex items-start justify-between">
+        <div class="flex-1">
+          <div class="flex space-x-4 mb-4">
+            {% if event.series and event.series.logo %}
+              <img src="{{ event.series.logo.url }}"
+                   alt="{{ event.series.name }}"
+                   class="h-16 object-contain" />
+            {% endif %}
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ event.name }}</h1>
           </div>
-          {% endif %} {% if event.min_safety_rating %}
-          <div class="flex justify-between">
-            <span class="text-gray-600">Min SR</span
-            ><span class="font-medium"
-              >{{ event.min_safety_rating|floatformat:2 }}</span
-            >
-          </div>
-          {% endif %} {% if event.min_skill_rating %}
-          <div class="flex justify-between">
-            <span class="text-gray-600">Min iRating</span
-            ><span class="font-medium"
-              >{{ event.min_skill_rating|floatformat:0 }}</span
-            >
-          </div>
-          {% endif %}
-        </div>
-      </div>
-      {% endif %}
-    </aside>
-
-    <!-- Main Content -->
-    <div class="order-1 lg:order-1 lg:col-span-2 space-y-8">
-      <!-- Weather Forecast (moved higher and taller) -->
-      {% if weather_forecasts %}
-      <div
-        class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
-        style="height: 480px"
-      >
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Weather Forecast
-        </h2>
-        <div id="weather-chart" class="w-full h-full"></div>
-      </div>
-      {% endif %}
-      {# Allowed / Event Classes #} {% if event.classes.all %}
-      <div
-        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6"
-      >
-        <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-          Eligible Cars by Class
-        </h3>
-        {% for block in class_car_data %}
-        <h4 class="text-md font-semibold text-gray-800 mt-4 mb-2">
-          {{ block.event_class.name }}
-        </h4>
-        <div class="overflow-x-auto">
-          <table
-            class="min-w-full text-sm text-left border border-gray-200 mb-6"
-          >
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-2 border-b">Car</th>
-                <th class="px-4 py-2 border-b">Fuel %</th>
-                <th class="px-4 py-2 border-b">Power %</th>
-                <th class="px-4 py-2 border-b">Weight kg</th>
-                <th class="px-4 py-2 border-b">Tire sets</th>
-                <th class="px-4 py-2 border-b">Fixed Setup</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for entry in block.entries %} {% with car=entry.car
-              res=entry.restrictions %}
-              <tr class="border-t">
-                <td class="px-4 py-2 flex items-center space-x-2">
-                  {% if car.logo %}<img
-                    src="{{ car.logo.url }}"
-                    class="w-6 h-6 rounded"
-                  />{% endif %}
-                  <span
-                    >{{ car.display_name|default:car.car_model.full_name
-                    }}</span
-                  >
-                </td>
-                <td class="px-4 py-2 text-center">
-                  {{ res.max_pct_fuel_fill|default:'—' }}
-                </td>
-                <td class="px-4 py-2 text-center">
-                  {{ res.power_adjust_pct|default:'—' }}
-                </td>
-                <td class="px-4 py-2 text-center">
-                  {{ res.weight_penalty_kg|default:'—' }}
-                </td>
-                <td class="px-4 py-2 text-center">
-                  {{ res.max_dry_tire_sets|default:'—' }}
-                </td>
-                <td class="px-4 py-2 text-center">
-                  {% if res.is_fixed_setup %}✔️{% endif %}
-                </td>
-              </tr>
-              {% endwith %} {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
-
-      <!-- Recent Time Slots -->
-      {% if recent_time_slots %}
-      <div
-        class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6"
-      >
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Results</h2>
-        <div class="space-y-3">
-          {% for time_slot in recent_time_slots %}
-          <div
-            class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0"
-          >
-            <div>
-              <div class="font-medium text-gray-900 dark:text-gray-100">
-                {{ time_slot.start_time|user_timezone:user|format_datetime_tz:"%b %d, %Y" }}
-              </div>
-              {% if time_slot.result %}
-              <div class="text-sm text-gray-600">
-                {{ time_slot.result.num_drivers }} drivers
-              </div>
-              {% endif %}
-            </div>
+          <div class="flex flex-wrap gap-2 items-center">
             <div class="text-sm text-gray-600">
-              {% if time_slot.result %}
-              <span class="text-green-600 font-medium">Complete</span>
+              {% if event.event_source == 'OFFICIAL' and event.type == 'SPECIAL' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">Official</span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">Special Event</span>
+              {% elif event.event_source == 'OFFICIAL' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Official Series</span>
+              {% elif event.event_source == 'CLUB' %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Club Event</span>
               {% else %}
-              <span class="text-gray-500">No results</span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">Community</span>
+              {% endif %}
+              {% if event.status %}
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">{{ event.get_status_display }}</span>
               {% endif %}
             </div>
+            {% if event.sessions.all %}
+              <div class="flex space-x-2 text-sm font-medium">
+                {% for session in event.sessions.all %}
+                  {% if
+                    session.get_session_type_display == 'Practice' or
+                    session.get_session_type_display == 'Warmup' %}
+                    <div class="flex items-center bg-gray-200 rounded-full px-3 py-1 text-gray-600">
+                      <span class="">{{ session.get_session_type_display }} -</span><span class="text-sm font-medium">
+                        {% if session.duration %}{{ session.duration }} min{% endif %}
+                        {% if session.laps %}{{ session.laps }} laps{% endif %}
+                      </span>
+                    </div>
+                  {% elif session.get_session_type_display == 'Qualifying' %}
+                    <div class="flex items-center bg-blue-200 rounded-full px-3 py-1 text-blue-600">
+                      <span class="">{{ session.get_session_type_display }} -</span><span class="text-sm font-medium">
+                        {% if session.duration %}{{ session.duration }} min{% endif %}
+                        {% if session.laps %}{{ session.laps }} laps{% endif %}
+                      </span>
+                    </div>
+                  {% elif session.get_session_type_display == 'Race' %}
+                    <div class="flex items-center bg-red-200 rounded-full px-3 py-1 text-red-600">
+                      <span class="">{{ session.get_session_type_display }} -</span><span class="text-sm font-medium">
+                        {% if session.duration %}{{ session.duration }} min{% endif %}
+                        {% if session.laps %}{{ session.laps }} laps{% endif %}
+                      </span>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
           </div>
+        </div>
+        <div class="flex-shrink-0 ml-6 text-center">
+          {% if event.simulator.icon %}
+            <img src="{{ event.simulator.icon.url }}"
+                 alt="{{ event.simulator.name }}"
+                 class="w-16 h-16 rounded-lg mx-auto object-contain mb-2" />
+          {% endif %}
+          <div class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ event.simulator.name }}</div>
+        </div>
+      </div>
+      {% if upcoming_time_slots %}
+        <div class="flex flex-wrap gap-4 text-sm font-medium mt-4">
+          {% for ts in upcoming_time_slots %}
+            <div class="border border-gray-200 w-64 rounded-lg p-4">
+              <div class="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
+                {{ ts.start_time|user_timezone:user|format_datetime_tz:"%a, %b %d %H:%M %Z" }}
+              </div>
+              <div class="text-xs text-gray-500">
+                Registration window: {{ ts.registration_open|user_timezone:user|format_datetime_tz:"%b %d %H:%M" }} – {{ ts.registration_ends|user_timezone:user|format_datetime_tz:"%H:%M" }}
+              </div>
+              {% if user.is_authenticated and user.timezone != 'UTC' %}
+                <div class="text-xs text-gray-400 mt-1">{{ user.timezone }}</div>
+              {% else %}
+                <div class="text-xs text-gray-400 mt-1">UTC</div>
+              {% endif %}
+            </div>
           {% endfor %}
         </div>
-      </div>
+      {% else %}
+        <div class="text-sm text-gray-500 mt-4">This event is complete.</div>
       {% endif %}
     </div>
-  </div>
-</div>
-{% endblock %} {% block page_javascript %} {% if weather_forecasts %}
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    // Ensure d3 is available globally (bundled via webpack)
-    const d3 = window.d3;
-    if (!d3) {
-      console.error('d3 not found. Make sure it is bundled and exposed globally.');
-      return;
-    }
-
-    // Prepare weather data (ISO timestamps to support full-day range)
-    const weatherData = [
-      {% for forecast in weather_forecasts %}
-        {
-          time: new Date("{{ forecast.timestamp|user_timezone:user|date:'c' }}"),
-          temperature: {{ forecast.air_temperature|floatformat:1 }},
-          precipitation: {{ forecast.precipitation_chance }},
-          cloudCover: {{ forecast.cloud_cover }},
-          sunUp: {{ forecast.is_sun_up|yesno:"true,false" }}
-        }{% if not forloop.last %},{% endif %}
-      {% endfor %}
-    ];
-
-    // Prepare session start & end markers
-    const sessionTimes = [
-      {% for session in event.sessions.all|dictsort:"in_game_time" %}
-        {% if session.in_game_time %}
-          {
-            start: new Date("{{ session.in_game_time|user_timezone:user|date:'c' }}"),
-            end: new Date(new Date("{{ session.in_game_time|user_timezone:user|date:'c' }}").getTime() + {{ session.duration|default:0 }} * 60000),
-            type: "{{ session.get_session_type_display }}"
-          }{% if not forloop.last %},{% endif %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Sidebar (left on mobile, right on desktop) -->
+      <aside class="order-2 lg:order-2 lg:col-span-1 space-y-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
+            {{ event.sim_layout.sim_track.track_model.name }} - {{
+            event.sim_layout.sim_track.track_model.country }}
+          </h2>
+          {% if event.sim_layout.name !=
+            event.sim_layout.sim_track.track_model.name %}
+            <div class="text-sm text-gray-600 mb-4">Layout: {{ event.sim_layout.name }}</div>
+          {% endif %}
+          {% if event.sim_layout.length_km %}
+            <div class="text-sm text-gray-600">Length: {{ event.sim_layout.length_km|floatformat:2 }} km</div>
+          {% endif %}
+          {% if event.sim_layout.layout_type %}
+            <div class="text-sm text-gray-600">Type: {{ event.sim_layout.get_layout_type_display }}</div>
+          {% endif %}
+          <div class="relative">
+            {% with track=event.sim_layout.sim_track %}
+              {% if track.logo %}
+                <img src="{{ track.logo.url }}"
+                     alt="{{ track.name }} logo"
+                     class="absolute bottom-0 left-0 w-16 h-16 object-contain rounded p-1 z-20" />
+              {% endif %}
+            {% endwith %}
+            <!-- Zoom button -->
+            <button type="button"
+                    class="absolute top-2 right-2 z-30 bg-gray-900 bg-opacity-40 hover:bg-opacity-100 rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer text-white"
+                    aria-label="Enlarge track map"
+                    id="zoom-track-map-btn">
+              <svg xmlns="http://www.w3.org/2000/svg"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke-width="1.5"
+                   stroke="currentColor"
+                   class="size-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" />
+              </svg>
+            </button>
+            {% with svg_layers=event.sim_layout.get_svg_map_layers %}
+              {% if
+                svg_layers %}
+                <div class="relative w-full h-auto max-h-80 bg-gray-700 rounded">
+                  {% for layer in svg_layers %}
+                    {% if forloop.first %}
+                      <!-- First image sets intrinsic height -->
+                      <img src="{{ layer.image.url }}"
+                           alt="{{ layer.caption }}"
+                           class="w-full h-auto object-contain" />
+                    {% else %}
+                      <img src="{{ layer.image.url }}"
+                           alt="{{ layer.caption }}"
+                           class="absolute inset-0 w-full h-full object-contain"
+                           style="z-index:{{ forloop.counter }}" />
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+          </div>
+        </div>
+        <!-- Requirements -->
+        {% if event.min_license_level or event.min_safety_rating or
+          event.min_skill_rating %}
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Requirements</h3>
+            <div class="space-y-3">
+              {% if event.min_license_level %}
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Min License</span><span class="font-medium">{{ event.min_license_level }}</span>
+                </div>
+              {% endif %}
+              {% if event.min_safety_rating %}
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Min SR</span><span class="font-medium">{{ event.min_safety_rating|floatformat:2 }}</span>
+                </div>
+              {% endif %}
+              {% if event.min_skill_rating %}
+                <div class="flex justify-between">
+                  <span class="text-gray-600">Min iRating</span><span class="font-medium">{{ event.min_skill_rating|floatformat:0 }}</span>
+                </div>
+              {% endif %}
+            </div>
+          </div>
         {% endif %}
-      {% endfor %}
-    ];
+      </aside>
+      <!-- Main Content -->
+      <div class="order-1 lg:order-1 lg:col-span-2 space-y-8">
+        <!-- Weather Forecast (moved higher and taller) -->
+        {% if weather_forecasts %}
+          <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+               style="height: 480px">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Weather Forecast</h2>
+            <div id="weather-chart" class="w-full h-full"></div>
+          </div>
+        {% endif %}
+        {# Allowed / Event Classes #}
+        {% if event.classes.all %}
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            {% for block in class_car_data %}
+              <h4 class="text-md font-semibold text-gray-800 mt-4 mb-2">{{ block.event_class.name }}</h4>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm text-left border border-gray-200 mb-6">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-2 border-b">Car</th>
+                      <th class="px-4 py-2 border-b">Fuel Fill %</th>
+                      <th class="px-4 py-2 border-b">Power Adjust %</th>
+                      <th class="px-4 py-2 border-b">Weight Penalty (kg)</th>
+                      <th class="px-4 py-2 border-b">Tire Sets Allowed</th>
+                      <th class="px-4 py-2 border-b">Fixed Setup</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for entry in block.entries %}
+                      {% with car=entry.car
+                        res=entry.restrictions %}
+                        <tr class="border-t">
+                          <td class="px-4 py-2 flex items-center space-x-2">
+                            {% if car.logo %}<img src="{{ car.logo.url }}" class="w-12 h-12 object-contain bg-gray-100" />{% endif %}
+                            <span>{{ car.display_name|default:car.car_model.full_name
+                            }}</span>
+                          </td>
+                          <td class="px-4 py-2 text-center">{{ res.max_pct_fuel_fill|default:'100' }}</td>
+                          <td class="px-4 py-2 text-center">{{ res.power_adjust_pct|default:'0' }}</td>
+                          <td class="px-4 py-2 text-center">{{ res.weight_penalty_kg|default:'0' }}</td>
+                          <td class="px-4 py-2 text-center">{{ res.max_dry_tire_sets|default:'No Limit' }}</td>
+                          <td class="px-4 py-2 text-center">
+                            {% if res.is_fixed_setup %}
+                              ✔️
+                            {% else %}
+                              ❌
+                            {% endif %}
+                          </td>
+                        </tr>
+                      {% endwith %}
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        <!-- Recent Time Slots -->
+        {% if recent_time_slots %}
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Results</h2>
+            <div class="space-y-3">
+              {% for time_slot in recent_time_slots %}
+                <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                  <div>
+                    <div class="font-medium text-gray-900 dark:text-gray-100">
+                      {{ time_slot.start_time|user_timezone:user|format_datetime_tz:"%b %d, %Y" }}
+                    </div>
+                    {% if time_slot.result %}
+                      <div class="text-sm text-gray-600">{{ time_slot.result.num_drivers }} drivers</div>
+                    {% endif %}
+                  </div>
+                  <div class="text-sm text-gray-600">
+                    {% if time_slot.result %}
+                      <span class="text-green-600 font-medium">Complete</span>
+                    {% else %}
+                      <span class="text-gray-500">No results</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <!-- Zoomed map overlay (hidden by default) -->
+  <div id="zoom-track-map-overlay"
+       class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="relative bg-gray-900 rounded-lg shadow-lg max-w-3xl w-full p-4">
+      <button type="button"
+              class="absolute z-50 top-2 right-2 p-2 bg-gray-800 rounded-full cursor-pointer text-white hover:text-red-600 focus:outline-none"
+              aria-label="Close zoomed map"
+              id="close-zoom-track-map-btn">
+        <svg class="w-7 h-7"
+             fill="currentColor"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+      <div class="relative w-full h-auto max-h-[70vh] flex items-center justify-center">
+        {% with track=event.sim_layout.sim_track %}
+          {% if track.logo %}
+            <img src="{{ track.logo.url }}"
+                 alt="{{ track.name }} logo"
+                 class="absolute bottom-0 left-0 w-20 h-20 object-contain rounded p-1 z-20" />
+          {% endif %}
+        {% endwith %}
+        {% with svg_layers=event.sim_layout.get_svg_map_layers %}
+          {% if svg_layers %}
+            {% for layer in svg_layers %}
+              {% if forloop.first %}
+                <img src="{{ layer.image.url }}"
+                     alt="{{ layer.caption }}"
+                     class="w-full h-auto object-contain" />
+              {% else %}
+                <img src="{{ layer.image.url }}"
+                     alt="{{ layer.caption }}"
+                     class="absolute inset-0 w-full h-full object-contain"
+                     style="z-index:{{ forloop.counter }}" />
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block page_javascript %}
+  {% if weather_forecasts %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Ensure d3 is available globally (bundled via webpack)
+        const d3 = window.d3;
+        if (!d3) {
+          console.error('d3 not found. Make sure it is bundled and exposed globally.');
+          return;
+        }
 
-    // Dimensions
-    const container = document.getElementById('weather-chart');
-    const margin = { top: 20, right: 50, bottom: 100, left: 50 };
+        // Prepare weather data (ISO timestamps to support full-day range)
+        const weatherData = [{
+          %
+          for forecast in weather_forecasts %
+        } {
+          time: new Date("{{ forecast.timestamp|user_timezone:user|date:'c' }}"),
+          temperature: {
+            {
+              forecast.air_temperature | floatformat: 1
+            }
+          },
+          precipitation: {
+            {
+              forecast.precipitation_chance
+            }
+          },
+          cloudCover: {
+            {
+              forecast.cloud_cover
+            }
+          },
+          sunUp: {
+            {
+              forecast.is_sun_up | yesno: "true,false"
+            }
+          }
+        } {
+          %
+          if not forloop.last %
+        }, {
+          % endif %
+        } {
+          % endfor %
+        }];
 
-    const width = container.clientWidth - margin.left - margin.right;
-    const heightMain = 260;
-    const heightContext = 60;
+        // Prepare session start & end markers
+        const sessionTimes = [{
+          %
+          for session in event.sessions.all | dictsort: "in_game_time" %
+        } {
+          %
+          if session.in_game_time %
+        } {
+          start: new Date("{{ session.in_game_time|user_timezone:user|date:'c' }}"),
+          end: new Date(new Date("{{ session.in_game_time|user_timezone:user|date:'c' }}").getTime() + {
+            {
+              session.duration |
+                default: 0
+            }
+          }* 60000),
+          type: "{{ session.get_session_type_display }}"
+        } {
+          %
+          if not forloop.last %
+        }, {
+          % endif %
+        } {
+          % endif %
+        } {
+          % endfor %
+        }];
 
-    const svg = d3
-      .select(container)
-      .append('svg')
-      .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${heightMain + heightContext + margin.top + margin.bottom}`);
+        // Dimensions
+        const container = document.getElementById('weather-chart');
+        const margin = {
+          top: 20,
+          right: 50,
+          bottom: 100,
+          left: 50
+        };
 
-    const focus = svg
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top})`);
+        const width = container.clientWidth - margin.left - margin.right;
+        const heightMain = 260;
+        const heightContext = 60;
 
-    const context = svg
-      .append('g')
-      .attr('transform', `translate(${margin.left},${margin.top + heightMain + 20})`);
+        const svg = d3
+          .select(container)
+          .append('svg')
+          .attr('viewBox', `0 0 ${width + margin.left + margin.right} ${heightMain + heightContext + margin.top + margin.bottom}`);
 
-    // ----- Theme / palette -----
-    const isDark = document.documentElement.classList.contains('dark');
-    const palette = {
-      temp: isDark ? '#facc15' : '#eab308', // yellow-400 vs amber-500
-      precip: isDark ? '#60a5fa' : '#3b82f6', // blue-400 vs blue-500
-      cloud: isDark ? '#d1d5db' : '#9ca3af', // gray-300 vs gray-400
-      axis: isDark ? '#9ca3af' : '#374151',  // gray-400 vs gray-700 for better contrast
-      night: isDark ? '#ffffff' : '#000000',
-    };
+        const focus = svg
+          .append('g')
+          .attr('transform', `translate(${margin.left},${margin.top})`);
 
-    // Scales
-    const x = d3
-      .scaleTime()
-      .domain(d3.extent(weatherData, d => d.time))
-      .range([0, width]);
+        const context = svg
+          .append('g')
+          .attr('transform', `translate(${margin.left},${margin.top + heightMain + 20})`);
 
-    const x2 = x.copy();
+        // ----- Theme / palette -----
+        const isDark = document.documentElement.classList.contains('dark');
+        const palette = {
+          temp: isDark ? '#facc15' : '#eab308', // yellow-400 vs amber-500
+          precip: isDark ? '#60a5fa' : '#3b82f6', // blue-400 vs blue-500
+          cloud: isDark ? '#d1d5db' : '#9ca3af', // gray-300 vs gray-400
+          axis: isDark ? '#9ca3af' : '#374151', // gray-400 vs gray-700 for better contrast
+          night: isDark ? '#ffffff' : '#000000',
+        };
 
-    const yTemp = d3
-      .scaleLinear()
-      .domain([d3.min(weatherData, d => d.temperature) - 2, d3.max(weatherData, d => d.temperature) + 2])
-      .nice()
-      .range([heightMain, 0]);
+        // Scales
+        const x = d3
+          .scaleTime()
+          .domain(d3.extent(weatherData, d => d.time))
+          .range([0, width]);
 
-    const yPrecip = d3.scaleLinear().domain([0, 100]).range([heightMain, 0]);
-    const yCloud = yPrecip;
+        const x2 = x.copy();
 
-    const yTempMini = yTemp.copy().range([heightContext, 0]);
-    const yPrecipMini = yPrecip.copy().range([heightContext, 0]);
+        const yTemp = d3
+          .scaleLinear()
+          .domain([d3.min(weatherData, d => d.temperature) - 2, d3.max(weatherData, d => d.temperature) + 2])
+          .nice()
+          .range([heightMain, 0]);
 
-    // Axes
-    const xAxis = d3.axisBottom(x).tickFormat(d3.utcFormat('%H:%M'));
-    const xAxis2 = d3.axisBottom(x2).tickFormat(d3.utcFormat('%H:%M'));
-    const yAxisLeft = d3.axisLeft(yTemp);
-    const yAxisRight = d3.axisRight(yPrecip);
+        const yPrecip = d3.scaleLinear().domain([0, 100]).range([heightMain, 0]);
+        const yCloud = yPrecip;
 
-    // Apply axis color
-    function styleAxis(axisG){
-      axisG.selectAll('text').attr('fill', palette.axis);
-      axisG.selectAll('line,path').attr('stroke', palette.axis);
-    }
+        const yTempMini = yTemp.copy().range([heightContext, 0]);
+        const yPrecipMini = yPrecip.copy().range([heightContext, 0]);
 
-    // Line generators
-    const tempLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yTemp(d.temperature));
-    const tempLine2 = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yTemp(d.temperature) /* same y domain */);
+        // Axes
+        const xAxis = d3.axisBottom(x).tickFormat(d3.utcFormat('%H:%M'));
+        const xAxis2 = d3.axisBottom(x2).tickFormat(d3.utcFormat('%H:%M'));
+        const yAxisLeft = d3.axisLeft(yTemp);
+        const yAxisRight = d3.axisRight(yPrecip);
 
-    const precipLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yPrecip(d.precipitation));
-    const precipLine2 = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yPrecipMini(d.precipitation));
+        // Apply axis color
+        function styleAxis(axisG) {
+          axisG.selectAll('text').attr('fill', palette.axis);
+          axisG.selectAll('line,path').attr('stroke', palette.axis);
+        }
 
-    const cloudLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yCloud(d.cloudCover));
-    const cloudLine2 = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yPrecipMini(d.cloudCover));
+        // Line generators
+        const tempLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yTemp(d.temperature));
+        const tempLine2 = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yTemp(d.temperature) /* same y domain */ );
 
-    const tempLineMini = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yTempMini(d.temperature));
+        const precipLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yPrecip(d.precipitation));
+        const precipLine2 = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yPrecipMini(d.precipitation));
 
-    // Draw lines in focus
-    focus.append('path').datum(weatherData).attr('class', 'temp-line').attr('fill', 'none').attr('stroke', palette.temp).attr('stroke-width', 2).attr('d', tempLine);
-    focus.append('path').datum(weatherData).attr('class', 'precip-line').attr('fill', 'none').attr('stroke', palette.precip).attr('stroke-width', 2).attr('stroke-dasharray', '4 2').attr('d', precipLine);
-    focus.append('path').datum(weatherData).attr('class', 'cloud-line').attr('fill', 'none').attr('stroke', palette.cloud).attr('stroke-width', 1.5).attr('stroke-dasharray', '2 2').attr('d', cloudLine);
+        const cloudLine = d3.line().curve(d3.curveMonotoneX).x(d => x(d.time)).y(d => yCloud(d.cloudCover));
+        const cloudLine2 = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yPrecipMini(d.cloudCover));
 
-    // Draw axes
-    const xAxisG = focus.append('g').attr('class','x-axis').attr('transform', `translate(0,${heightMain})`).call(xAxis);
-    styleAxis(xAxisG.call(xAxis));
-    styleAxis(focus.append('g').call(yAxisLeft));
-    styleAxis(focus.append('g').attr('transform', `translate(${width},0)`).call(yAxisRight));
+        const tempLineMini = d3.line().curve(d3.curveMonotoneX).x(d => x2(d.time)).y(d => yTempMini(d.temperature));
 
-    // Legend (inside main chart area, top-left)
-    const legendData = [
-      { label: 'Temp (°C)', color: palette.temp, dash:'' , strokeWidth: 2},
-      { label: 'Precip %', color: palette.precip, dash:'4 2', strokeWidth: 2},
-      { label: 'Cloud %', color: palette.cloud, dash:'2 2', strokeWidth: 1.5},
-      { label: 'Night', color: palette.night, dash:'', strokeWidth: 6, isRect: true },
-    ];
+        // Draw lines in focus
+        focus.append('path').datum(weatherData).attr('class', 'temp-line').attr('fill', 'none').attr('stroke', palette.temp).attr('stroke-width', 2).attr('d', tempLine);
+        focus.append('path').datum(weatherData).attr('class', 'precip-line').attr('fill', 'none').attr('stroke', palette.precip).attr('stroke-width', 2).attr('stroke-dasharray', '4 2').attr('d', precipLine);
+        focus.append('path').datum(weatherData).attr('class', 'cloud-line').attr('fill', 'none').attr('stroke', palette.cloud).attr('stroke-width', 1.5).attr('stroke-dasharray', '2 2').attr('d', cloudLine);
 
-    const legend = focus.append('g')
-      .attr('class', 'legend')
-      .attr('transform', 'translate(0, -12)');
+        // Draw axes
+        const xAxisG = focus.append('g').attr('class', 'x-axis').attr('transform', `translate(0,${heightMain})`).call(xAxis);
+        styleAxis(xAxisG.call(xAxis));
+        styleAxis(focus.append('g').call(yAxisLeft));
+        styleAxis(focus.append('g').attr('transform', `translate(${width},0)`).call(yAxisRight));
 
-    const legendItem = legend.selectAll('g')
-      .data(legendData)
-      .enter()
-      .append('g')
-      .attr('transform', (d, i) => `translate(${i * 100},0)`);
+        // Legend (inside main chart area, top-left)
+        const legendData = [{
+          label: 'Temp (°C)',
+          color: palette.temp,
+          dash: '',
+          strokeWidth: 2
+        }, {
+          label: 'Precip %',
+          color: palette.precip,
+          dash: '4 2',
+          strokeWidth: 2
+        }, {
+          label: 'Cloud %',
+          color: palette.cloud,
+          dash: '2 2',
+          strokeWidth: 1.5
+        }, {
+          label: 'Night',
+          color: palette.night,
+          dash: '',
+          strokeWidth: 6,
+          isRect: true
+        }, ];
 
-    legendItem.each(function(d){
-      const g = d3.select(this);
-      if(d.isRect){
-        g.append('rect')
-          .attr('x',0).attr('y',-4)
-          .attr('width',20).attr('height',8)
-          .attr('fill', d.color)
-          .attr('opacity', 0.15);
-      } else {
-        g.append('line')
+        const legend = focus.append('g')
+          .attr('class', 'legend')
+          .attr('transform', 'translate(0, -12)');
+
+        const legendItem = legend.selectAll('g')
+          .data(legendData)
+          .enter()
+          .append('g')
+          .attr('transform', (d, i) => `translate(${i * 100},0)`);
+
+        legendItem.each(function(d) {
+          const g = d3.select(this);
+          if (d.isRect) {
+            g.append('rect')
+              .attr('x', 0).attr('y', -4)
+              .attr('width', 20).attr('height', 8)
+              .attr('fill', d.color)
+              .attr('opacity', 0.15);
+          } else {
+            g.append('line')
+              .attr('x1', 0).attr('y1', 0)
+              .attr('x2', 20).attr('y2', 0)
+              .attr('stroke', d.color)
+              .attr('stroke-width', d.strokeWidth)
+              .attr('stroke-dasharray', d.dash);
+          }
+        });
+
+        legendItem.append('text')
+          .attr('x', 24)
+          .attr('y', 4)
+          .attr('font-size', '10px')
+          .attr('fill', palette.axis)
+          .text(d => d.label);
+
+        // Session type legend (placed below first legend row)
+        const sessionLegendData = [{
+          label: 'Practice/Warmup',
+          color: '#22c55e'
+        }, {
+          label: 'Qualifying',
+          color: '#6b7280'
+        }, {
+          label: 'Race',
+          color: '#ef4444'
+        }, ];
+
+        const sessionLegendX = legendData.length * 100 + 20; // align to the right of main legend
+        const sessionLegend = focus.append('g')
+          .attr('class', 'session-legend')
+          .attr('transform', `translate(${sessionLegendX}, -12)`);
+
+        const sessItem = sessionLegend.selectAll('g')
+          .data(sessionLegendData)
+          .enter()
+          .append('g')
+          .attr('transform', (d, i) => `translate(${i * 110},0)`);
+
+        sessItem.append('line')
           .attr('x1', 0).attr('y1', 0)
           .attr('x2', 20).attr('y2', 0)
-          .attr('stroke', d.color)
-          .attr('stroke-width', d.strokeWidth)
-          .attr('stroke-dasharray', d.dash);
-      }
-    });
+          .attr('stroke', d => d.color)
+          .attr('stroke-width', 2)
+          .attr('stroke-dasharray', '2 2');
 
-    legendItem.append('text')
-      .attr('x', 24)
-      .attr('y', 4)
-      .attr('font-size', '10px')
-      .attr('fill', palette.axis)
-      .text(d => d.label);
+        sessItem.append('text')
+          .attr('x', 24).attr('y', 4)
+          .attr('font-size', '10px')
+          .attr('fill', palette.axis)
+          .text(d => d.label);
 
-    // Session type legend (placed below first legend row)
-    const sessionLegendData = [
-      { label: 'Practice/Warmup', color: '#22c55e' },
-      { label: 'Qualifying', color: '#6b7280' },
-      { label: 'Race', color: '#ef4444' },
-    ];
+        // Session markers (start & end)
+        sessionTimes.forEach((session, idx) => {
+          const color = idx === 0 ? '#22c55e' : session.type.toLowerCase().includes('race') ? '#ef4444' : '#6b7280';
+          focus.append('line').attr('class', 'session-marker').attr('x1', x(session.start)).attr('x2', x(session.start)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 2');
+          focus.append('line').attr('class', 'session-marker').attr('x1', x(session.end)).attr('x2', x(session.end)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 4');
+        });
 
-    const sessionLegendX = legendData.length * 100 + 20; // align to the right of main legend
-    const sessionLegend = focus.append('g')
-      .attr('class', 'session-legend')
-      .attr('transform', `translate(${sessionLegendX}, -12)`);
+        // Night-time shading layer
+        const nightLayer = focus.append('g').attr('class', 'night-layer');
 
-    const sessItem = sessionLegend.selectAll('g')
-      .data(sessionLegendData)
-      .enter()
-      .append('g')
-      .attr('transform', (d,i) => `translate(${i * 110},0)`);
+        function drawNightShading() {
+          // Remove old rects
+          nightLayer.selectAll('rect').remove();
 
-    sessItem.append('line')
-      .attr('x1',0).attr('y1',0)
-      .attr('x2',20).attr('y2',0)
-      .attr('stroke', d=>d.color)
-      .attr('stroke-width',2)
-      .attr('stroke-dasharray','2 2');
-
-    sessItem.append('text')
-      .attr('x',24).attr('y',4)
-      .attr('font-size','10px')
-      .attr('fill',palette.axis)
-      .text(d=>d.label);
-
-    // Session markers (start & end)
-    sessionTimes.forEach((session, idx) => {
-      const color = idx === 0 ? '#22c55e' : session.type.toLowerCase().includes('race') ? '#ef4444' : '#6b7280';
-      focus.append('line').attr('class', 'session-marker').attr('x1', x(session.start)).attr('x2', x(session.start)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 2');
-      focus.append('line').attr('class', 'session-marker').attr('x1', x(session.end)).attr('x2', x(session.end)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 4');
-    });
-
-    // Night-time shading layer
-    const nightLayer = focus.append('g').attr('class', 'night-layer');
-
-    function drawNightShading() {
-      // Remove old rects
-      nightLayer.selectAll('rect').remove();
-
-      // Build continuous night segments where sunUp === false
-      const segments = [];
-      let currentStart = null;
-      weatherData.forEach(d => {
-        if (!d.sunUp) {
-          if (currentStart === null) {
-            currentStart = d.time;
+          // Build continuous night segments where sunUp === false
+          const segments = [];
+          let currentStart = null;
+          weatherData.forEach(d => {
+            if (!d.sunUp) {
+              if (currentStart === null) {
+                currentStart = d.time;
+              }
+            } else if (currentStart !== null) {
+              segments.push({
+                start: currentStart,
+                end: d.time
+              });
+              currentStart = null;
+            }
+          });
+          if (currentStart !== null) {
+            segments.push({
+              start: currentStart,
+              end: weatherData[weatherData.length - 1].time
+            });
           }
-        } else if (currentStart !== null) {
-          segments.push({ start: currentStart, end: d.time });
-          currentStart = null;
+
+          // Draw rects for each segment
+          nightLayer.selectAll('rect')
+            .data(segments)
+            .enter()
+            .append('rect')
+            .attr('x', d => x(d.start))
+            .attr('y', 0)
+            .attr('width', d => Math.max(1, x(d.end) - x(d.start)))
+            .attr('height', heightMain)
+            .attr('fill', palette.night)
+            .attr('opacity', 0.06);
+        }
+
+        // Initial draw of night shading
+        drawNightShading();
+
+        // Draw lines in context chart
+        context.append('path').datum(weatherData).attr('class', 'temp-line2').attr('fill', 'none').attr('stroke', palette.temp).attr('stroke-width', 1).attr('d', tempLineMini);
+        context.append('path').datum(weatherData).attr('class', 'precip-line2').attr('fill', 'none').attr('stroke', palette.precip).attr('stroke-width', 1).attr('stroke-dasharray', '4 2').attr('d', precipLine2);
+        context.append('path').datum(weatherData).attr('class', 'cloud-line2').attr('fill', 'none').attr('stroke', palette.cloud).attr('stroke-width', 1).attr('stroke-dasharray', '2 2').attr('d', cloudLine2);
+
+        styleAxis(context.append('g').attr('transform', `translate(0,${heightContext})`).call(xAxis2));
+
+        // Brush
+        const brush = d3.brushX().extent([
+          [0, 0],
+          [width, heightContext]
+        ]).on('brush end', brushed);
+
+        const brushG = context.append('g').attr('class', 'x-brush').call(brush);
+
+        // Initial brush move: 1h before first session start to last session end
+        const earliestSessionStart = d3.min(sessionTimes, d => d.start);
+        const lastWeatherTime = d3.max(weatherData, d => d.time);
+        if (earliestSessionStart && lastWeatherTime) {
+          const startPadding = new Date(earliestSessionStart.getTime() - 60 * 60 * 1000);
+          brush.move(brushG, [x2(startPadding), x2(lastWeatherTime)]);
+        }
+
+        function brushed(event) {
+          if (!event.selection) return;
+          const [x0, x1] = event.selection.map(x2.invert);
+          x.domain([x0, x1]);
+          focus.selectAll('.temp-line').attr('d', tempLine);
+          focus.selectAll('.precip-line').attr('d', precipLine);
+          focus.selectAll('.cloud-line').attr('d', cloudLine);
+
+          // Update markers
+          focus.selectAll('line.session-marker').remove();
+
+          sessionTimes.forEach((session, idx) => {
+            const color = idx === 0 ? '#22c55e' : session.type.toLowerCase().includes('race') ? '#ef4444' : '#6b7280';
+            focus.append('line').attr('class', 'session-marker').attr('x1', x(session.start)).attr('x2', x(session.start)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 2');
+            focus.append('line').attr('class', 'session-marker').attr('x1', x(session.end)).attr('x2', x(session.end)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 4');
+          });
+          styleAxis(xAxisG.call(xAxis));
+
+          // Re-draw night shading with updated x domain
+          drawNightShading();
         }
       });
-      if (currentStart !== null) {
-        segments.push({ start: currentStart, end: weatherData[weatherData.length - 1].time });
+    </script>
+  {% endif %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Track map zoom overlay logic
+      const zoomBtn = document.getElementById('zoom-track-map-btn');
+      const overlay = document.getElementById('zoom-track-map-overlay');
+      const closeBtn = document.getElementById('close-zoom-track-map-btn');
+
+      if (zoomBtn && overlay && closeBtn) {
+        // Open overlay
+        zoomBtn.addEventListener('click', function() {
+          overlay.classList.remove('hidden');
+          // Trap focus
+          closeBtn.focus();
+          document.body.style.overflow = 'hidden';
+        });
+        // Close overlay
+        function closeOverlay() {
+          overlay.classList.add('hidden');
+          document.body.style.overflow = '';
+          zoomBtn.focus();
+        }
+        closeBtn.addEventListener('click', closeOverlay);
+        // ESC key closes overlay
+        document.addEventListener('keydown', function(e) {
+          if (!overlay.classList.contains('hidden') && (e.key === 'Escape' || e.key === 'Esc')) {
+            closeOverlay();
+          }
+        });
+        // Click outside closes overlay
+        overlay.addEventListener('mousedown', function(e) {
+          if (e.target === overlay) {
+            closeOverlay();
+          }
+        });
       }
-
-      // Draw rects for each segment
-      nightLayer.selectAll('rect')
-        .data(segments)
-        .enter()
-        .append('rect')
-        .attr('x', d => x(d.start))
-        .attr('y', 0)
-        .attr('width', d => Math.max(1, x(d.end) - x(d.start)))
-        .attr('height', heightMain)
-        .attr('fill', palette.night)
-        .attr('opacity', 0.06);
-    }
-
-    // Initial draw of night shading
-    drawNightShading();
-
-    // Draw lines in context chart
-    context.append('path').datum(weatherData).attr('class', 'temp-line2').attr('fill', 'none').attr('stroke', palette.temp).attr('stroke-width', 1).attr('d', tempLineMini);
-    context.append('path').datum(weatherData).attr('class', 'precip-line2').attr('fill', 'none').attr('stroke', palette.precip).attr('stroke-width', 1).attr('stroke-dasharray', '4 2').attr('d', precipLine2);
-    context.append('path').datum(weatherData).attr('class', 'cloud-line2').attr('fill', 'none').attr('stroke', palette.cloud).attr('stroke-width', 1).attr('stroke-dasharray', '2 2').attr('d', cloudLine2);
-
-    styleAxis(context.append('g').attr('transform', `translate(0,${heightContext})`).call(xAxis2));
-
-    // Brush
-    const brush = d3.brushX().extent([[0, 0], [width, heightContext]]).on('brush end', brushed);
-
-    const brushG = context.append('g').attr('class','x-brush').call(brush);
-
-    // Initial brush move: 1h before first session start to last session end
-    const earliestSessionStart = d3.min(sessionTimes, d => d.start);
-    const lastWeatherTime = d3.max(weatherData, d => d.time);
-    if (earliestSessionStart && lastWeatherTime) {
-      const startPadding = new Date(earliestSessionStart.getTime() - 60 * 60 * 1000);
-      brush.move(brushG, [x2(startPadding), x2(lastWeatherTime)]);
-    }
-
-    function brushed(event) {
-      if (!event.selection) return;
-      const [x0, x1] = event.selection.map(x2.invert);
-      x.domain([x0, x1]);
-      focus.selectAll('.temp-line').attr('d', tempLine);
-      focus.selectAll('.precip-line').attr('d', precipLine);
-      focus.selectAll('.cloud-line').attr('d', cloudLine);
-
-      // Update markers
-      focus.selectAll('line.session-marker').remove();
-
-      sessionTimes.forEach((session, idx) => {
-        const color = idx === 0 ? '#22c55e' : session.type.toLowerCase().includes('race') ? '#ef4444' : '#6b7280';
-        focus.append('line').attr('class', 'session-marker').attr('x1', x(session.start)).attr('x2', x(session.start)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 2');
-        focus.append('line').attr('class', 'session-marker').attr('x1', x(session.end)).attr('x2', x(session.end)).attr('y1', 0).attr('y2', heightMain).attr('stroke', color).attr('stroke-dasharray', '2 4');
-      });
-      styleAxis(xAxisG.call(xAxis));
-
-      // Re-draw night shading with updated x domain
-      drawNightShading();
-    }
-  });
-</script>
-{% endif %} {% endblock %}
+    });
+  </script>
+{% endblock %}
